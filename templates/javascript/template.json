@@ -1,0 +1,13 @@
+{
+  "id": "javascript",
+  "name": "JavaScript",
+  "description": "JavaScript (CommonJS) with your exact conventions: Prettier (165 cols), ESLint + unused-imports, no parent imports, module-aliases, knip/jscpd/madge health, custom release.js with GitHub gates, AGENTS.md, husky + lint-staged.",
+  "language": "javascript",
+  "verifyCommands": [
+    "npm install",
+    "npm run format",
+    "npm run lint",
+    "npm test",
+    "npm run health:full"
+  ]
+}

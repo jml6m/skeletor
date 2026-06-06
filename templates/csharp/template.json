@@ -1,0 +1,10 @@
+{
+  "id": "csharp",
+  "name": "C# (.NET)",
+  "description": "Standard .NET console project with .csproj, Program.cs, and xUnit tests.",
+  "language": "csharp",
+  "verifyCommands": [
+    "dotnet build",
+    "dotnet test"
+  ]
+}

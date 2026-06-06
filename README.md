@@ -3,63 +3,80 @@ Efficient scaffolding for custom development.
 
 Generates empty (or lightly stubbed) projects pre-configured with **your** rules and recommendations, derived from analysis of many GitHub-linked workspaces (local-land-client/server, cuda-sandbox, x-app-skeleton, etc.).
 
-## What gets generated (node template)
+## Available Templates
 
-- Prettier (printWidth 165, single quotes, organize-imports + pkg plugins) — exact match across your projects
-- ESLint + `unused-imports` (error), `no-restricted-imports` for `../*`, `no-console` + process.env guards
-- jsconfig paths + module-alias runtime aliases (`@src`, `@utils`, `@config`...)
-- Knip + jscpd + madge health checks (`npm run health:full`)
-- Custom `release.js` with GitHub issue gates for majors + "one bump per PR" flow
-- `AGENTS.md` (Single Source of Truth for AI agents, Three-Strike rule, cross-repo protocol, exclusions, logging standards, architecture)
-- `scripts/reinstall.js`, `scripts/generate-context.js` (prompt.md builder)
-- Husky + lint-staged pre-commit hook (format/lint on staged files)
-- Basic `.github/workflows/ci.yml` (lint + test + health on PR/push)
-- Basic layered src skeleton + logger stub that demonstrates the no-console / structured metadata rules
-- Jest, .editorconfig, .gitignore, etc.
+Skeletor lets you **pick** the kind of project you want. Run `skeletor new my-project` (omit `--template`) for an interactive selector, or pass `--template <id>`.
 
-> **Note on modern tooling (2026 context)**: Research shows Biome and Oxlint are rapidly becoming popular faster alternatives to ESLint+Prettier for *new* projects. The current `node` template stays faithful to the exact stack and rules used across your existing workspaces (local-land-*, cuda-sandbox, etc.). Future templates or opt-in flags can add Biome support.
+Current templates (standard main libraries + your flavors where they existed):
+
+- `javascript` — Your exact CJS conventions (Prettier 165, ESLint+unused-imports, aliases, health tools, release gates, AGENTS.md, husky+lint-staged, etc.)
+- `typescript` — Modern ESM + flat ESLint + TypeScript, tsconfig, build, your quality gates + AGENTS.md
+- `python` — Best-practice defaults (pyproject.toml + ruff for lint+format, pytest, mypy, src layout)
+- `go` — Standard Go module (`go.mod` + main + tests)
+- `rust` — Standard Cargo binary crate
+- `java` — Maven + JUnit 5 structure
+- `csharp` — .NET 8 console + xUnit
+
+Each template includes a `template.json` manifest that declares `verifyCommands` — the exact steps (3 & 4) a developer should run after scaffolding. The test suite discovers templates and validates this contract.
+
+> New languages/stacks: Drop a directory under `templates/<id>/` with a `template.json` + conventional source/build/test files using `{{PROJECT_NAME}}` etc. tokens. The CLI, listing, and tests pick it up automatically.
+
+## Rich Interactive CLI
+
+We use `@clack/prompts` for a modern experience:
+- Beautiful template selector with descriptions/hints when you omit `--template`
+- Prompts for owner and description (when running interactively without `--yes`)
+- Confirmation step
+- Proper cancel handling and nice spinners/intro/outro
+
+`--yes` stays fully non-interactive for scripts/CI.
+
+## Pushing to GitHub
+
+**Pushing is not automatic.** After every set of changes (new templates, CLI updates, tests, docs), you **must** explicitly:
+1. `git add -A`
+2. `git commit -m "..."` (good message)
+3. `git push origin main`
+
+See the root `AGENTS.md` for the standing instruction given to agents working on this repo. This ensures the GitHub repo (`https://github.com/jml6m/skeletor`) stays in sync with every request. There is no special Grok Build setting that auto-pushes; it must be done via shell commands in the agent loop (or documented in project instructions like AGENTS.md).
 
 ## Usage (alpha)
 
 ```bash
-# From source during development
-node src/index.js new my-api --template node --owner jml6m
+# Interactive (recommended for exploration)
+node src/index.js new my-project
 
-# Or after npm link / publish
-npx @jml6m/skeletor new my-api --yes
-skeletor new my-service
+# Or specify
+node src/index.js new my-api --template typescript --owner jml6m
+
+# Non-interactive (CI / scripts)
+npx @jml6m/skeletor new my-service --yes --template go
 ```
 
-Flags:
-- `--template node` (only one for now)
-- `--owner jml6m`
-- `--description "..."` 
-- `--yes`
+Common flags:
+- `--template <id>` (javascript, typescript, python, go, rust, java, csharp, ...)
+- `--owner`
+- `--description`
+- `--yes` (skip all prompts)
 - `--no-git`
 
-After scaffolding:
-```bash
-cd my-api
-npm install
-npm run format
-npm run lint
-npm test
-npm run health:full
-```
+After scaffolding, follow the `verifyCommands` from that template's `template.json` (shown in the success message). E.g. for most JS/TS: `npm install && npm run health:full` etc.
+
+Run `skeletor` (or `node src/index.js`) with no args to see current templates.
 
 ## Philosophy / Goals
 
-- Encode **your** standards once (in this repo's `templates/`) so every new sandbox or real project starts compliant.
-- Similar spirit to Yeoman / `create-*-app` but 100% aligned to the specific lint, alias, health, release, agent-protocol, and architecture patterns you actually use and enforce in local-land-* and friends.
-- Easy to evolve: edit files under `templates/node/` and the next generated project gets the update.
+- Developers **pick** the scaffolding they want (language + flavor).
+- Your personal conventions (from the workspaces analysis) are encoded in the relevant templates (javascript/typescript for now).
+- Everything else starts from clean "standard main library" best practices and can be refined later.
+- The `template.json` manifest per template is the contract for post-generation steps (this is what the test suite validates as steps 3 & 4).
+- Easy to evolve: add/edit under `templates/<id>/`. New templates are auto-discovered by the CLI and tests.
 
 ## Status
 
-Early alpha. The `node` template is the first codification of the common cross-project tooling + quality gates + AI agent contract (heavily informed by deep analysis of your linked workspaces).
+Active. Multiple language templates + rich clack-based interactive UI. Test suite validates generation + manifest contracts for every template.
 
-More templates (TS + flat eslint / native `package.json#imports`, Angular standalone, Python, fullstack pair, etc.) and richer templating are planned.
-
-Run `skeletor` (or `node src/index.js`) with no args for current help.
+Run `skeletor` (or `node src/index.js`) with no args for current help and template list.
 
 ## For Testers & Reviewers
 
@@ -101,20 +118,27 @@ The tests cover:
 
 All tests are in `tests/`.
 
-### Updating standards
+### Updating / Adding Templates
 
-The single source of truth for "your rules" lives in `templates/node/`.
+The source of truth lives in `templates/<id>/` (each with its own `template.json`).
 
-Edit any file there (package.json scripts/deps, AGENTS.md, eslint config, the CI workflow, the logger example, etc.). The next `skeletor new ...` will emit the updated version.
+- Edit files inside an existing template → next generation gets the change.
+- Add a whole new `templates/newlang/` with `template.json` + files → it appears in the picker, help, and tests automatically.
 
-When you are happy with changes, commit + push (or ask for review).
+Always run `npm test` after template work.
+
+When happy, commit + push (see root `AGENTS.md` for the standing rule).
 
 ### GitHub push & external review
 
-After local verification:
-- The repo is https://github.com/jml6m/skeletor
-- This worktree should be on `main` and can be pushed normally.
+Pushing is **explicit** (not automatic). After changes:
+- Run tests
+- `git add -A && git commit -m "..." && git push origin main`
 
-Feel free to open issues or PRs against it with feedback like "the generated CI should also run build" or "please add a --typescript flag".
+See the root `AGENTS.md` (the instruction file for agents) for the exact rule.
 
-Happy to iterate quickly on the templates based on real usage.
+The repo lives at https://github.com/jml6m/skeletor.
+
+Open issues/PRs with feedback on new templates, UI, etc.
+
+Now, finish the UI polish if needed and do the push.

@@ -16,6 +16,11 @@ export default {
   ],
   // Do not run the example tests that live inside the *scaffolded templates*
   testPathIgnorePatterns: ['/templates/'],
+  // Prevent Jest haste module name collisions from the template package.json files (they contain {{PROJECT_NAME}})
+  modulePathIgnorePatterns: ['<rootDir>/templates/'],
+  haste: {
+    enableSymlinks: false,
+  },
   // Silence some experimental warning noise in CI
   silent: false,
   verbose: true,

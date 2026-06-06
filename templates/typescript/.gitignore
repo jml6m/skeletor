@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build / output
+dist/
+build/
+coverage/
+report/
+reports/
+
+# Env & secrets
+.env
+.env.*
+*.local
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Lockfiles that may be noisy in some flows (keep package-lock.json in real projects)
+# package-lock.json
+
+# Generated context for AI
+prompt.md

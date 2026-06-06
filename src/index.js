@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import * as p from '@clack/prompts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,24 +17,26 @@ const ROOT = path.resolve(__dirname, '..');
 const TEMPLATES_DIR = path.join(ROOT, 'templates');
 
 const USAGE = `
-💀 skeletor — scaffolding with your rules
+💀 skeletor — pick your scaffolding
 
 Usage:
   skeletor new <name> [options]
   skeletor --help
 
 Options:
-  --template <name>     Template to use (default: "node")
-                        Available: node
-  --owner <user>        GitHub owner/org for release.js (default: jml6m)
+  --template <name>     Template to use (e.g. javascript, typescript, python)
+                        Omit to choose interactively (or use --yes for default)
+  --owner <user>        GitHub owner/org for release scripts (default: jml6m)
   --description <text>  Short project description
-  --yes                 Non-interactive, use all defaults
+  --yes                 Non-interactive, use defaults + first available template
   --no-git              Skip git init
 
 Examples:
-  skeletor new my-api --template node --owner jml6m
+  skeletor new my-api --template typescript
   skeletor new my-lib --yes
+  skeletor new my-tool
 `;
+
 
 function log(msg) { console.log(msg); }
 function logError(msg) { console.error(msg); }
@@ -43,7 +46,7 @@ function parseArgs(argv) {
   const result = {
     command: null,
     name: null,
-    template: 'node',
+    template: null, // resolved later, can be interactive
     owner: 'jml6m',
     description: 'A new project scaffolded with skeletor.',
     yes: false,
@@ -60,7 +63,7 @@ function parseArgs(argv) {
     result.name = args[1];
     for (let i = 2; i < args.length; i++) {
       const a = args[i];
-      if (a === '--template' || a === '-t') result.template = args[++i] || 'node';
+      if (a === '--template' || a === '-t') result.template = args[++i] || null;
       else if (a === '--owner' || a === '-o') result.owner = args[++i] || 'jml6m';
       else if (a === '--description' || a === '-d') result.description = args[++i] || result.description;
       else if (a === '--yes' || a === '-y') result.yes = true;
@@ -116,18 +119,119 @@ function getAvailableTemplates() {
   });
 }
 
+function loadTemplateManifest(templateId) {
+  const dir = path.join(TEMPLATES_DIR, templateId);
+  const manifestPath = path.join(dir, 'template.json');
+  let manifest = {
+    id: templateId,
+    name: templateId,
+    description: 'A custom template.',
+    language: templateId,
+    verifyCommands: [],
+  };
+  if (fs.existsSync(manifestPath)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest = { ...manifest, ...raw };
+    } catch (e) {
+      // ignore bad manifest, fall back to defaults
+    }
+  }
+  return { ...manifest, dir };
+}
+
+function getTemplatesWithManifests() {
+  const ids = getAvailableTemplates();
+  return ids.map((id) => loadTemplateManifest(id));
+}
+
+async function chooseTemplateInteractively(templates, isYes) {
+  if (isYes || templates.length === 0) {
+    return templates[0] ? templates[0].id : null;
+  }
+
+  if (!process.stdout.isTTY) {
+    return templates[0] ? templates[0].id : null;
+  }
+
+  p.intro('💀 Skeletor — pick your scaffolding');
+
+  const options = templates.map((t) => ({
+    value: t.id,
+    label: t.name,
+    hint: t.description.length > 60 ? t.description.slice(0, 57) + '...' : t.description,
+  }));
+
+  const selected = await p.select({
+    message: 'Choose a template',
+    options,
+  });
+
+  if (p.isCancel(selected)) {
+    p.cancel('Operation cancelled.');
+    process.exit(0);
+  }
+
+  return selected;
+}
+
 async function runNew(opts) {
-  const { name, template, owner, description, git } = opts;
+  const { name, git, yes } = opts;
 
   if (!name || name === '.' || name === '..') {
     logError('❌ Please provide a valid project name (e.g. "my-api").');
     process.exit(1);
   }
 
-  const available = getAvailableTemplates();
-  if (!available.includes(template)) {
-    logError(`❌ Unknown template "${template}". Available: ${available.join(', ') || '(none yet)'}`);
+  const allTemplates = getTemplatesWithManifests();
+  if (allTemplates.length === 0) {
+    logError('❌ No templates found in templates/ directory.');
     process.exit(1);
+  }
+
+  let chosenTemplateId = opts.template;
+  let finalOwner = opts.owner || 'jml6m';
+  let finalDesc = opts.description || 'A new project scaffolded with skeletor.';
+
+  const isInteractive = !yes && process.stdout.isTTY;
+
+  if (!chosenTemplateId) {
+    chosenTemplateId = await chooseTemplateInteractively(allTemplates, yes);
+  }
+
+  const templateInfo = allTemplates.find((t) => t.id === chosenTemplateId);
+  if (!templateInfo) {
+    const available = allTemplates.map((t) => t.id).join(', ');
+    logError(`❌ Unknown template "${chosenTemplateId}". Available: ${available}`);
+    process.exit(1);
+  }
+
+  // Richer interactive prompts for missing details (only when not --yes)
+  if (isInteractive) {
+    const ownerInput = await p.text({
+      message: 'GitHub owner / org',
+      placeholder: finalOwner,
+      initialValue: finalOwner,
+    });
+    if (p.isCancel(ownerInput)) { p.cancel('Cancelled.'); process.exit(0); }
+    finalOwner = ownerInput || finalOwner;
+
+    const descInput = await p.text({
+      message: 'Project description',
+      placeholder: finalDesc,
+      initialValue: finalDesc,
+    });
+    if (p.isCancel(descInput)) { p.cancel('Cancelled.'); process.exit(0); }
+    finalDesc = descInput || finalDesc;
+
+    const shouldContinue = await p.confirm({
+      message: `Scaffold "${name}" as ${templateInfo.name}?`,
+      initialValue: true,
+    });
+    if (p.isCancel(shouldContinue) || !shouldContinue) {
+      p.cancel('Scaffolding cancelled.');
+      process.exit(0);
+    }
   }
 
   const targetDir = path.resolve(process.cwd(), name);
@@ -136,42 +240,40 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const repoName = name; // could slugify later
+  const repoName = name;
   const vars = {
     PROJECT_NAME: name,
-    REPO_OWNER: owner,
+    REPO_OWNER: finalOwner,
     REPO_NAME: repoName,
-    DESCRIPTION: description,
+    DESCRIPTION: finalDesc,
     YEAR: new Date().getFullYear(),
   };
 
-  log(`\n💀 Skeletor: creating "${name}" using template "${template}"...`);
+  p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 
-  const tmplDir = path.join(TEMPLATES_DIR, template);
-  copyAndRender(tmplDir, targetDir, vars);
+  copyAndRender(templateInfo.dir, targetDir, vars);
 
-  // post steps
   if (git) {
     try {
       execSync('git init -q', { cwd: targetDir, stdio: 'ignore' });
       execSync('git add -A', { cwd: targetDir, stdio: 'ignore' });
       execSync('git commit -q -m "chore: initial commit from skeletor"', { cwd: targetDir, stdio: 'ignore' });
-      log('   ✓ git repository initialized');
+      p.log.success('Git repository initialized');
     } catch (e) {
-      log('   ⚠️  git init skipped (git not available or failed)');
+      p.log.warn('Git init skipped (git not available or failed)');
     }
   }
 
-  log('\n✅ Done! Next steps:');
-  log(`   cd ${name}`);
-  log('   npm install');
-  log('   npm run format   # or let your editor handle prettier');
-  log('   npm run lint');
-  log('   npm test         # (once tests exist)');
-  log('   npm run health:full');
-  log('\n   Edit AGENTS.md to customize the AI contract for this project.');
-  log('   Use `npm run release:patch` when opening PRs (per your conventions).');
-  log('\nHappy scaffolding. Your rules, your projects.\n');
+  p.outro('✅ Done!');
+
+  console.log(`   cd ${name}`);
+  const suggested = templateInfo.verifyCommands && templateInfo.verifyCommands.length
+    ? templateInfo.verifyCommands[0]
+    : 'Run your language-specific install + test commands';
+  console.log(`   ${suggested}`);
+  console.log('   Then run the other steps from the template manifest (lint, test, etc.)');
+  console.log('\n   Edit AGENTS.md (or equivalent) to customize the AI contract.');
+  console.log('   Happy scaffolding. Your rules, your choice of stack.\n');
 }
 
 function main() {
@@ -179,9 +281,13 @@ function main() {
 
   if (opts.command === 'help' || !opts.command) {
     log(USAGE.trim());
-    const tmpls = getAvailableTemplates();
-    if (tmpls.length) log(`\nInstalled templates: ${tmpls.join(', ')}`);
-    else log('\n(No templates found yet — run from a full skeletor checkout with templates/ )');
+    const tmpls = getTemplatesWithManifests();
+    if (tmpls.length) {
+      log('\nAvailable templates:');
+      tmpls.forEach((t) => log(`  • ${t.id} — ${t.name}: ${t.description}`));
+    } else {
+      log('\n(No templates found yet — run from a full skeletor checkout with templates/ )');
+    }
     process.exit(0);
   }
 
@@ -198,6 +304,8 @@ export {
   parseArgs,
   render,
   getAvailableTemplates,
+  getTemplatesWithManifests,
+  loadTemplateManifest,
   ensureDir,
   copyAndRender,
   runNew,

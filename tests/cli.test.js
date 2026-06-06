@@ -13,7 +13,7 @@ describe('skeletor CLI pure functions', () => {
     const result = parseArgs(argv);
     expect(result.command).toBe('new');
     expect(result.name).toBe('my-cool-api');
-    expect(result.template).toBe('node');
+    expect(result.template).toBe(null); // resolved later / interactively
     expect(result.owner).toBe('jml6m');
     expect(result.git).toBe(true);
   });
@@ -52,9 +52,8 @@ describe('skeletor CLI pure functions', () => {
     expect(out).toBe('Project test-app owned by jml6m/test-app in 2026');
   });
 
-  test('getAvailableTemplates finds the node template', () => {
-    // This runs from the project root in normal test invocation
+  test('getAvailableTemplates discovers the maintained templates', () => {
     const templates = getAvailableTemplates();
-    expect(templates).toContain('node');
+    expect(templates).toEqual(expect.arrayContaining(['javascript', 'typescript', 'python']));
   });
 });

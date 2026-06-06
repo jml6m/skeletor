@@ -1,0 +1,10 @@
+[package]
+name = "{{PROJECT_NAME}}"
+version = "0.1.0"
+edition = "2021"
+description = "{{DESCRIPTION}}"
+
+[dependencies]
+
+[dev-dependencies]
+# Add testing helpers here if needed

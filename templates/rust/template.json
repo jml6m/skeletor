@@ -1,0 +1,10 @@
+{
+  "id": "rust",
+  "name": "Rust",
+  "description": "Standard Rust binary crate with Cargo.toml, src/main.rs, and tests. Uses cargo test for verification.",
+  "language": "rust",
+  "verifyCommands": [
+    "cargo check",
+    "cargo test"
+  ]
+}

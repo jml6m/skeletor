@@ -1,0 +1,14 @@
+{
+  "id": "typescript",
+  "name": "TypeScript",
+  "description": "Modern TypeScript (ESM) with strict settings, flat ESLint + typescript-eslint, your Prettier rules, path aliases, knip/jscpd/madge, release gates, AGENTS.md, and full health checks. Good default for new TS projects.",
+  "language": "typescript",
+  "verifyCommands": [
+    "npm install",
+    "npm run format",
+    "npm run lint",
+    "npm run build",
+    "npm test",
+    "npm run health:full"
+  ]
+}

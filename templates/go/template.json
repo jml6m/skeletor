@@ -1,0 +1,11 @@
+{
+  "id": "go",
+  "name": "Go",
+  "description": "Standard Go module with go.mod, main package, basic CLI structure, and tests. Uses go test for verification.",
+  "language": "go",
+  "verifyCommands": [
+    "go mod tidy",
+    "go build .",
+    "go test ./..."
+  ]
+}

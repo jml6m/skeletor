@@ -1,0 +1,4 @@
+#!/bin/sh
+# Husky v9 + lint-staged pre-commit
+# Runs format/lint on staged files only. Fast feedback before commit.
+npx lint-staged
