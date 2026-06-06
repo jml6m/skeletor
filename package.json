@@ -1,0 +1,13 @@
+{
+  "name": "@jml6m/skeletor",
+  "version": "0.1.0-alpha.1",
+  "description": "Efficient scaffolding for custom development",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "skeletor": "src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
