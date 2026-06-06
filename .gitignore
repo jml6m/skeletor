@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build / test artifacts
+coverage/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Env
+.env
+.env.*
+*.local
+
+# Generated AI context (if you run it here)
+prompt.md
+
+# Lockfile: commit it for the published CLI tool so users get reproducible installs of skeletor itself.
+# (The *generated* projects from the template will create their own.)
+# package-lock.json is intentionally *not* ignored at root for the skeletor package. 
+# If you prefer not to commit it, add the line below.
+# package-lock.json

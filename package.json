@@ -1,13 +1,36 @@
 {
   "name": "@jml6m/skeletor",
-  "version": "0.1.0-alpha.1",
-  "description": "Efficient scaffolding for custom development",
+  "version": "0.1.0-alpha.2",
+  "description": "Efficient scaffolding for custom development. Generates projects wired with personal lint/format/health/release/alias/AGENTS.md conventions.",
   "main": "src/index.js",
   "type": "module",
   "bin": {
     "skeletor": "src/index.js"
   },
-  "keywords": [],
+  "scripts": {
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch"
+  },
+  "files": [
+    "src",
+    "templates",
+    "README.md"
+  ],
+  "keywords": [
+    "scaffolding",
+    "generator",
+    "yeoman",
+    "template",
+    "eslint",
+    "prettier",
+    "knip"
+  ],
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">=20.19.0"
+  }
 }

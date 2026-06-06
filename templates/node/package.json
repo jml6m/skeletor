@@ -1,0 +1,60 @@
+{
+  "name": "{{PROJECT_NAME}}",
+  "version": "0.1.0",
+  "private": true,
+  "description": "{{DESCRIPTION}}",
+  "main": "src/index.js",
+  "license": "UNLICENSED",
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "prepare": "husky",
+    "start": "node src/index.js",
+    "test": "jest --verbose",
+    "test:coverage": "jest --coverage --verbose",
+    "release:patch": "node release.js patch",
+    "release:minor": "node release.js minor",
+    "release:major": "node release.js major",
+    "npm:reinstall": "node scripts/reinstall.js",
+    "prompt:gen": "node scripts/generate-context.js",
+    "health:dead": "knip --no-exit-code",
+    "health:dupes": "jscpd src || node -e \"process.exit(0)\"",
+    "health:circular": "madge --circular --extensions js src || node -e \"process.exit(0)\"",
+    "health:full": "npm-run-all --sequential health:dead health:dupes health:circular"
+  },
+  "dependencies": {
+    "module-alias": "^2.3.4"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "eslint": "^8.57.0",
+    "eslint-import-resolver-jsconfig": "^1.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "jscpd": "^4.0.0",
+    "knip": "^5.86.0",
+    "lint-staged": "^15.2.0",
+    "madge": "^8.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.3.3",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "prettier-plugin-pkg": "^0.21.2"
+  },
+  "_moduleAliases": {
+    "@root": ".",
+    "@src": "src",
+    "@config": "src/config",
+    "@constants": "src/constants",
+    "@utils": "src/utils",
+    "@services": "src/services",
+    "@mechanics": "src/mechanics"
+  },
+  "lint-staged": {
+    "*.{js,json,md,yml,yaml}": "prettier --write"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

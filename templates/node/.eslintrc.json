@@ -1,0 +1,82 @@
+{
+  "env": {
+    "node": true,
+    "es2021": true,
+    "commonjs": true,
+    "jest": true
+  },
+  "extends": ["eslint:recommended", "plugin:import/recommended"],
+  "plugins": ["unused-imports", "import"],
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "settings": {
+    "import/resolver": {
+      "jsconfig": {
+        "config": "jsconfig.json",
+        "extensions": [".js", ".json"]
+      }
+    }
+  },
+  "rules": {
+    "no-unused-vars": "off",
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": [
+      "warn",
+      {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "CallExpression[callee.object.name='logger'][callee.property.name=/^(info|warn|error|debug|http|log)$/] > TemplateLiteral:first-child",
+        "message": "Avoid template literals in logger messages. Use a static string and pass variables as metadata: logger.info('Event description', { key: value })"
+      }
+    ],
+    "no-console": "warn",
+    "no-empty": ["error", { "allowEmptyCatch": false }],
+    "no-undef": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["../*"],
+            "message": "Do not use parent imports. Use architectural aliases (e.g. @services, @utils) or sibling imports (./)."
+          }
+        ]
+      }
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "process",
+        "property": "env",
+        "message": "Use @config (or equivalent) instead of process.env directly."
+      },
+      {
+        "object": "process",
+        "property": "exit",
+        "message": "Direct process.exit() is discouraged. Use error handling or a dedicated shutdown utility."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["knip.config.js", "release.js", "scripts/**/*.js", "tests/**/*.js"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["release.js", "scripts/**/*.js", "tests/support/**/*.js"],
+      "rules": {
+        "no-restricted-properties": "off"
+      }
+    }
+  ]
+}
