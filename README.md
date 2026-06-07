@@ -124,6 +124,7 @@ The source of truth lives in `templates/<id>/` (each with its own `template.json
 
 - Edit files inside an existing template → next generation gets the change.
 - Add a whole new `templates/newlang/` with `template.json` + files → it appears in the picker, help, and tests automatically.
+- **Ecosystem manifest files** (e.g. `package.json`, `pyproject.toml`, `Cargo.toml`, `pom.xml`, `*.csproj`, `go.mod`) must be named with a `.tmpl` suffix inside the template (e.g. `package.json.tmpl`). The generator strips the suffix on output, so the generated project sees the conventional filename. This prevents GitHub's dependency graph from treating template dependencies as skeletor's own.
 
 Always run `npm test` after template work.
 

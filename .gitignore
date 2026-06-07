@@ -4,6 +4,7 @@ node_modules/
 # Build / test artifacts
 coverage/
 *.log
+gen-*/
 
 # OS / editor
 .DS_Store
