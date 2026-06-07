@@ -28,8 +28,8 @@
   2. Review changes with `git status` / `git diff`.
   3. `git add -A`
   4. `git commit -m "descriptive message (e.g. feat(templates): add go, rust, java, csharp + clack interactive UI)"`
-  5. `git push origin main`
-  - Pushing is **not automatic**. You must explicitly perform the git commands via the shell tool every time.
+  5. `git push -u origin HEAD`
+  - Pushing is **not automatic**. You must explicitly perform the git commands every time.
   - This rule exists because the user wants the GitHub repo to stay in sync after every request.
 
 - **Git / Worktrees**
