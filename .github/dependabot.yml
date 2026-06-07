@@ -1,0 +1,28 @@
+# Dependabot configuration for skeletor
+
+version: 2
+
+multi-ecosystem-groups:
+  all-dependencies:
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+    assignees:
+      - "jml6m"
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "all-dependencies"
+    open-pull-requests-limit: 1
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "all-dependencies"
+    open-pull-requests-limit: 1
