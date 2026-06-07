@@ -36,9 +36,9 @@ We use `@clack/prompts` for a modern experience:
 **Pushing is not automatic.** After every set of changes (new templates, CLI updates, tests, docs), you **must** explicitly:
 1. `git add -A`
 2. `git commit -m "..."` (good message)
-3. `git push origin main`
+3. `git push -u origin HEAD`
 
-See the root `AGENTS.md` for the standing instruction given to agents working on this repo. This ensures the GitHub repo (`https://github.com/jml6m/skeletor`) stays in sync with every request. There is no special Grok Build setting that auto-pushes; it must be done via shell commands in the agent loop (or documented in project instructions like AGENTS.md).
+See the root `AGENTS.md` for the standing instruction given to agents working on this repo. This ensures the GitHub repo (`https://github.com/jml6m/skeletor`) stays in sync with every request. There is no special Grok Build setting that auto-pushes; it must be done via explicit git commands in the agent loop (or documented in project instructions like AGENTS.md).
 
 ## Usage (alpha)
 
@@ -133,7 +133,7 @@ When happy, commit + push (see root `AGENTS.md` for the standing rule).
 
 Pushing is **explicit** (not automatic). After changes:
 - Run tests
-- `git add -A && git commit -m "..." && git push origin main`
+- `git add -A && git commit -m "..." && git push -u origin HEAD`
 
 See the root `AGENTS.md` (the instruction file for agents) for the exact rule.
 
