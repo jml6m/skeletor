@@ -1,5 +1,7 @@
 # 🤖 Skeletor Development — Agent Guidelines
 
+> NOTE: This file intentionally mirrors the root `AGENTS.md`. Prefer updating `AGENTS.md` first, then copy/regenerate this file to keep them in sync.
+
 **Project:** skeletor
 **Purpose:** Multi-language project scaffolding CLI. Users pick a template (javascript, typescript, python, go, rust, java, csharp, ...) to generate a new project pre-configured with good defaults + (where applicable) personal conventions.
 
@@ -28,8 +30,8 @@
   2. Review changes with `git status` / `git diff`.
   3. `git add -A`
   4. `git commit -m "descriptive message (e.g. feat(templates): add go, rust, java, csharp + clack interactive UI)"`
-  5. `git push origin main`
-  - Pushing is **not automatic**. You must explicitly perform the git commands via the shell tool every time.
+  5. `git push -u origin HEAD`
+  - Pushing is **not automatic**. Only push when you intentionally want to publish your changes.
   - This rule exists because the user wants the GitHub repo to stay in sync after every request.
 
 - **Git / Worktrees**
