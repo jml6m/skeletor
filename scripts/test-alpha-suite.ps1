@@ -1,4 +1,15 @@
+#requires -Version 5.1
 <#
+  IMPORTANT FOR GIT BASH / MINGW64 / WSL USERS:
+    Do NOT run this file directly with bash.
+    Use one of these instead:
+
+      powershell.exe -ExecutionPolicy Bypass -File "path\to\test-alpha-suite.ps1" -Automated -TestRun "my-run-1"
+
+    or (if you have PowerShell 7+ installed as pwsh):
+
+      pwsh -ExecutionPolicy Bypass -File "path\to\test-alpha-suite.ps1" -Automated
+
 .SYNOPSIS
     Test suite for the alpha version of @jml6m/skeletor on npm.
 
@@ -25,19 +36,47 @@
     If true (default after publish), uses npx @jml6m/skeletor@alpha.
     Set to $false to test against local `node src/index.js` instead.
 
+.PARAMETER TestRun
+    A unique identifier for this test run (e.g. "my-experiment-1").
+    If omitted, a timestamped name like "run-20240607-143022" is generated automatically.
+    All generated sandboxes for this run will live under <SandboxRoot>/<TestRun>/.
+    This prevents overwriting results from previous executions.
+
 .EXAMPLE
-    .\scripts\test-alpha-suite.ps1                     # fully manual / interactive
-    .\scripts\test-alpha-suite.ps1 -Automated          # fully headless with flags
+    # From Git Bash / MSYS / any shell (recommended):
+    powershell.exe -ExecutionPolicy Bypass -File ../skeletor/scripts/test-alpha-suite.ps1 -Automated
+
+    # With a custom run name (prevents overwriting previous runs):
+    powershell.exe -ExecutionPolicy Bypass -File ../skeletor/scripts/test-alpha-suite.ps1 -Automated -TestRun "my-experiment-2024-06-07"
+
+    # Timestamped run name (PowerShell syntax):
+    powershell.exe -ExecutionPolicy Bypass -File ../skeletor/scripts/test-alpha-suite.ps1 -Automated -TestRun "my-test-$(Get-Date -Format yyyyMMdd-HHmmss)"
+
+    # Fully manual / interactive (you answer the clack prompts):
+    .\scripts\test-alpha-suite.ps1 -TestRun "interactive-1"
 #>
 
 param(
     [ValidateSet("Manual", "Automated", "Headless")]
     [string]$Mode = "Manual",
 
+    [switch]$Automated,
+    [switch]$Headless,
+
     [string]$SandboxRoot = "C:\Users\brzt3\workspaces\skeletor-alpha-sandbox",
 
-    [bool]$UseAlpha = $true
+    [bool]$UseAlpha = $true,
+
+    [string]$TestRun = ""
 )
+
+# Support convenient switch flags like -Automated and -Headless
+if ($Automated) { $Mode = "Automated" }
+if ($Headless)   { $Mode = "Headless" }
+
+if (-not $TestRun) {
+    $TestRun = "run-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -51,14 +90,17 @@ if ($UseAlpha) {
     $skeletorCmd = "node `"$skeletorRoot\src\index.js`""
 }
 
+$EffectiveRoot = Join-Path $SandboxRoot $TestRun
+
 Write-Host "=== Skeletor Alpha Test Suite ===" -ForegroundColor Cyan
 Write-Host "Mode: $Mode (interactive prompts: $manual)" -ForegroundColor Yellow
 Write-Host "Command: $skeletorCmd" -ForegroundColor Yellow
-Write-Host "Sandboxes will be created under: $SandboxRoot" -ForegroundColor Yellow
+Write-Host "TestRun: $TestRun" -ForegroundColor Yellow
+Write-Host "Sandboxes will be created under: $EffectiveRoot" -ForegroundColor Yellow
 Write-Host ""
 
-if (-not (Test-Path $SandboxRoot)) {
-    New-Item -ItemType Directory -Path $SandboxRoot -Force | Out-Null
+if (-not (Test-Path $EffectiveRoot)) {
+    New-Item -ItemType Directory -Path $EffectiveRoot -Force | Out-Null
 }
 
 $templates = @(
@@ -72,7 +114,7 @@ $templates = @(
 )
 
 function New-Sandbox($name) {
-    $dir = Join-Path $SandboxRoot $name
+    $dir = Join-Path $EffectiveRoot $name
     if (Test-Path $dir) {
         Write-Host "Removing previous $name..." -ForegroundColor DarkGray
         Remove-Item -Recurse -Force $dir
@@ -140,5 +182,11 @@ if ($headless) {
 }
 
 Write-Host "`n=== All requested iterations executed ===" -ForegroundColor Cyan
-Write-Host "Next step: run the verify script against $SandboxRoot" -ForegroundColor Yellow
-Write-Host "Example: .\scripts\verify-alpha-suite.ps1 -SandboxRoot `"$SandboxRoot`"" -ForegroundColor Yellow
+Write-Host "Test run ID: $TestRun" -ForegroundColor Yellow
+Write-Host "Sandboxes are under: $EffectiveRoot" -ForegroundColor Yellow
+Write-Host "Next step: run the verify script" -ForegroundColor Yellow
+Write-Host "Example (from PowerShell):" -ForegroundColor Yellow
+Write-Host "  .\scripts\verify-alpha-suite.ps1 -SandboxRoot `"$EffectiveRoot`"" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Tip: If you ran this from Git Bash, next time use:" -ForegroundColor DarkGray
+Write-Host "  powershell.exe -ExecutionPolicy Bypass -File <path-to-script> -Automated -TestRun `"$TestRun`"" -ForegroundColor DarkGray

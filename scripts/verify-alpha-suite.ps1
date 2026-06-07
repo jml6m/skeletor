@@ -1,4 +1,14 @@
+#requires -Version 5.1
 <#
+  IMPORTANT FOR GIT BASH / MINGW64 / WSL USERS:
+    Do NOT run this file directly with bash.
+    Use:
+
+      powershell.exe -ExecutionPolicy Bypass -File "path\to\verify-alpha-suite.ps1" -TestRun "my-run-1"
+
+  Or pass the full path to the specific run directory:
+      powershell.exe -ExecutionPolicy Bypass -File "path\to\verify-alpha-suite.ps1" -SandboxRoot "C:\...\skeletor-alpha-sandbox\run-20240607-143022"
+
 .SYNOPSIS
     Verification script for skeletor alpha test sandboxes.
 
@@ -8,12 +18,22 @@
     Optionally attempts to run the "verifyCommands" style steps for that template.
 
 .PARAMETER SandboxRoot
-    Root containing the manual-* and auto-* subdirectories.
+    Root containing the subdirectories for a specific test run.
+
+.PARAMETER TestRun
+    If provided, SandboxRoot is treated as the parent and this value is appended
+    (same convention as test-alpha-suite.ps1).
 #>
 
 param(
-    [string]$SandboxRoot = "C:\Users\brzt3\workspaces\skeletor-alpha-sandbox"
+    [string]$SandboxRoot = "C:\Users\brzt3\workspaces\skeletor-alpha-sandbox",
+
+    [string]$TestRun = ""
 )
+
+if ($TestRun) {
+    $SandboxRoot = Join-Path $SandboxRoot $TestRun
+}
 
 $ErrorActionPreference = "Continue"
 
