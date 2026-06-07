@@ -1,6 +1,6 @@
 {
   "name": "@jml6m/skeletor",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Efficient scaffolding for custom development. Generates projects wired with personal lint/format/health/release/alias/AGENTS.md conventions.",
   "main": "src/index.js",
   "type": "module",
@@ -26,7 +26,7 @@
     "knip"
   ],
   "dependencies": {
-    "@clack/prompts": "^0.9.0"
+    "@clack/prompts": "^1.5.1"
   },
   "devDependencies": {
     "jest": "^29.7.0"
@@ -35,8 +35,5 @@
   "license": "ISC",
   "engines": {
     "node": ">=20.19.0"
-  },
-  "dependencies": {
-    "@clack/prompts": "^1.5.1"
   }
 }
