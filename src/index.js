@@ -99,7 +99,9 @@ function copyAndRender(src, dest, vars) {
     for (const entry of fs.readdirSync(src)) {
       // never copy node_modules or .git inside templates
       if (entry === 'node_modules' || entry === '.git') continue;
-      copyAndRender(path.join(src, entry), path.join(dest, entry), vars);
+      // strip .tmpl suffix from output filename so e.g. package.json.tmpl → package.json
+      const outEntry = entry.endsWith('.tmpl') ? entry.slice(0, -'.tmpl'.length) : entry;
+      copyAndRender(path.join(src, entry), path.join(dest, outEntry), vars);
     }
     return;
   }

@@ -37,6 +37,31 @@ function runVerifyCommands(projectDir, commands) {
   }
 }
 
+function listFilesRecursive(dir) {
+  const results = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      for (const sub of listFilesRecursive(path.join(dir, entry.name))) {
+        results.push(path.join(entry.name, sub));
+      }
+    } else {
+      results.push(entry.name);
+    }
+  }
+  return results;
+}
+
+// Maps template id to the expected unsuffixed manifest file in the generated project.
+const expectedManifest = {
+  javascript: 'package.json',
+  typescript: 'package.json',
+  python: 'pyproject.toml',
+  rust: 'Cargo.toml',
+  java: 'pom.xml',
+  csharp: 'Project.csproj',
+  go: 'go.mod',
+};
+
 describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () => {
   const templates = getTemplatesWithManifests();
 
@@ -54,6 +79,8 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
     test(`generates and verifies "${tmpl.id}" template (${tmpl.name})`, async () => {
       const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-multi-'));
       const name = makeTempProjectName(`gen-${tmpl.id}`);
+      // runNew resolves the target dir relative to process.cwd(), so track it for cleanup
+      const targetDir = path.resolve(process.cwd(), name);
 
       try {
         // Programmatic generation (step 3) using the real logic.
@@ -71,8 +98,19 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         // These are exactly the commands ("npm install", "ruff check", "npm run health:full", etc.)
         // a developer runs after `skeletor new --template ${tmpl.id}`.
         expect(Array.isArray(tmpl.verifyCommands) && tmpl.verifyCommands.length > 0).toBe(true);
+
+        // Assert no .tmpl suffixes leak into the generated project.
+        const allFiles = listFilesRecursive(targetDir);
+        expect(allFiles.every((f) => !f.endsWith('.tmpl'))).toBe(true);
+
+        // Assert the expected unsuffixed manifest exists for this template.
+        const manifest = expectedManifest[tmpl.id];
+        if (manifest) {
+          expect(fs.existsSync(path.join(targetDir, manifest))).toBe(true);
+        }
       } finally {
         cleanup(tempRoot);
+        cleanup(targetDir);
       }
     });
   });
