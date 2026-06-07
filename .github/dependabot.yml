@@ -19,9 +19,3 @@ updates:
       - "*"
     multi-ecosystem-group: "all-dependencies"
     versioning-strategy: "increase"
-
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    patterns:
-      - "*"
-    multi-ecosystem-group: "all-dependencies"
