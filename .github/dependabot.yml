@@ -10,6 +10,7 @@ multi-ecosystem-groups:
       - "dependencies"
     assignees:
       - "jml6m"
+    open-pull-requests-limit: 1
 
 updates:
   - package-ecosystem: "npm"
@@ -17,7 +18,6 @@ updates:
     patterns:
       - "*"
     multi-ecosystem-group: "all-dependencies"
-    open-pull-requests-limit: 1
     versioning-strategy: "increase"
 
   - package-ecosystem: "github-actions"
@@ -25,4 +25,3 @@ updates:
     patterns:
       - "*"
     multi-ecosystem-group: "all-dependencies"
-    open-pull-requests-limit: 1
