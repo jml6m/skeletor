@@ -1,0 +1,57 @@
+name: Epic (Parent Issue)
+description: Track a larger feature or initiative that spans multiple sub-issues.
+title: "[Epic]: "
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🧭 Epic Guidelines (For Agents & Developers)
+        - **When to use:** Use an Epic when the work naturally breaks down into **3 or more** distinct sub-issues, or spans multiple templates / the generator / docs.
+        - **How to use:**
+          1. Create this Parent Epic first.
+          2. Draft and create the child issues (one per template / per CLI surface area / per doc, etc.).
+          3. Update the Task List below with the `#` references to the child issues so GitHub creates the progress tracker (e.g., 3 / 6).
+        - **Anti-pattern:** Do not open an Epic for a single-file change or a single-template tweak — file a regular Feature Request or Bug Report instead.
+  - type: textarea
+    id: description
+    attributes:
+      label: Epic Description
+      description: What is the high-level goal of this epic? Which templates / generator surfaces does it touch?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Templates, generator surfaces, docs, and infra in scope. Anything explicitly out of scope.
+      placeholder: |
+        In scope:
+          - templates/javascript, templates/typescript
+          - src/index.js (manifest loader)
+        Out of scope:
+          - templates/python, templates/rust
+    validations:
+      required: false
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Task List (Sub-issues)
+      description: List the child issues here using markdown checkboxes. Replace the placeholders with actual issue numbers once created.
+      value: |
+        - [ ] Task 1 (e.g. #123)
+        - [ ] Task 2
+        - [ ] Task 3
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria (Epic-level)
+      description: When can this Epic be closed? (Usually: all sub-issues closed AND a final integration verification.)
+      value: |
+        - [ ] All child issues closed
+        - [ ] `npm test` passes
+        - [ ] For each touched template, `skeletor new` + that template's `verifyCommands` succeeds
+    validations:
+      required: false
