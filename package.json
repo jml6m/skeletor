@@ -1,6 +1,6 @@
 {
   "name": "@jml6m/skeletor",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "Efficient scaffolding for custom development. Generates projects wired with personal lint/format/health/release/alias/AGENTS.md conventions.",
   "main": "src/index.js",
   "type": "module",

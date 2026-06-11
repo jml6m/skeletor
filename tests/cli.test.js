@@ -14,24 +14,21 @@ describe('skeletor CLI pure functions', () => {
     expect(result.command).toBe('new');
     expect(result.name).toBe('my-cool-api');
     expect(result.template).toBe(null); // resolved later / interactively
-    expect(result.owner).toBe('jml6m');
+    expect(result.auto).toBe(false);
     expect(result.git).toBe(true);
   });
 
   test('parseArgs respects flags', () => {
     const argv = [
       'node', 'skeletor', 'new', 'demo',
-      '--template', 'node',
-      '--owner', 'acme',
-      '--description', 'A test project',
-      '--yes',
+      '--template', 'typescript',
+      '--auto',
       '--no-git'
     ];
     const result = parseArgs(argv);
     expect(result.name).toBe('demo');
-    expect(result.owner).toBe('acme');
-    expect(result.description).toBe('A test project');
-    expect(result.yes).toBe(true);
+    expect(result.template).toBe('typescript');
+    expect(result.auto).toBe(true);
     expect(result.git).toBe(false);
   });
 

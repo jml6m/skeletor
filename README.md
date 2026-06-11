@@ -25,11 +25,11 @@ Each template includes a `template.json` manifest that declares `verifyCommands`
 
 We use `@clack/prompts` for a modern experience:
 - Beautiful template selector with descriptions/hints when you omit `--template`
-- Prompts for owner and description (when running interactively without `--yes`)
+- Prompts for owner and description (interactive mode only)
 - Confirmation step
 - Proper cancel handling and nice spinners/intro/outro
 
-`--yes` stays fully non-interactive for scripts/CI.
+`--auto` stays fully non-interactive for scripts (requires `--template`; uses default owner/description).
 
 ## Pushing to GitHub
 
@@ -47,18 +47,16 @@ See the root `AGENTS.md` for the standing instruction given to agents working on
 node src/index.js new my-project
 
 # Or specify
-node src/index.js new my-api --template typescript --owner jml6m
+node src/index.js new my-api --template typescript
 
-# Non-interactive (CI / scripts)
-npx @jml6m/skeletor new my-service --yes --template go
+# Non-interactive (scripts)
+npx @jml6m/skeletor new my-service --auto --template go
 ```
 
 Common flags:
 - `--template <id>` (javascript, typescript, python, go, rust, java, csharp, ...)
-- `--owner`
-- `--description`
-- `--yes` (skip all prompts)
-- `--no-git`
+- `--auto` (skip all prompts; requires `--template`)
+- `--no-git` (skip git init; git is on by default)
 
 After scaffolding, follow the `verifyCommands` from that template's `template.json` (shown in the success message). E.g. for most JS/TS: `npm install && npm run health:full` etc.
 
@@ -84,7 +82,7 @@ Run `skeletor` (or `node src/index.js`) with no args for current help and templa
 
 ```bash
 # From a clone of this repo
-node src/index.js new my-test-project --yes
+node src/index.js new my-test-project --auto --template javascript
 
 cd my-test-project
 npm install

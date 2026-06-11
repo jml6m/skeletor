@@ -24,17 +24,17 @@ Usage:
   skeletor --help
 
 Options:
-  --template <name>     Template to use (e.g. javascript, typescript, python)
+  --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
                         Omit for an interactive language/stack picker (TTY required)
-  --owner <user>        GitHub owner/org (default: jml6m)
-  --description <text>  Short project description
-  --yes                 Non-interactive; requires --template (skips owner/desc prompts)
-  --no-git              Skip git init
+  --auto                Non-interactive; requires --template (uses defaults — edit
+                        owner/description in generated files afterward)
+  --no-git              Skip git init (git is initialized by default)
 
 Examples:
+  skeletor new my-api                    # interactive: pick stack, owner, description
   skeletor new my-api --template typescript
-  skeletor new my-lib --yes --template go
-  skeletor new my-tool
+  skeletor new my-lib --auto --template go
+  skeletor new my-lib --auto --template go --no-git
 `;
 
 
@@ -47,9 +47,7 @@ function parseArgs(argv) {
     command: null,
     name: null,
     template: null, // resolved later, can be interactive
-    owner: 'jml6m',
-    description: 'A new project scaffolded with skeletor.',
-    yes: false,
+    auto: false,
     git: true,
   };
 
@@ -64,9 +62,7 @@ function parseArgs(argv) {
     for (let i = 2; i < args.length; i++) {
       const a = args[i];
       if (a === '--template' || a === '-t') result.template = args[++i] || null;
-      else if (a === '--owner' || a === '-o') result.owner = args[++i] || 'jml6m';
-      else if (a === '--description' || a === '-d') result.description = args[++i] || result.description;
-      else if (a === '--yes' || a === '-y') result.yes = true;
+      else if (a === '--auto') result.auto = true;
       else if (a === '--no-git') result.git = false;
       else if (!a.startsWith('-') && !result.name) result.name = a;
     }
@@ -195,8 +191,11 @@ async function chooseTemplateInteractively(templates) {
   return selected;
 }
 
+const DEFAULT_OWNER = 'jml6m';
+const DEFAULT_DESCRIPTION = 'A new project scaffolded with skeletor.';
+
 async function runNew(opts) {
-  const { name, git, yes } = opts;
+  const { name, git, auto } = opts;
 
   if (!name || name === '.' || name === '..') {
     logError('❌ Please provide a valid project name (e.g. "my-api").');
@@ -210,24 +209,28 @@ async function runNew(opts) {
   }
 
   let chosenTemplateId = opts.template;
-  let finalOwner = opts.owner || 'jml6m';
-  let finalDesc = opts.description || 'A new project scaffolded with skeletor.';
+  let finalOwner = DEFAULT_OWNER;
+  let finalDesc = DEFAULT_DESCRIPTION;
 
-  const isInteractive = !yes && process.stdout.isTTY;
+  const isInteractive = !auto && process.stdout.isTTY;
 
   if (!chosenTemplateId) {
-    if (yes) {
-      logError('❌ --yes requires --template <id>. Pick a stack interactively by omitting --yes.');
+    if (auto) {
+      logError('❌ --auto requires --template <id>. Pick a stack interactively by omitting --auto.');
       logError(`   Available: ${allTemplates.map((t) => t.id).join(', ')}`);
       process.exit(1);
     }
     if (!process.stdout.isTTY) {
-      logError('❌ No --template provided and stdin is not a TTY.');
-      logError('   Pass --template <id> for non-interactive use.');
+      logError('❌ No --template provided and this is not an interactive terminal.');
+      logError('   Use --auto --template <id> for scripts and piped environments.');
       logError(`   Available: ${allTemplates.map((t) => t.id).join(', ')}`);
       process.exit(1);
     }
     chosenTemplateId = await chooseTemplateInteractively(allTemplates);
+  } else if (!process.stdout.isTTY && !auto) {
+    logError('❌ --template requires --auto when not running in an interactive terminal.');
+    logError(`   Example: skeletor new ${name} --auto --template ${chosenTemplateId}`);
+    process.exit(1);
   }
 
   const templateInfo = allTemplates.find((t) => t.id === chosenTemplateId);
@@ -237,7 +240,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  // Richer interactive prompts for missing details (only when not --yes)
+  // Owner, description, and confirm — interactive only (--auto uses defaults above)
   if (isInteractive) {
     const ownerInput = await p.text({
       message: 'GitHub owner / org',

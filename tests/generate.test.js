@@ -96,9 +96,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           command: 'new',
           name,
           template: tmpl.id,
-          owner: 'tester',
-          description: `Auto-generated test for ${tmpl.id}`,
-          yes: true,
+          auto: true,
           git: false,
         });
 
@@ -126,13 +124,13 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 
         if (tmpl.id === 'go') {
           const goMod = fs.readFileSync(path.join(targetDir, 'go.mod'), 'utf8');
-          expect(goMod).toContain('module github.com/tester/');
+          expect(goMod).toContain('module github.com/jml6m/');
           expect(goMod).not.toContain('{{');
         }
 
         if (tmpl.id === 'java') {
           const pom = fs.readFileSync(path.join(targetDir, 'pom.xml'), 'utf8');
-          expect(pom).toContain('<groupId>io.github.tester</groupId>');
+          expect(pom).toContain('<groupId>io.github.jml6m</groupId>');
           expect(pom).not.toContain('{{');
         }
       } finally {
@@ -151,7 +149,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 
     let threw = false;
     try {
-      runCli(`new "${name}" --yes --template go --no-git`, tempRoot);
+      runCli(`new "${name}" --auto --template go --no-git`, tempRoot);
     } catch (e) {
       threw = true;
     } finally {
@@ -162,9 +160,9 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
     }
   });
 
-  test('refuses --yes without --template', () => {
+  test('refuses --auto without --template', () => {
     expect(() => {
-      runCli('new skeletor-missing-template --yes --no-git');
+      runCli('new skeletor-missing-template --auto --no-git');
     }).toThrow();
   });
 });
