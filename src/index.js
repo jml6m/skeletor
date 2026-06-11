@@ -25,15 +25,15 @@ Usage:
 
 Options:
   --template <name>     Template to use (e.g. javascript, typescript, python)
-                        Omit to choose interactively (or use --yes for default)
-  --owner <user>        GitHub owner/org for release scripts (default: jml6m)
+                        Omit for an interactive language/stack picker (TTY required)
+  --owner <user>        GitHub owner/org (default: jml6m)
   --description <text>  Short project description
-  --yes                 Non-interactive, use defaults + first available template
+  --yes                 Non-interactive; requires --template (skips owner/desc prompts)
   --no-git              Skip git init
 
 Examples:
   skeletor new my-api --template typescript
-  skeletor new my-lib --yes
+  skeletor new my-lib --yes --template go
   skeletor new my-tool
 `;
 
@@ -86,6 +86,28 @@ function render(content, vars) {
   return out;
 }
 
+/** Sanitize a segment for use in Java groupId / Go module paths. */
+function sanitizeIdentifierSegment(value) {
+  return String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
+}
+
+/** Build the full token map passed to copyAndRender. */
+function buildRenderVars({ name, owner, description }) {
+  const repoOwner = owner || 'jml6m';
+  const ownerSegment = sanitizeIdentifierSegment(repoOwner);
+  const namespace = String(name).replace(/-/g, '_');
+  return {
+    PROJECT_NAME: name,
+    REPO_OWNER: repoOwner,
+    REPO_NAME: name,
+    DESCRIPTION: description || 'A new project scaffolded with skeletor.',
+    YEAR: new Date().getFullYear(),
+    NAMESPACE: namespace,
+    GROUP_ID: `io.github.${ownerSegment}`,
+    GO_MODULE: `github.com/${repoOwner}/${name}`,
+  };
+}
+
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -97,8 +119,8 @@ function copyAndRender(src, dest, vars) {
   if (stat.isDirectory()) {
     ensureDir(dest);
     for (const entry of fs.readdirSync(src)) {
-      // never copy node_modules or .git inside templates
-      if (entry === 'node_modules' || entry === '.git') continue;
+      // never copy node_modules, .git, or skeletor manifest inside templates
+      if (entry === 'node_modules' || entry === '.git' || entry === 'template.json') continue;
       // strip .tmpl suffix from output filename so e.g. package.json.tmpl → package.json
       const outEntry = entry.endsWith('.tmpl') ? entry.slice(0, -'.tmpl'.length) : entry;
       copyAndRender(path.join(src, entry), path.join(dest, outEntry), vars);
@@ -147,13 +169,9 @@ function getTemplatesWithManifests() {
   return ids.map((id) => loadTemplateManifest(id));
 }
 
-async function chooseTemplateInteractively(templates, isYes) {
-  if (isYes || templates.length === 0) {
-    return templates[0] ? templates[0].id : null;
-  }
-
-  if (!process.stdout.isTTY) {
-    return templates[0] ? templates[0].id : null;
+async function chooseTemplateInteractively(templates) {
+  if (templates.length === 0) {
+    return null;
   }
 
   p.intro('💀 Skeletor — pick your scaffolding');
@@ -165,7 +183,7 @@ async function chooseTemplateInteractively(templates, isYes) {
   }));
 
   const selected = await p.select({
-    message: 'Choose a template',
+    message: 'What language or stack are you building?',
     options,
   });
 
@@ -198,7 +216,18 @@ async function runNew(opts) {
   const isInteractive = !yes && process.stdout.isTTY;
 
   if (!chosenTemplateId) {
-    chosenTemplateId = await chooseTemplateInteractively(allTemplates, yes);
+    if (yes) {
+      logError('❌ --yes requires --template <id>. Pick a stack interactively by omitting --yes.');
+      logError(`   Available: ${allTemplates.map((t) => t.id).join(', ')}`);
+      process.exit(1);
+    }
+    if (!process.stdout.isTTY) {
+      logError('❌ No --template provided and stdin is not a TTY.');
+      logError('   Pass --template <id> for non-interactive use.');
+      logError(`   Available: ${allTemplates.map((t) => t.id).join(', ')}`);
+      process.exit(1);
+    }
+    chosenTemplateId = await chooseTemplateInteractively(allTemplates);
   }
 
   const templateInfo = allTemplates.find((t) => t.id === chosenTemplateId);
@@ -242,14 +271,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const repoName = name;
-  const vars = {
-    PROJECT_NAME: name,
-    REPO_OWNER: finalOwner,
-    REPO_NAME: repoName,
-    DESCRIPTION: finalDesc,
-    YEAR: new Date().getFullYear(),
-  };
+  const vars = buildRenderVars({ name, owner: finalOwner, description: finalDesc });
 
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 
@@ -305,6 +327,8 @@ function main() {
 export {
   parseArgs,
   render,
+  buildRenderVars,
+  sanitizeIdentifierSegment,
   getAvailableTemplates,
   getTemplatesWithManifests,
   loadTemplateManifest,

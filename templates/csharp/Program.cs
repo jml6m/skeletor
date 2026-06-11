@@ -1,7 +1,7 @@
 // {{PROJECT_NAME}}
 // {{DESCRIPTION}}
 
-namespace {{PROJECT_NAME | replace('-', '_')}};
+namespace {{NAMESPACE}};
 
 class Program
 {

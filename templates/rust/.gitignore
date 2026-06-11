@@ -1,0 +1,13 @@
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Env
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

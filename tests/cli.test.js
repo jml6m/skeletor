@@ -1,7 +1,7 @@
 // IMPORTANT: set before importing src so the guard in src/index.js skips main() + process.exit
 process.env.SKELETOR_CLI_TEST = '1';
 
-import { parseArgs, render, getAvailableTemplates } from '../src/index.js';
+import { parseArgs, render, buildRenderVars, getAvailableTemplates } from '../src/index.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -50,6 +50,17 @@ describe('skeletor CLI pure functions', () => {
     };
     const out = render(template, vars);
     expect(out).toBe('Project test-app owned by jml6m/test-app in 2026');
+  });
+
+  test('buildRenderVars derives stack-specific tokens', () => {
+    const vars = buildRenderVars({
+      name: 'my-cool-app',
+      owner: 'jml6m',
+      description: 'Demo',
+    });
+    expect(vars.NAMESPACE).toBe('my_cool_app');
+    expect(vars.GROUP_ID).toBe('io.github.jml6m');
+    expect(vars.GO_MODULE).toBe('github.com/jml6m/my-cool-app');
   });
 
   test('getAvailableTemplates discovers the maintained templates', () => {

@@ -13,6 +13,14 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(ROOT, 'src', 'index.js');
 
+/** Spawn the real CLI (main()) without Jest's worker env leaking in. */
+function runCli(args, cwd = ROOT) {
+  const env = { ...process.env };
+  delete env.JEST_WORKER_ID;
+  delete env.SKELETOR_CLI_TEST;
+  return execSync(`node "${SRC}" ${args}`, { cwd, stdio: 'pipe', env });
+}
+
 function makeTempProjectName(prefix = 'skeletor-test') {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
@@ -99,14 +107,33 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         // a developer runs after `skeletor new --template ${tmpl.id}`.
         expect(Array.isArray(tmpl.verifyCommands) && tmpl.verifyCommands.length > 0).toBe(true);
 
-        // Assert no .tmpl suffixes leak into the generated project.
+        // Assert no .tmpl suffixes or skeletor manifest leak into the generated project.
         const allFiles = listFilesRecursive(targetDir);
         expect(allFiles.every((f) => !f.endsWith('.tmpl'))).toBe(true);
+        expect(fs.existsSync(path.join(targetDir, 'template.json'))).toBe(false);
 
         // Assert the expected unsuffixed manifest exists for this template.
         const manifest = expectedManifest[tmpl.id];
         if (manifest) {
           expect(fs.existsSync(path.join(targetDir, manifest))).toBe(true);
+        }
+
+        if (tmpl.id === 'csharp') {
+          const program = fs.readFileSync(path.join(targetDir, 'Program.cs'), 'utf8');
+          expect(program).toContain(`namespace ${name.replace(/-/g, '_')};`);
+          expect(program).not.toContain('{{');
+        }
+
+        if (tmpl.id === 'go') {
+          const goMod = fs.readFileSync(path.join(targetDir, 'go.mod'), 'utf8');
+          expect(goMod).toContain('module github.com/tester/');
+          expect(goMod).not.toContain('{{');
+        }
+
+        if (tmpl.id === 'java') {
+          const pom = fs.readFileSync(path.join(targetDir, 'pom.xml'), 'utf8');
+          expect(pom).toContain('<groupId>io.github.tester</groupId>');
+          expect(pom).not.toContain('{{');
         }
       } finally {
         cleanup(tempRoot);
@@ -122,16 +149,22 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'existing.txt'), 'do not overwrite');
 
-    const cmd = `node "${SRC}" new "${name}" --yes --no-git`;
     let threw = false;
     try {
-      execSync(cmd, { cwd: tempRoot, stdio: 'pipe' });
+      runCli(`new "${name}" --yes --template go --no-git`, tempRoot);
     } catch (e) {
       threw = true;
     } finally {
       const stillThere = fs.existsSync(path.join(dir, 'existing.txt'));
       expect(stillThere).toBe(true);
+      expect(threw).toBe(true);
       cleanup(tempRoot);
     }
+  });
+
+  test('refuses --yes without --template', () => {
+    expect(() => {
+      runCli('new skeletor-missing-template --yes --no-git');
+    }).toThrow();
   });
 });
