@@ -1,4 +1,4 @@
-﻿# ðŸ¤– Skeletor Development â€” Agent Guidelines
+# ðŸ¤– Skeletor Development â€” Agent Guidelines
 
 > NOTE: This file intentionally mirrors the root `AGENTS.md`. Prefer updating `AGENTS.md` first, then copy/regenerate this file to keep them in sync.
 
