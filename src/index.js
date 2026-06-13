@@ -18,6 +18,8 @@ import {
   layerAppliesTo,
   loadBundles,
   resolveLayerOrder,
+  gatherLayerPrompts,
+  layerPromptDefaults,
   validateLayerManifests,
 } from './layers.js';
 
@@ -308,6 +310,23 @@ async function chooseTemplateInteractively(templates) {
 const DEFAULT_OWNER = 'jml6m';
 const DEFAULT_DESCRIPTION = 'A new project scaffolded with skeletor.';
 
+async function promptForLayerVars(prompts) {
+  const vars = {};
+  for (const pr of prompts) {
+    const answer = await p.text({
+      message: pr.message,
+      placeholder: String(pr.default ?? ''),
+      initialValue: String(pr.default ?? ''),
+    });
+    if (p.isCancel(answer)) {
+      p.cancel('Cancelled.');
+      process.exit(0);
+    }
+    vars[pr.token] = answer || pr.default || '';
+  }
+  return vars;
+}
+
 async function runNew(opts) {
   const { name, git, auto } = opts;
 
@@ -376,9 +395,25 @@ async function runNew(opts) {
       if (p.isCancel(applyRecommended)) { p.cancel('Cancelled.'); process.exit(0); }
       if (applyRecommended) opts.withRecommended = true;
     }
+  }
 
+  const layerIds = collectLayerIds(opts, templateInfo);
+  const layerCtx = { template: chosenTemplateId, language: templateInfo.language || chosenTemplateId };
+  const { errors: promptErrors, prompts: layerPrompts } = gatherLayerPrompts(layerIds, layerCtx);
+  if (promptErrors.length) {
+    logError(`❌ Layer configuration error: ${promptErrors.join('; ')}`);
+    process.exit(1);
+  }
+
+  let layerVars = layerPromptDefaults(layerPrompts);
+  if (isInteractive && layerPrompts.length) {
+    layerVars = await promptForLayerVars(layerPrompts);
+  }
+
+  if (isInteractive) {
+    const layerNote = layerIds.length ? ` + ${layerIds.length} enhancement layer(s)` : '';
     const shouldContinue = await p.confirm({
-      message: `Scaffold "${name}" as ${templateInfo.name}?`,
+      message: `Scaffold "${name}" as ${templateInfo.name}${layerNote}?`,
       initialValue: true,
     });
     if (p.isCancel(shouldContinue) || !shouldContinue) {
@@ -393,7 +428,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const vars = buildRenderVars({ name, owner: finalOwner, description: finalDesc });
+  const vars = buildRenderVars({ name, owner: finalOwner, description: finalDesc, extra: layerVars });
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 
   let layoutId = 'default';
@@ -411,7 +446,6 @@ async function runNew(opts) {
     verifyCommands: templateInfo.verifyCommands,
   });
 
-  const layerIds = collectLayerIds(opts, templateInfo);
   let verifyCommands = [...(templateInfo.verifyCommands || [])];
 
   if (layerIds.length) {

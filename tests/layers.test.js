@@ -18,6 +18,8 @@ import {
   expandBundle,
   applyLayers,
   loadBundles,
+  gatherLayerPrompts,
+  layerPromptDefaults,
 } from '../src/layers.js';
 import { readProjectManifest } from '../src/manifest.js';
 
@@ -138,6 +140,23 @@ describe('enhance command', () => {
     } finally {
       cleanup(targetDir);
     }
+  });
+
+  test('gatherLayerPrompts includes layer-specific questions', () => {
+    const { prompts, errors } = gatherLayerPrompts(
+      ['logger-winston'],
+      { template: 'typescript', language: 'typescript' },
+    );
+    expect(errors).toEqual([]);
+    expect(prompts.map((p) => p.token)).toContain('LOG_DIR');
+    expect(layerPromptDefaults(prompts).LOG_DIR).toBe('logs');
+  });
+
+  test('gatherLayerPrompts is empty for recommended-only typescript stack', () => {
+    const ts = loadTemplateManifest('typescript');
+    const ids = collectLayerIds({ withRecommended: true }, ts);
+    const { prompts } = gatherLayerPrompts(ids, { template: 'typescript', language: 'typescript' });
+    expect(prompts).toEqual([]);
   });
 
   test('collectLayerIds expands --with-recommended from template manifest', () => {

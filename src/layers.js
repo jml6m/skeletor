@@ -166,6 +166,37 @@ export function layerAppliesTo(layer, ctx) {
  * @param {string[]} requestedIds
  * @param {{ template: string, language: string }} ctx
  */
+/**
+ * Collect interactive prompts for a resolved layer set (includes requires).
+ * @param {string[]} layerIds
+ * @param {{ template: string, language: string }} ctx
+ */
+export function gatherLayerPrompts(layerIds, ctx) {
+  const { order, errors } = resolveLayerOrder(layerIds, ctx);
+  if (errors.length) return { errors, prompts: [] };
+
+  const prompts = [];
+  const seenTokens = new Set();
+  for (const id of order) {
+    const layer = loadLayerById(id);
+    for (const pr of layer.prompts || []) {
+      if (!pr.token || seenTokens.has(pr.token)) continue;
+      seenTokens.add(pr.token);
+      prompts.push({ ...pr, layerId: id, layerName: layer.name });
+    }
+  }
+  return { errors: [], prompts };
+}
+
+/** Build token defaults for non-interactive layer prompts. */
+export function layerPromptDefaults(prompts) {
+  const vars = {};
+  for (const pr of prompts) {
+    if (pr.token) vars[pr.token] = pr.default ?? '';
+  }
+  return vars;
+}
+
 export function resolveLayerOrder(requestedIds, ctx) {
   const all = getLayersWithManifests();
   const byId = new Map(all.map((l) => [l.id, l]));
