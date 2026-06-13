@@ -1,12 +1,11 @@
 /**
- * Skeletor interactive prompts — every non-auto question surfaces a (recommended) choice.
- * Text: Enter accepts the recommended value shown in the placeholder.
- * Yes/No: select list marks the default option as "(recommended)".
+ * Skeletor interactive prompts — select-first UX with (recommended) labels.
  */
 
 import * as p from '@clack/prompts';
 
 export const RECOMMENDED_TAG = '(recommended)';
+export const CUSTOM_SELECT_VALUE = '__custom__';
 
 /** @param {string} label */
 export function withRecommendedTag(label) {
@@ -14,7 +13,6 @@ export function withRecommendedTag(label) {
 }
 
 /**
- * Build yes/no select options with the recommended choice labelled.
  * @param {boolean} recommendedYes
  */
 export function buildConfirmOptions(recommendedYes = true) {
@@ -31,29 +29,18 @@ export function buildConfirmOptions(recommendedYes = true) {
 }
 
 /**
- * @param {string | number | boolean} value
+ * @param {{ message: string, options: string[], recommended?: string }} opts
  */
-export function recommendedPlaceholder(value) {
-  const text = String(value ?? '').trim();
-  return text ? withRecommendedTag(text) : RECOMMENDED_TAG;
-}
-
-/**
- * @param {{ message: string, recommended?: string, validate?: (v: string) => string | void }} opts
- */
-export async function promptTextRecommended(opts) {
-  const recommended = String(opts.recommended ?? '');
-  return p.text({
-    message: opts.message,
-    placeholder: recommendedPlaceholder(recommended),
-    initialValue: recommended,
-    validate: opts.validate,
-  });
+export function buildSelectOptions(opts) {
+  const recommended = opts.recommended ?? opts.options[0];
+  return opts.options.map((value) => ({
+    value,
+    label: value === recommended ? withRecommendedTag(value) : value,
+  }));
 }
 
 /**
  * @param {{ message: string, recommended?: boolean }} opts
- * @returns {Promise<boolean | symbol>}
  */
 export async function promptConfirmRecommended(opts) {
   const recommended = opts.recommended !== false;
@@ -68,11 +55,92 @@ export async function promptConfirmRecommended(opts) {
 }
 
 /**
- * Resolve a text answer: empty input keeps the recommended value.
- * @param {string | symbol} answer
- * @param {string} recommended
+ * @param {{ message: string, options: string[], recommended?: string, allowCustom?: boolean }} opts
  */
-export function resolveTextAnswer(answer, recommended) {
-  if (typeof answer !== 'string' || answer.trim() === '') return recommended;
+export async function promptSelectRecommended(opts) {
+  const selectOptions = buildSelectOptions(opts);
+  if (opts.allowCustom !== false) {
+    selectOptions.push({ value: CUSTOM_SELECT_VALUE, label: 'Specify a different value…' });
+  }
+  const initial = opts.recommended ?? opts.options[0];
+  const answer = await p.select({
+    message: opts.message,
+    options: selectOptions,
+    initialValue: initial,
+  });
+  if (p.isCancel(answer)) return answer;
+  if (answer === CUSTOM_SELECT_VALUE) {
+    return p.text({
+      message: opts.message,
+      validate(value) {
+        if (!value || !String(value).trim()) return 'A value is required.';
+      },
+    });
+  }
   return answer;
+}
+
+/**
+ * @param {{ message: string, candidates: { owner: string, source: string }[] }} opts
+ */
+export async function promptOwnerSelect(opts) {
+  const { candidates } = opts;
+  if (candidates.length === 0) {
+    return p.text({
+      message: opts.message,
+      validate(value) {
+        if (!value || !String(value).trim()) return 'GitHub owner / org is required.';
+      },
+    });
+  }
+
+  const selectOptions = candidates.map((c, index) => ({
+    value: c.owner,
+    label: index === 0 ? withRecommendedTag(c.owner) : c.owner,
+    hint: c.source,
+  }));
+  selectOptions.push({ value: CUSTOM_SELECT_VALUE, label: 'Specify a different owner/org…' });
+
+  const answer = await p.select({
+    message: opts.message,
+    options: selectOptions,
+    initialValue: candidates[0].owner,
+  });
+  if (p.isCancel(answer)) return answer;
+  if (answer === CUSTOM_SELECT_VALUE) {
+    return p.text({
+      message: 'GitHub owner / org',
+      validate(value) {
+        if (!value || !String(value).trim()) return 'GitHub owner / org is required.';
+      },
+    });
+  }
+  return answer;
+}
+
+/**
+ * @param {{ message: string, default?: string, options?: string[] }} pr
+ */
+export async function promptLayerValue(pr) {
+  const recommended = String(pr.default ?? '');
+  const options = Array.isArray(pr.options) && pr.options.length
+    ? [...new Set(pr.options)]
+    : recommended
+      ? [recommended]
+      : [];
+
+  if (options.length === 0) {
+    return p.text({
+      message: pr.message,
+      validate(value) {
+        if (!value || !String(value).trim()) return 'A value is required.';
+      },
+    });
+  }
+
+  return promptSelectRecommended({
+    message: pr.message,
+    options,
+    recommended,
+  });
 }

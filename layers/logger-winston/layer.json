@@ -18,9 +18,10 @@
   "prompts": [
     {
       "id": "logFilePath",
-      "type": "text",
+      "type": "select",
       "message": "Directory for log files",
       "default": "logs",
+      "options": ["logs", "var/log"],
       "token": "LOG_DIR"
     }
   ]

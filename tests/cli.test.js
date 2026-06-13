@@ -48,6 +48,10 @@ describe('skeletor CLI pure functions', () => {
     expect(result.git).toBe(false);
   });
 
+  test('buildRenderVars requires owner', () => {
+    expect(() => buildRenderVars({ name: 'app' })).toThrow('owner is required');
+  });
+
   test('buildRenderVars includes REPO_URL', () => {
     const vars = buildRenderVars({ name: 'tbra', owner: 'jml6m', description: 'Test' });
     expect(vars.REPO_URL).toBe('https://github.com/jml6m/tbra');

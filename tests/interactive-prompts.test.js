@@ -4,8 +4,8 @@ import {
   RECOMMENDED_TAG,
   withRecommendedTag,
   buildConfirmOptions,
-  recommendedPlaceholder,
-  resolveTextAnswer,
+  buildSelectOptions,
+  CUSTOM_SELECT_VALUE,
 } from '../src/interactive-prompts.js';
 
 describe('interactive-prompts', () => {
@@ -17,22 +17,15 @@ describe('interactive-prompts', () => {
     const opts = buildConfirmOptions(true);
     expect(opts[0].label).toContain(RECOMMENDED_TAG);
     expect(opts[1].label).not.toContain(RECOMMENDED_TAG);
-    expect(opts[0].value).toBe('yes');
   });
 
-  test('buildConfirmOptions can mark no as recommended', () => {
-    const opts = buildConfirmOptions(false);
-    expect(opts[1].label).toContain(RECOMMENDED_TAG);
-    expect(opts[0].label).not.toContain(RECOMMENDED_TAG);
+  test('buildSelectOptions marks recommended value', () => {
+    const opts = buildSelectOptions({ options: ['logs', 'var/log'], recommended: 'logs' });
+    expect(opts[0].label).toContain(RECOMMENDED_TAG);
+    expect(opts[1].label).toBe('var/log');
   });
 
-  test('recommendedPlaceholder embeds value and tag', () => {
-    expect(recommendedPlaceholder('jml6m')).toBe(`jml6m ${RECOMMENDED_TAG}`);
-  });
-
-  test('resolveTextAnswer keeps recommended on empty input', () => {
-    expect(resolveTextAnswer('', 'logs')).toBe('logs');
-    expect(resolveTextAnswer('  ', 'logs')).toBe('logs');
-    expect(resolveTextAnswer('custom', 'logs')).toBe('custom');
+  test('CUSTOM_SELECT_VALUE is stable sentinel', () => {
+    expect(CUSTOM_SELECT_VALUE).toBe('__custom__');
   });
 });

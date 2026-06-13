@@ -8,10 +8,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import * as p from '@clack/prompts';
+import { detectGithubOwners } from './detect-owner.js';
 import {
   promptConfirmRecommended,
-  promptTextRecommended,
-  resolveTextAnswer,
+  promptLayerValue,
+  promptOwnerSelect,
 } from './interactive-prompts.js';
 import { writeProjectManifest, readProjectManifest } from './manifest.js';
 import {
@@ -48,8 +49,8 @@ new options:
   --with <id[,id...]>   Enhancement layers to apply after scaffold
   --with-recommended    Apply this template's recommendedLayers (see template.json)
   --bundle <name>       Named layer preset (see bundles.json)
-  --owner <user>        GitHub owner/org (default: jml6m)
-  --description <text>  Project description
+  --owner <user>        GitHub owner/org (skips auto-detection)
+  --description <text>  Project description (optional)
   --auto                Non-interactive; requires --template
   --no-git              Skip git init
 
@@ -60,7 +61,7 @@ enhance options:
   --status              Show .skeletor/manifest.json
   --dry-run             Preview changes without writing
   --force               Overwrite conflicting files
-  --allow-dirty         Skip dirty-git guard
+  --allow-dirty         Override dirty-git guard (not recommended)
   --no-install          Skip postApply commands
 
 Examples:
@@ -162,14 +163,17 @@ function sanitizeIdentifierSegment(value) {
 }
 
 function buildRenderVars({ name, owner, description, extra = {} }) {
-  const repoOwner = owner || 'jml6m';
+  if (!owner) {
+    throw new Error('owner is required');
+  }
+  const repoOwner = owner;
   const ownerSegment = sanitizeIdentifierSegment(repoOwner);
   const namespace = String(name).replace(/-/g, '_');
   return {
     PROJECT_NAME: name,
     REPO_OWNER: repoOwner,
     REPO_NAME: name,
-    DESCRIPTION: description || 'A new project scaffolded with skeletor.',
+    DESCRIPTION: description || DEFAULT_DESCRIPTION,
     YEAR: new Date().getFullYear(),
     NAMESPACE: namespace,
     GROUP_ID: `io.github.${ownerSegment}`,
@@ -312,22 +316,51 @@ async function chooseTemplateInteractively(templates) {
   return selected;
 }
 
-const DEFAULT_OWNER = 'jml6m';
-const DEFAULT_DESCRIPTION = 'A new project scaffolded with skeletor.';
+const DEFAULT_DESCRIPTION = 'A skeletor project.';
 
-async function promptForLayerVars(prompts) {
-  const vars = {};
-  for (const pr of prompts) {
-    const recommended = String(pr.default ?? '');
-    const answer = await promptTextRecommended({
-      message: pr.message,
-      recommended,
+async function resolveOwnerForNew(opts, isInteractive) {
+  if (opts.owner?.trim()) {
+    return opts.owner.trim();
+  }
+
+  const candidates = detectGithubOwners(process.cwd());
+
+  if (isInteractive) {
+    const answer = await promptOwnerSelect({
+      message: 'GitHub owner / org',
+      candidates,
     });
     if (p.isCancel(answer)) {
       p.cancel('Cancelled.');
       process.exit(0);
     }
-    vars[pr.token] = resolveTextAnswer(answer, recommended);
+    return String(answer).trim();
+  }
+
+  if (candidates.length === 0) {
+    logError('❌ --auto requires --owner when GitHub owner cannot be detected.');
+    logError('   Detection checks git remote origin, package.json repository, and gh CLI.');
+    process.exit(1);
+  }
+
+  return candidates[0].owner;
+}
+
+function resolveOwnerForProject(projectDir, manifestOwner) {
+  if (manifestOwner?.trim()) return manifestOwner.trim();
+  const candidates = detectGithubOwners(projectDir);
+  return candidates[0]?.owner ?? null;
+}
+
+async function promptForLayerVars(prompts) {
+  const vars = {};
+  for (const pr of prompts) {
+    const answer = await promptLayerValue(pr);
+    if (p.isCancel(answer)) {
+      p.cancel('Cancelled.');
+      process.exit(0);
+    }
+    vars[pr.token] = String(answer).trim() || String(pr.default ?? '');
   }
   return vars;
 }
@@ -347,10 +380,9 @@ async function runNew(opts) {
   }
 
   let chosenTemplateId = opts.template;
-  let finalOwner = opts.owner || DEFAULT_OWNER;
-  let finalDesc = opts.description || DEFAULT_DESCRIPTION;
-
   const isInteractive = !auto && process.stdout.isTTY;
+  let finalOwner = await resolveOwnerForNew(opts, isInteractive);
+  const finalDesc = opts.description || DEFAULT_DESCRIPTION;
 
   if (!chosenTemplateId) {
     if (auto) {
@@ -374,20 +406,6 @@ async function runNew(opts) {
   }
 
   if (isInteractive) {
-    const ownerInput = await promptTextRecommended({
-      message: 'GitHub owner / org',
-      recommended: finalOwner,
-    });
-    if (p.isCancel(ownerInput)) { p.cancel('Cancelled.'); process.exit(0); }
-    finalOwner = resolveTextAnswer(ownerInput, finalOwner);
-
-    const descInput = await promptTextRecommended({
-      message: 'Project description',
-      recommended: finalDesc,
-    });
-    if (p.isCancel(descInput)) { p.cancel('Cancelled.'); process.exit(0); }
-    finalDesc = resolveTextAnswer(descInput, finalDesc);
-
     const recommended = getRecommendedLayers(templateInfo);
     const noLayerFlags = !opts.withLayers.length && !opts.bundle && !opts.withRecommended;
     if (noLayerFlags && recommended.length) {
@@ -535,17 +553,16 @@ async function runEnhance(opts) {
   }
 
   if (!opts.allowDirty && !opts.dryRun && isGitDirty(projectDir)) {
-    p.log.warn('Git working tree is dirty. Commit or stash changes, or pass --allow-dirty.');
-    if (process.stdout.isTTY) {
-      const proceed = await promptConfirmRecommended({
-        message: 'Continue with a dirty git working tree?',
-        recommended: false,
-      });
-      if (p.isCancel(proceed) || !proceed) {
-        p.cancel('Enhance cancelled.');
-        process.exit(0);
-      }
-    }
+    logError('❌ Git working tree is dirty. Commit or stash changes before enhancing.');
+    logError('   Pass --allow-dirty to override (not recommended).');
+    process.exit(1);
+  }
+
+  const enhanceOwner = resolveOwnerForProject(projectDir, ctx.manifest?.owner);
+  if (!enhanceOwner) {
+    logError('❌ Could not determine GitHub owner for this project.');
+    logError('   Scaffold with skeletor new --owner <org>, or ensure git remote / package.json / gh CLI is available.');
+    process.exit(1);
   }
 
   const result = applyLayers({
@@ -553,14 +570,14 @@ async function runEnhance(opts) {
     layerIds,
     vars: buildRenderVars({
       name: path.basename(projectDir),
-      owner: ctx.manifest?.owner || DEFAULT_OWNER,
+      owner: enhanceOwner,
       description: ctx.manifest?.description || DEFAULT_DESCRIPTION,
     }),
     force: opts.force,
     dryRun: opts.dryRun,
     noInstall: opts.noInstall,
     skeletorVersion: SKELETOR_VERSION,
-    owner: ctx.manifest?.owner || DEFAULT_OWNER,
+    owner: enhanceOwner,
     template: ctx.manifest ? ctx.template : undefined,
   });
 

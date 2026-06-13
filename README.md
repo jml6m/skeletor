@@ -25,11 +25,11 @@ Each template includes a `template.json` manifest that declares `verifyCommands`
 
 We use `@clack/prompts` for a modern experience:
 - Beautiful template selector with descriptions/hints when you omit `--template`
-- Prompts for owner and description (interactive mode only)
-- Confirmation step
-- Proper cancel handling and nice spinners/intro/outro
+- **Select-first** prompts with `(recommended)` labels (owner, layers, confirmations)
+- GitHub owner auto-detection (git remote → package.json → gh CLI) with select or custom entry
+- Confirmation step; proper cancel handling and nice spinners/intro/outro
 
-`--auto` stays fully non-interactive for scripts (requires `--template`). Pass `--owner` / `--description` on the CLI when scaffolding non-interactively.
+`--auto` stays fully non-interactive for scripts (requires `--template`). Pass `--owner` when detection cannot run; `--description` is optional on the CLI.
 
 ## Pushing to GitHub
 
@@ -49,15 +49,22 @@ node src/index.js new my-project
 # Or specify
 node src/index.js new my-api --template typescript
 
-# Non-interactive (scripts)
-npx @jml6m/skeletor new my-service --auto --template go --owner jml6m --description "My service"
+# Recommended enhancements (v0.2+)
+npx @jml6m/skeletor new my-api --template typescript --with-recommended
+
+# Non-interactive (scripts) — pass --owner when detection cannot run
+npx @jml6m/skeletor new my-service --auto --template go --owner acme-corp
 ```
 
 Common flags:
 - `--template <id>` (javascript, typescript, python, go, rust, java, csharp, ...)
-- `--owner <user>` / `--description <text>` (for `--auto`, or as interactive defaults)
-- `--auto` (skip all prompts; requires `--template`)
+- `--with-recommended` / `--with <layers>` / `--bundle <name>` (enhancement layers)
+- `--owner <user>` skips auto-detection (git remote → package.json → gh CLI)
+- `--description <text>` optional; a generic default is used when omitted
+- `--auto` (non-interactive; requires `--template`; requires `--owner` if owner cannot be detected)
 - `--no-git` (skip git init; git is on by default)
+
+Interactive prompts use **select lists** with a `(recommended)` label. `enhance` refuses dirty git trees unless `--allow-dirty`.
 
 After scaffolding, follow the `verifyCommands` from that template's `template.json` (shown in the success message). E.g. for most JS/TS: `npm install && npm run health:full` etc.
 
