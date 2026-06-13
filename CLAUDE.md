@@ -24,18 +24,17 @@ Task-specific protocols live in **[.grok/rules/](./.grok/rules/)** and apply to 
 | Command | Purpose |
 |---|---|
 | `npm test` | Jest suite — discovers templates, validates the manifest contract + generation. Run after every change. |
-| `npm run lint` | Encoding gate + critical/high audit gate. |
+| `npm run lint` | Encoding gate (runs `lint:encoding`). |
 | `npm run lint:encoding` | Fails on non-UTF-8 / BOM / CRLF / control chars in tracked files. |
-| `npm run audit:ci` | Fails only on critical/high advisories (moderate/low ignored). |
-| `npm run format` | Prettier write. |
+| `npm run audit:ci` | Fails only on critical/high advisories (moderate/low ignored). Separate from `lint`; also run by `npm:reinstall` and CI. |
 | `npm run npm:reinstall` | Clean reinstall, then the audit gate. |
 | `npm run git:pull` | Full `fetch --all --prune` + fast-forward pull. |
 | `npm run release:patch\|minor\|major\|alpha` | Bump version + push tag → triggers the publish workflow. |
 
 ## Conventions
 
-Follow the author's standing coding conventions: comments only where they earn their place (no changelog-style "updated/refactored" comments); targeted edits over full-file rewrites; never use `alert()` in frontend JS; check for existing SCSS variables before hardcoding. Include a one-line `git commit -m "..."` when delivering a changeset.
+Follow the author's standing coding conventions: comments only where they earn their place (no changelog-style "updated/refactored" comments); targeted edits over full-file rewrites; never use `alert()` in frontend JS; check for existing SCSS variables before hardcoding. For commit/push, follow AGENTS.md's protocol — do not commit or push unless it directs you to.
 
 ## Before handing work back
 
-Run `npm test` and `npm run lint`; report pass/fail explicitly per `.grok/rules/session-validation.md`. Do not claim a check passed unless it actually ran.
+Run `npm test`, `npm run lint`, and `npm run audit:ci`; report pass/fail explicitly per `.grok/rules/session-validation.md`. Do not claim a check passed unless it actually ran.

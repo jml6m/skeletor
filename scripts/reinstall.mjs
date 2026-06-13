@@ -21,4 +21,9 @@ console.log('📦 Installing fresh dependencies...');
 run(['install']);
 
 console.log('🔒 Running audit gate (critical/high)...');
-run(['run', 'audit:ci']);
+try {
+  run(['run', 'audit:ci']);
+} catch {
+  // audit:ci already printed its own message; exit cleanly without a stack trace.
+  process.exit(1);
+}

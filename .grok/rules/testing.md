@@ -11,7 +11,7 @@ This repo is a generator plus a set of templates. Tests should protect the gener
 
 ## Layered validation
 
-1. **Every task** — `npm test` + `npm run lint` (encoding + audit gates). Never skip these.
+1. **Every task** — `npm test` + `npm run lint` (encoding gate) + `npm run audit:ci` (audit gate). Never skip these.
 2. **Generator changes** — add/extend a unit test for the changed behavior.
 3. **New template** — ensure `template.json` is valid; the contract test covers it. Optionally smoke it: `node src/index.js new <tmp> --template <id> --yes` then run the template's `verifyCommands`.
 

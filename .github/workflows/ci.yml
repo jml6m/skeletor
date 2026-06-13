@@ -28,6 +28,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint:encoding
-      - run: npm run audit:ci
-        continue-on-error: true
       - run: npm test
