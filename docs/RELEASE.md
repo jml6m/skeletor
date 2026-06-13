@@ -34,10 +34,11 @@ The [Publish to npm](https://github.com/jml6m/skeletor/actions/workflows/publish
 
 1. Verify tag ↔ `package.json` version
 2. Verify the version is not already on npm
-3. Run lint, audit, and tests
-4. Run `npm publish --dry-run` (auth preflight)
-5. Publish with provenance
-6. Remove stale `alpha` / `next` dist-tags on stable releases
+3. Run lint, audit, unit tests, and **full template `verifyCommands`** (`npm run test:verify`)
+4. Publish job runs only if release-gates pass (publish cannot bypass a failed verify-templates)
+5. Run `npm publish --dry-run` (auth preflight)
+6. Publish with provenance
+7. Remove stale `alpha` / `next` dist-tags on stable releases
 
 ### Re-run after a failed publish
 

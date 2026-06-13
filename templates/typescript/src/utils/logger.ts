@@ -12,7 +12,9 @@ import { config } from '#config/env.config.js';
  * - For errors: { error: err.message, stack: err.stack }
  */
 
-function formatMeta(meta) {
+type LogMeta = Record<string, unknown> | undefined;
+
+function formatMeta(meta?: LogMeta): string {
   if (!meta || typeof meta !== 'object') return '';
   try {
     return ' ' + JSON.stringify(meta);
@@ -22,21 +24,21 @@ function formatMeta(meta) {
 }
 
 const logger = {
-  info(msg, meta) {
+  info(msg: string, meta?: LogMeta) {
     console.info(`[INFO] ${msg}${formatMeta(meta)}`);
   },
-  warn(msg, meta) {
+  warn(msg: string, meta?: LogMeta) {
     console.warn(`[WARN] ${msg}${formatMeta(meta)}`);
   },
-  error(msg, meta) {
+  error(msg: string, meta?: LogMeta) {
     console.error(`[ERROR] ${msg}${formatMeta(meta)}`);
   },
-  debug(msg, meta) {
+  debug(msg: string, meta?: LogMeta) {
     if (!config.system.isProduction) {
       console.debug(`[DEBUG] ${msg}${formatMeta(meta)}`);
     }
   },
-  http(msg, meta) {
+  http(msg: string, meta?: LogMeta) {
     console.info(`[HTTP] ${msg}${formatMeta(meta)}`);
   },
 };
