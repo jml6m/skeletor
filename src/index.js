@@ -39,6 +39,7 @@ new options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
   --layout <name>       Template layout (single, lib, workspace — when supported)
   --with <id[,id...]>   Enhancement layers to apply after scaffold
+  --with-recommended    Apply this template's recommendedLayers (see template.json)
   --bundle <name>       Named layer preset (see bundles.json)
   --owner <user>        GitHub owner/org (default: jml6m)
   --description <text>  Project description
@@ -56,6 +57,7 @@ enhance options:
   --no-install          Skip postApply commands
 
 Examples:
+  skeletor new my-api --template typescript --with-recommended
   skeletor new my-api --template typescript --with governance,quality-gates
   skeletor new my-lib --auto --template typescript --bundle ts-library
   skeletor new tbra --auto --template rust --layout workspace
@@ -80,6 +82,7 @@ function parseArgs(argv) {
     template: null,
     layout: null,
     withLayers: [],
+    withRecommended: false,
     bundle: null,
     addLayers: [],
     owner: null,
@@ -107,6 +110,7 @@ function parseArgs(argv) {
       if (a === '--template' || a === '-t') result.template = args[++i] || null;
       else if (a === '--layout') result.layout = args[++i] || null;
       else if (a === '--with') result.withLayers = parseCommaList(args[++i]);
+      else if (a === '--with-recommended') result.withRecommended = true;
       else if (a === '--bundle') result.bundle = args[++i] || null;
       else if (a === '--owner' || a === '-o') result.owner = args[++i] || null;
       else if (a === '--description' || a === '-d') result.description = args[++i] || null;
@@ -250,8 +254,19 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   return layoutId;
 }
 
-function collectLayerIds(opts, templateId) {
+function getRecommendedLayers(templateInfo) {
+  return Array.isArray(templateInfo?.recommendedLayers) ? templateInfo.recommendedLayers : [];
+}
+
+function collectLayerIds(opts, templateInfo) {
+  const templateId = typeof templateInfo === 'string' ? templateInfo : templateInfo?.id;
   const ids = [...(opts.withLayers || opts.addLayers || [])];
+  if (opts.withRecommended) {
+    const info = typeof templateInfo === 'string'
+      ? getTemplatesWithManifests().find((t) => t.id === templateInfo)
+      : templateInfo;
+    ids.push(...getRecommendedLayers(info));
+  }
   if (opts.bundle) {
     ids.push(...expandBundle(opts.bundle, templateId));
   }
@@ -351,6 +366,17 @@ async function runNew(opts) {
     if (p.isCancel(descInput)) { p.cancel('Cancelled.'); process.exit(0); }
     finalDesc = descInput || finalDesc;
 
+    const recommended = getRecommendedLayers(templateInfo);
+    const noLayerFlags = !opts.withLayers.length && !opts.bundle && !opts.withRecommended;
+    if (noLayerFlags && recommended.length) {
+      const applyRecommended = await p.confirm({
+        message: `Apply recommended enhancements? (${recommended.join(', ')})`,
+        initialValue: true,
+      });
+      if (p.isCancel(applyRecommended)) { p.cancel('Cancelled.'); process.exit(0); }
+      if (applyRecommended) opts.withRecommended = true;
+    }
+
     const shouldContinue = await p.confirm({
       message: `Scaffold "${name}" as ${templateInfo.name}?`,
       initialValue: true,
@@ -385,10 +411,13 @@ async function runNew(opts) {
     verifyCommands: templateInfo.verifyCommands,
   });
 
-  const layerIds = collectLayerIds(opts, chosenTemplateId);
+  const layerIds = collectLayerIds(opts, templateInfo);
   let verifyCommands = [...(templateInfo.verifyCommands || [])];
 
   if (layerIds.length) {
+    if (opts.withRecommended) {
+      p.log.info(`Applying recommended layers: ${getRecommendedLayers(templateInfo).join(', ')}`);
+    }
     const result = applyLayers({
       projectDir: targetDir,
       layerIds,
@@ -546,7 +575,11 @@ function main() {
     const tmpls = getTemplatesWithManifests();
     if (tmpls.length) {
       log('\nAvailable templates:');
-      tmpls.forEach((t) => log(`  • ${t.id} — ${t.name}: ${t.description}`));
+      tmpls.forEach((t) => {
+        const rec = getRecommendedLayers(t);
+        const recHint = rec.length ? ` [recommended: ${rec.join(', ')}]` : '';
+        log(`  • ${t.id} — ${t.name}: ${t.description}${recHint}`);
+      });
     }
     const layers = getLayersWithManifests();
     if (layers.length) {
@@ -592,6 +625,7 @@ export {
   runEnhance,
   printPostScaffoldSteps,
   collectLayerIds,
+  getRecommendedLayers,
   USAGE,
   SKELETOR_VERSION,
 };

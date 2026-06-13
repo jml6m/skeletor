@@ -3,6 +3,7 @@
   "name": "Python",
   "description": "Modern Python with best-practice defaults: pyproject.toml, ruff (lint + format), pytest, basic typing layout, src/ structure, and an AGENTS.md contract.",
   "language": "python",
+  "recommendedLayers": ["governance"],
   "verifyCommands": [
     "python -m pip install -e '.[dev]' --quiet",
     "python -m ruff format --check .",

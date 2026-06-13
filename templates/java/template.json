@@ -3,6 +3,7 @@
   "name": "Java (Maven)",
   "description": "Standard Maven Java project with pom.xml, src/main/java structure, and basic JUnit tests.",
   "language": "java",
+  "recommendedLayers": ["governance"],
   "verifyCommands": [
     "mvn clean compile",
     "mvn test"

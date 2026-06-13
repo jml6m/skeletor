@@ -24,6 +24,12 @@ describe('skeletor CLI pure functions', () => {
     expect(result.git).toBe(true);
   });
 
+  test('parseArgs handles --with-recommended', () => {
+    const result = parseArgs(['node', 'skeletor', 'new', 'my-api', '--template', 'typescript', '--with-recommended', '--auto']);
+    expect(result.withRecommended).toBe(true);
+    expect(result.template).toBe('typescript');
+  });
+
   test('parseArgs respects flags', () => {
     const argv = [
       'node', 'skeletor', 'new', 'demo',

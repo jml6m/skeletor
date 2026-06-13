@@ -3,6 +3,7 @@
   "name": "Go",
   "description": "Standard Go module with go.mod, main package, basic CLI structure, and tests. Uses go test for verification.",
   "language": "go",
+  "recommendedLayers": ["governance"],
   "verifyCommands": [
     "go mod tidy",
     "go build .",

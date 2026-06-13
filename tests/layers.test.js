@@ -7,9 +7,10 @@ process.env.SKELETOR_CLI_TEST = '1';
 
 import {
   runNew,
-  runEnhance,
   parseArgs,
   collectLayerIds,
+  getRecommendedLayers,
+  loadTemplateManifest,
 } from '../src/index.js';
 import {
   validateLayerManifests,
@@ -134,6 +135,39 @@ describe('enhance command', () => {
       });
       expect(result.dryRun).toBe(true);
       expect(hashDir(targetDir)).toBe(before);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('collectLayerIds expands --with-recommended from template manifest', () => {
+    const ts = loadTemplateManifest('typescript');
+    const ids = collectLayerIds({ withRecommended: true }, ts);
+    expect(ids).toEqual(expect.arrayContaining(['governance', 'quality-gates', 'zod-config', 'env-example']));
+  });
+
+  test('getRecommendedLayers returns empty for unknown template', () => {
+    expect(getRecommendedLayers({ id: 'fake' })).toEqual([]);
+  });
+
+  test('new --with-recommended applies template recommended layers', async () => {
+    const name = makeName('layer-rec');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({
+        command: 'new',
+        name,
+        template: 'typescript',
+        auto: true,
+        git: false,
+        withRecommended: true,
+      });
+      const manifest = readProjectManifest(targetDir);
+      expect(manifest.layers.map((l) => l.id)).toEqual(
+        expect.arrayContaining(['governance', 'quality-gates', 'zod-config', 'env-example']),
+      );
+      expect(fs.existsSync(path.join(targetDir, '.grok', 'rules', 'testing.md'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'scripts', 'audit-ci.mjs'))).toBe(true);
     } finally {
       cleanup(targetDir);
     }

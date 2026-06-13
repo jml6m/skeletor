@@ -9,6 +9,7 @@
     "lib": { "dir": "layouts/lib" },
     "workspace": { "dir": "layouts/workspace" }
   },
+  "recommendedLayers": ["governance"],
   "verifyCommands": [
     "cargo check",
     "cargo test"
