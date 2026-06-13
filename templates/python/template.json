@@ -5,7 +5,7 @@
   "language": "python",
   "recommendedLayers": ["governance"],
   "verifyCommands": [
-    "python -m pip install -e '.[dev]' --quiet",
+    "python -m pip install -e \".[dev]\" --quiet",
     "python -m ruff format --check .",
     "python -m ruff check .",
     "python -m pytest -q",

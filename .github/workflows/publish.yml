@@ -57,3 +57,6 @@ jobs:
       # Gates already ran above; skip prepublishOnly to avoid a second full test run.
       - name: Publish to npm
         run: npm publish --provenance --access public --tag ${{ steps.disttag.outputs.tag }} --ignore-scripts
+
+      - name: Remove stale prerelease dist-tags on stable publish
+        run: node scripts/npm-dist-tag-hygiene.mjs

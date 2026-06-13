@@ -37,6 +37,7 @@ The [Publish to npm](https://github.com/jml6m/skeletor/actions/workflows/publish
 3. Run lint, audit, and tests
 4. Run `npm publish --dry-run` (auth preflight)
 5. Publish with provenance
+6. Remove stale `alpha` / `next` dist-tags on stable releases
 
 ### Re-run after a failed publish
 
@@ -68,7 +69,13 @@ npm run release:alpha   # bumps 0.2.0 → 0.2.1-alpha.0, pushes tag
 # or bump package.json manually, then tag v0.2.1-alpha.0
 ```
 
-Dist-tags: stable releases get `latest`; prereleases get the preid segment (`alpha`, `beta`, …) per the publish workflow.
+Dist-tags: stable releases get `latest`; prereleases get the preid segment (`alpha`, `beta`, …) per the publish workflow. Stable publishes automatically remove stale `alpha` and `next` tags via `scripts/npm-dist-tag-hygiene.mjs`.
+
+After a manual stable publish, run:
+
+```bash
+node scripts/npm-dist-tag-hygiene.mjs
+```
 
 ## Common failures
 

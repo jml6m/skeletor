@@ -36,7 +36,12 @@ function runVerifyCommands(projectDir, commands) {
     // Run in the generated project. We tolerate some "health" style commands that use || true internally.
     // The goal per user request is to exercise the post-generation verification steps.
     try {
-      execSync(cmd, { cwd: projectDir, stdio: 'pipe', timeout: 180000 });
+      execSync(cmd, {
+        cwd: projectDir,
+        stdio: 'pipe',
+        timeout: 300000,
+        shell: true,
+      });
     } catch (e) {
       const output = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
       // Re-throw with context so the test failure is informative
@@ -143,6 +148,10 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           expect(cargo).toContain('repository = "https://github.com/tbra-owner/');
           const gitignore = fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8');
           expect(gitignore).toContain('/target/');
+        }
+
+        if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
+          runVerifyCommands(targetDir, tmpl.verifyCommands);
         }
       } finally {
         cleanup(tempRoot);

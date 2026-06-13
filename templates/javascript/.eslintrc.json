@@ -77,6 +77,12 @@
       "rules": {
         "no-restricted-properties": "off"
       }
+    },
+    {
+      "files": ["src/config/env.config.js"],
+      "rules": {
+        "no-restricted-properties": "off"
+      }
     }
   ]
 }

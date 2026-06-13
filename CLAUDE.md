@@ -24,6 +24,7 @@ Task-specific protocols live in **[.grok/rules/](./.grok/rules/)** and apply to 
 | Command | Purpose |
 |---|---|
 | `npm test` | Jest suite — discovers templates, validates the manifest contract + generation. Run after every change. |
+| `npm run test:verify` | Runs each template's `verifyCommands` (CI `verify-templates` job; needs local toolchains). |
 | `npm run lint` | Encoding gate (runs `lint:encoding`). |
 | `npm run lint:encoding` | Fails on non-UTF-8 / BOM / CRLF / control chars in tracked files. |
 | `npm run audit:ci` | Hard-fails on critical/high in **production** deps (dev-only + moderate/low reported, not gated). Separate from `lint`; also run by `npm:reinstall` and CI. |

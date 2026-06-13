@@ -5,6 +5,8 @@ node_modules/
 coverage/
 *.log
 gen-*/
+terminals/
+agent-tools/
 
 # OS / editor
 .DS_Store

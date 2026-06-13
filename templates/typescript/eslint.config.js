@@ -10,6 +10,12 @@ export default defineConfig([
     ignores: ['dist/**', 'eslint.config.js', 'scripts/**/*.js'],
   },
   {
+    files: ['src/config/env.config.ts'],
+    rules: {
+      'no-restricted-properties': 'off',
+    },
+  },
+  {
     files: ['**/*.ts'],
     extends: [
       eslint.configs.recommended,

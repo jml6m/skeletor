@@ -1,3 +1,5 @@
+import { config } from '#config/env.config.js';
+
 /**
  * Structured logger stub.
  *
@@ -30,12 +32,12 @@ const logger = {
     console.error(`[ERROR] ${msg}${formatMeta(meta)}`);
   },
   debug(msg, meta) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (!config.system.isProduction) {
       console.debug(`[DEBUG] ${msg}${formatMeta(meta)}`);
     }
   },
   http(msg, meta) {
-    console.log(`[HTTP] ${msg}${formatMeta(meta)}`);
+    console.info(`[HTTP] ${msg}${formatMeta(meta)}`);
   },
 };
 

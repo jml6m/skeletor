@@ -1,6 +1,6 @@
 {
   "name": "@jml6m/skeletor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Efficient scaffolding for custom development. Generates projects wired with personal lint/format/health/release/alias/AGENTS.md conventions.",
   "main": "src/index.js",
   "type": "module",
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:verify": "node scripts/run-verify-tests.mjs",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
     "lint": "npm run lint:encoding",
     "lint:encoding": "node scripts/check-encoding.mjs",
@@ -52,7 +53,7 @@
   "devDependencies": {
     "jest": "^29.7.0"
   },
-  "author": "",
+  "author": "Joseph Lewkovich",
   "license": "ISC",
   "engines": {
     "node": ">=20.19.0"

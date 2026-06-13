@@ -40,6 +40,9 @@ strict = true
 warn_return_any = true
 warn_unused_ignores = true
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"

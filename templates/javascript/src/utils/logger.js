@@ -1,3 +1,5 @@
+const { config } = require('@config');
+
 /**
  * Structured logger stub.
  *
@@ -30,7 +32,7 @@ const logger = {
     console.error(`[ERROR] ${msg}${formatMeta(meta)}`);
   },
   debug(msg, meta) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (!config.system.isProduction) {
       console.debug(`[DEBUG] ${msg}${formatMeta(meta)}`);
     }
   },
