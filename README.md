@@ -84,6 +84,10 @@ Active. Multiple language templates + rich clack-based interactive UI. Test suit
 
 Run `skeletor` (or `node src/index.js`) with no args for current help and template list.
 
+## Releasing
+
+CI publish uses npm **Trusted Publishing** (OIDC). Configure it once on npmjs.com, then push a `v*` tag. See **[docs/RELEASE.md](./docs/RELEASE.md)** for the exact fields, re-run steps, and manual fallback.
+
 ## For Testers & Reviewers
 
 ### Quick try (no install needed)

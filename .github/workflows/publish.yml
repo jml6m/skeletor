@@ -7,26 +7,41 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     environment: npm
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Preflight (tag ↔ version, not already published)
+        run: node scripts/publish-preflight.mjs
+
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
           cache: npm
+
       # npm CLI 10 (shipped with Node 20) does not fully support Trusted
       # Publishing OIDC; upgrade to 11.5.1+ before publishing.
-      - run: npm install -g npm@^11.5.1
+      - name: Ensure npm 11.5.1+ for Trusted Publishing
+        run: npm install -g npm@^11.5.1
+
       - run: npm ci
-      - run: npm test
+
+      - name: Release gates
+        run: npm run lint:encoding && npm run audit:ci && npm test
+
+      - name: Verify npm Trusted Publishing auth (dry-run)
+        run: node scripts/verify-npm-publish-auth.mjs
+
       - name: Resolve npm dist-tag
         id: disttag
         shell: bash
@@ -38,4 +53,7 @@ jobs:
           else
             echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
-      - run: npm publish --provenance --access public --tag ${{ steps.disttag.outputs.tag }}
+
+      # Gates already ran above; skip prepublishOnly to avoid a second full test run.
+      - name: Publish to npm
+        run: npm publish --provenance --access public --tag ${{ steps.disttag.outputs.tag }} --ignore-scripts

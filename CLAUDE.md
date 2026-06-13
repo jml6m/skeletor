@@ -30,6 +30,9 @@ Task-specific protocols live in **[.grok/rules/](./.grok/rules/)** and apply to 
 | `npm run npm:reinstall` | Clean reinstall, then the audit gate. |
 | `npm run git:pull` | Full `fetch --all --prune` + fast-forward pull. |
 | `npm run release:patch\|minor\|major\|alpha` | Bump version + push tag → triggers the publish workflow. |
+| `npm run release:preflight` | Tag/version + not-already-published checks before tagging. |
+
+Tag-driven CI publish requires **npm Trusted Publishing** — see [docs/RELEASE.md](./docs/RELEASE.md).
 
 ## Conventions
 
