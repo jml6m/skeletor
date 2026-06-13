@@ -1,0 +1,1 @@
+Import the logger from `src/utils/logger` everywhere. Messages are static strings; dynamic data goes in the metadata object. For errors: `{ error: err.message, stack: err.stack }`.

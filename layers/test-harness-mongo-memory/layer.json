@@ -1,0 +1,13 @@
+{
+  "id": "test-harness:mongo-memory",
+  "name": "MongoDB Memory Server test harness",
+  "description": "Jest harness with mongodb-memory-server, per-worker isolation, and shared seed helpers.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "verifyCommands": ["npm install"]
+}

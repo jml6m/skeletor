@@ -1,0 +1,13 @@
+{
+  "id": "test-harness:playwright",
+  "name": "Playwright E2E harness",
+  "description": "Playwright config with mock/real project split, fixtures, and screenshot helper stubs.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "verifyCommands": ["npm install"]
+}

@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "audit:ci": "node scripts/audit-ci.mjs",
+    "lint:encoding": "node scripts/check-encoding.mjs",
+    "git:pull": "node scripts/git-pull-all.mjs"
+  }
+}

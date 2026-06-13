@@ -1,0 +1,16 @@
+{
+  "id": "zod-config",
+  "name": "Zod-validated configuration",
+  "description": "Zod-validated env.config + config/index pattern; never read process.env in feature code.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "files": { "dir": "files", "overwrite": true, "onConflict": "replace" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "docs": {
+    "agents": { "section": "Configuration", "append": "docs/AGENTS.snippet.md" }
+  },
+  "verifyCommands": ["npm install", "npm run lint"]
+}

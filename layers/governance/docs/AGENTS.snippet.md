@@ -1,0 +1,1 @@
+Follow the rules in `.grok/rules/` for issue workflow, fast iteration probes, testing depth, and session validation gates. Run `npm run lint:encoding`, `npm run audit:ci`, and `npm test` before handing work back when those scripts exist.

@@ -1,0 +1,14 @@
+{
+  "id": "governance",
+  "name": "Agent governance rules",
+  "description": "Ships .grok/rules/ (issue-workflow, fast-iteration, testing, session-validation) and matching AGENTS.md sections.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["*"],
+    "templates": ["*"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "docs": {
+    "agents": { "section": "Critical Protocols", "append": "docs/AGENTS.snippet.md" }
+  }
+}

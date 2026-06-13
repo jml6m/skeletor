@@ -1,0 +1,13 @@
+{
+  "id": "quality-gates",
+  "name": "Encoding + audit + git-pull gates",
+  "description": "Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "verifyCommands": ["npm run lint:encoding", "npm run audit:ci"]
+}

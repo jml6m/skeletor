@@ -1,0 +1,1 @@
+Never read `process.env` in feature code. Import `config` from `src/config/index` and extend `env.config` with Zod schemas for new settings.

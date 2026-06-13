@@ -1,0 +1,14 @@
+{
+  "id": "library-publishing",
+  "name": "Publishable TS library (tsup + OIDC publish)",
+  "description": "Turns a TS template into a dual ESM/CJS npm library with tsup, exports map, prepublishOnly gate, and OIDC publish workflow.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["typescript"],
+    "templates": ["typescript"]
+  },
+  "recommends": ["quality-gates"],
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "verifyCommands": ["npm install", "npm run build", "npm run publish:dry"]
+}

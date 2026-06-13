@@ -1,0 +1,13 @@
+[package]
+name = "{{PROJECT_NAME}}"
+version.workspace = true
+edition.workspace = true
+description = "{{DESCRIPTION}}"
+repository.workspace = true
+
+[[bin]]
+name = "{{PROJECT_NAME}}"
+path = "src/main.rs"
+
+[dependencies]
+{{PROJECT_NAME}}-core = { path = "../core" }

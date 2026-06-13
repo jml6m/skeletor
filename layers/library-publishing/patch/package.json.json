@@ -1,0 +1,22 @@
+{
+  "main": "./lib/index.cjs",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs"
+    }
+  },
+  "files": ["lib"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build:lib": "tsup",
+    "prepublishOnly": "npm run audit:ci && npm test",
+    "publish:dry": "npm publish --dry-run"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0"
+  }
+}

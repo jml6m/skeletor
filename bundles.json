@@ -1,0 +1,22 @@
+{
+  "node-cli": {
+    "template": "javascript",
+    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example"]
+  },
+  "express-api": {
+    "template": "javascript",
+    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example"]
+  },
+  "ts-library": {
+    "template": "typescript",
+    "layers": ["governance", "quality-gates", "library-publishing"]
+  },
+  "ts-native": {
+    "template": "typescript",
+    "layers": ["governance", "quality-gates", "test-harness:playwright"]
+  },
+  "ts-benchmark": {
+    "template": "typescript",
+    "layers": ["governance", "quality-gates"]
+  }
+}

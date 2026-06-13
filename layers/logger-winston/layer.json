@@ -1,0 +1,27 @@
+{
+  "id": "logger-winston",
+  "name": "Winston structured logger",
+  "description": "Replaces the console logger stub with Winston (levels, file transports, env-aware default level).",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "requires": ["zod-config"],
+  "recommends": ["quality-gates"],
+  "files": { "dir": "files", "overwrite": true, "onConflict": "replace" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "docs": {
+    "agents": { "section": "Logging & Error Handling", "append": "docs/AGENTS.snippet.md" }
+  },
+  "verifyCommands": ["npm install", "npm run lint"],
+  "prompts": [
+    {
+      "id": "logFilePath",
+      "type": "text",
+      "message": "Directory for log files",
+      "default": "logs",
+      "token": "LOG_DIR"
+    }
+  ]
+}

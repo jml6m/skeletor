@@ -1,0 +1,12 @@
+{
+  "id": "env-example",
+  "name": "Environment example file",
+  "description": "Ships a comprehensive .env.example with documented variables.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "recommends": ["zod-config"],
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" }
+}
