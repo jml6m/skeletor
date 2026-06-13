@@ -11,7 +11,7 @@ Run in order. Stop and fix failures before handing work back.
 | 1. Encoding | `npm run lint:encoding` | **Always** — no BOM / CRLF / non-UTF-8 / control chars. |
 | 2. Audit | `npm run audit:ci` | **Always** — zero critical/high in production deps (dev-only advisories reported, not gated). |
 | 3. Tests | `npm test` | **Always** — full Jest suite passes. |
-| 4. Generation smoke | `node src/index.js new <tmp> --template <id> --yes` | When the generator or a template changed. |
+| 4. Generation smoke | `node src/index.js new <tmp> --template <id> --auto` | When the generator or a template changed. |
 
 `npm run lint` runs step 1 (the encoding gate) only. Step 2 (`npm run audit:ci`) is a separate command — it is also run by `npm run npm:reinstall` and enforced in CI.
 

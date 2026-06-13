@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace {{PROJECT_NAME | replace('-', '_')}};
+namespace {{NAMESPACE}};
 
 public class ProgramTests
 {

@@ -1,4 +1,4 @@
-package com.example;
+package app;
 
 /**
  * {{PROJECT_NAME}}

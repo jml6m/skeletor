@@ -22,7 +22,7 @@
     real project. This is the recommended way to experience the alpha UX.
 
     Automated / Headless mode: Pass -Automated (or -Headless). The script
-    will supply --yes plus all required flags so no prompts are shown.
+    will supply --auto plus --template so no prompts are shown.
     Useful for quick smoke tests of every template + flag combination.
 
 .PARAMETER Mode
@@ -164,21 +164,16 @@ if ($headless) {
 
     foreach ($t in $templates) {
         $sb = New-Sandbox "auto-$t"
-        $cmd = "$skeletorCmd new `"auto-$t`" --yes --template $t --owner `"alpha-tester`" --description `"Automated headless test for $t template`" --no-git"
+        $cmd = "$skeletorCmd new `"auto-$t`" --auto --template $t --no-git"
         Run-Command $cmd $sb
     }
 
-    # Extra variation: with git
+    # Extra variation: with git (default)
     $sb = New-Sandbox "auto-with-git"
-    $cmd = "$skeletorCmd new `"auto-with-git`" --yes --template typescript --owner `"alpha-tester`" --description `"Headless with git init`""
+    $cmd = "$skeletorCmd new `"auto-with-git`" --auto --template typescript"
     Run-Command $cmd $sb
 
-    # One using default (no --template) but --yes (should pick first available)
-    $sb = New-Sandbox "auto-default-yes"
-    $cmd = "$skeletorCmd new `"auto-default-yes`" --yes --owner `"alpha-tester`" --description `"Headless default template pick`" --no-git"
-    Run-Command $cmd $sb
-
-    Write-Host "`nAutomated mode complete. All commands ran with --yes and explicit flags (no interactive prompts)." -ForegroundColor Green
+    Write-Host "`nAutomated mode complete. All commands ran with --auto --template (no interactive prompts)." -ForegroundColor Green
 }
 
 Write-Host "`n=== All requested iterations executed ===" -ForegroundColor Cyan

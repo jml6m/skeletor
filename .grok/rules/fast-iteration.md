@@ -12,7 +12,7 @@ Prefer a 20-line probe over guessing from static reading.
 
 ## Conventions
 
-- Generate into a throwaway dir and inspect it: `node src/index.js new /tmp/probe --template <id> --yes`, then read the output. Generated `gen-*/` dirs are gitignored.
+- Generate into a throwaway dir and inspect it: `node src/index.js new /tmp/probe --template <id> --auto`, then read the output. Generated `gen-*/` dirs are gitignored.
 - Put any reusable probe in `scripts/scratch/` with a descriptive name; run with `node scripts/scratch/<file>.mjs`.
 - Import from `src/` instead of copying generator logic inline.
 - Keep the generator itself (`copyAndRender` + `render`) dependency-free and simple — do not pull new deps in just to debug.

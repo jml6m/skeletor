@@ -20,8 +20,9 @@
 - **CLI / src/index.js**
   - Use `@clack/prompts` for rich interactive experience (select with hints, text, confirm, intro/outro, cancel handling).
   - `new <name>` is the primary command.
-  - When no `--template` and interactive (TTY + no `--yes`): show nice clack select.
-  - `--yes` must remain fully non-interactive for scripting/CI.
+  - When no `--template` and interactive (TTY + no `--auto`): show nice clack select.
+  - `--auto` must remain fully non-interactive for scripting; it requires `--template`.
+  - Owner and description are interactive-only prompts (no CLI flags); `--auto` uses defaults.
   - Keep the generator itself (copyAndRender + render) dependency-free and simple.
 
 - **After any implementation work (templates, CLI, tests, docs, etc.)**

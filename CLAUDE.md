@@ -16,7 +16,7 @@ Task-specific protocols live in **[.grok/rules/](./.grok/rules/)** and apply to 
 ## Repo quick facts
 
 - `@jml6m/skeletor` — ESM Node CLI (`"type": "module"`, `bin: skeletor`), published to npm (scoped, public).
-- Primary command: `node src/index.js new <name> [--template <id>] [--yes]`. `--yes` must stay fully non-interactive.
+- Primary command: `node src/index.js new <name> --template <id> [--auto]`. `--auto` must stay fully non-interactive and requires `--template`; owner/description are interactive-only prompts (no CLI flags).
 - Templates live in `templates/<id>/`; dependency-declaring files use a `.tmpl` suffix (see AGENTS.md).
 
 ## Commands

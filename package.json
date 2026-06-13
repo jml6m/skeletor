@@ -1,6 +1,6 @@
 {
   "name": "@jml6m/skeletor",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.5",
   "description": "Efficient scaffolding for custom development. Generates projects wired with personal lint/format/health/release/alias/AGENTS.md conventions.",
   "main": "src/index.js",
   "type": "module",
@@ -25,6 +25,10 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jml6m/skeletor.git"
   },
   "files": [
     "src",
