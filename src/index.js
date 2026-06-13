@@ -8,6 +8,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import * as p from '@clack/prompts';
+import {
+  promptConfirmRecommended,
+  promptTextRecommended,
+  resolveTextAnswer,
+} from './interactive-prompts.js';
 import { writeProjectManifest, readProjectManifest } from './manifest.js';
 import {
   applyLayers,
@@ -313,16 +318,16 @@ const DEFAULT_DESCRIPTION = 'A new project scaffolded with skeletor.';
 async function promptForLayerVars(prompts) {
   const vars = {};
   for (const pr of prompts) {
-    const answer = await p.text({
+    const recommended = String(pr.default ?? '');
+    const answer = await promptTextRecommended({
       message: pr.message,
-      placeholder: String(pr.default ?? ''),
-      initialValue: String(pr.default ?? ''),
+      recommended,
     });
     if (p.isCancel(answer)) {
       p.cancel('Cancelled.');
       process.exit(0);
     }
-    vars[pr.token] = answer || pr.default || '';
+    vars[pr.token] = resolveTextAnswer(answer, recommended);
   }
   return vars;
 }
@@ -369,28 +374,26 @@ async function runNew(opts) {
   }
 
   if (isInteractive) {
-    const ownerInput = await p.text({
+    const ownerInput = await promptTextRecommended({
       message: 'GitHub owner / org',
-      placeholder: finalOwner,
-      initialValue: finalOwner,
+      recommended: finalOwner,
     });
     if (p.isCancel(ownerInput)) { p.cancel('Cancelled.'); process.exit(0); }
-    finalOwner = ownerInput || finalOwner;
+    finalOwner = resolveTextAnswer(ownerInput, finalOwner);
 
-    const descInput = await p.text({
+    const descInput = await promptTextRecommended({
       message: 'Project description',
-      placeholder: finalDesc,
-      initialValue: finalDesc,
+      recommended: finalDesc,
     });
     if (p.isCancel(descInput)) { p.cancel('Cancelled.'); process.exit(0); }
-    finalDesc = descInput || finalDesc;
+    finalDesc = resolveTextAnswer(descInput, finalDesc);
 
     const recommended = getRecommendedLayers(templateInfo);
     const noLayerFlags = !opts.withLayers.length && !opts.bundle && !opts.withRecommended;
     if (noLayerFlags && recommended.length) {
-      const applyRecommended = await p.confirm({
+      const applyRecommended = await promptConfirmRecommended({
         message: `Apply recommended enhancements? (${recommended.join(', ')})`,
-        initialValue: true,
+        recommended: true,
       });
       if (p.isCancel(applyRecommended)) { p.cancel('Cancelled.'); process.exit(0); }
       if (applyRecommended) opts.withRecommended = true;
@@ -412,9 +415,9 @@ async function runNew(opts) {
 
   if (isInteractive) {
     const layerNote = layerIds.length ? ` + ${layerIds.length} enhancement layer(s)` : '';
-    const shouldContinue = await p.confirm({
+    const shouldContinue = await promptConfirmRecommended({
       message: `Scaffold "${name}" as ${templateInfo.name}${layerNote}?`,
-      initialValue: true,
+      recommended: true,
     });
     if (p.isCancel(shouldContinue) || !shouldContinue) {
       p.cancel('Scaffolding cancelled.');
@@ -534,7 +537,10 @@ async function runEnhance(opts) {
   if (!opts.allowDirty && !opts.dryRun && isGitDirty(projectDir)) {
     p.log.warn('Git working tree is dirty. Commit or stash changes, or pass --allow-dirty.');
     if (process.stdout.isTTY) {
-      const proceed = await p.confirm({ message: 'Continue anyway?', initialValue: false });
+      const proceed = await promptConfirmRecommended({
+        message: 'Continue with a dirty git working tree?',
+        recommended: false,
+      });
       if (p.isCancel(proceed) || !proceed) {
         p.cancel('Enhance cancelled.');
         process.exit(0);
