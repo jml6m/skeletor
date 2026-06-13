@@ -26,7 +26,7 @@ Task-specific protocols live in **[.grok/rules/](./.grok/rules/)** and apply to 
 | `npm test` | Jest suite — discovers templates, validates the manifest contract + generation. Run after every change. |
 | `npm run lint` | Encoding gate (runs `lint:encoding`). |
 | `npm run lint:encoding` | Fails on non-UTF-8 / BOM / CRLF / control chars in tracked files. |
-| `npm run audit:ci` | Fails only on critical/high advisories (moderate/low ignored). Separate from `lint`; also run by `npm:reinstall` and CI. |
+| `npm run audit:ci` | Hard-fails on critical/high in **production** deps (dev-only + moderate/low reported, not gated). Separate from `lint`; also run by `npm:reinstall` and CI. |
 | `npm run npm:reinstall` | Clean reinstall, then the audit gate. |
 | `npm run git:pull` | Full `fetch --all --prune` + fast-forward pull. |
 | `npm run release:patch\|minor\|major\|alpha` | Bump version + push tag → triggers the publish workflow. |
