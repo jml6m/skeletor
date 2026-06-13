@@ -26,14 +26,16 @@ Usage:
 Options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
                         Omit for an interactive language/stack picker (TTY required)
-  --auto                Non-interactive; requires --template (uses defaults — edit
-                        owner/description in generated files afterward)
+  --owner <user>        GitHub owner/org (default: jml6m; used with --auto or as
+                        interactive defaults)
+  --description <text>  Project description (default: generic skeletor blurb)
+  --auto                Non-interactive; requires --template
   --no-git              Skip git init (git is initialized by default)
 
 Examples:
   skeletor new my-api                    # interactive: pick stack, owner, description
   skeletor new my-api --template typescript
-  skeletor new my-lib --auto --template go
+  skeletor new my-lib --auto --template go --owner jml6m --description "My CLI tool"
   skeletor new my-lib --auto --template go --no-git
 `;
 
@@ -47,6 +49,8 @@ function parseArgs(argv) {
     command: null,
     name: null,
     template: null, // resolved later, can be interactive
+    owner: null,
+    description: null,
     auto: false,
     git: true,
   };
@@ -62,6 +66,8 @@ function parseArgs(argv) {
     for (let i = 2; i < args.length; i++) {
       const a = args[i];
       if (a === '--template' || a === '-t') result.template = args[++i] || null;
+      else if (a === '--owner' || a === '-o') result.owner = args[++i] || null;
+      else if (a === '--description' || a === '-d') result.description = args[++i] || null;
       else if (a === '--auto') result.auto = true;
       else if (a === '--no-git') result.git = false;
       else if (!a.startsWith('-') && !result.name) result.name = a;
@@ -101,6 +107,7 @@ function buildRenderVars({ name, owner, description }) {
     NAMESPACE: namespace,
     GROUP_ID: `io.github.${ownerSegment}`,
     GO_MODULE: `github.com/${repoOwner}/${name}`,
+    REPO_URL: `https://github.com/${repoOwner}/${name}`,
   };
 }
 
@@ -209,8 +216,8 @@ async function runNew(opts) {
   }
 
   let chosenTemplateId = opts.template;
-  let finalOwner = DEFAULT_OWNER;
-  let finalDesc = DEFAULT_DESCRIPTION;
+  let finalOwner = opts.owner || DEFAULT_OWNER;
+  let finalDesc = opts.description || DEFAULT_DESCRIPTION;
 
   const isInteractive = !auto && process.stdout.isTTY;
 
@@ -293,12 +300,17 @@ async function runNew(opts) {
 
   p.outro('✅ Done!');
 
-  console.log(`   cd ${name}`);
-  const suggested = templateInfo.verifyCommands && templateInfo.verifyCommands.length
-    ? templateInfo.verifyCommands[0]
-    : 'Run your language-specific install + test commands';
-  console.log(`   ${suggested}`);
-  console.log('   Then run the other steps from the template manifest (lint, test, etc.)');
+  printPostScaffoldSteps(name, templateInfo.verifyCommands);
+}
+
+/** Print cd + full verifyCommands list after scaffolding. */
+function printPostScaffoldSteps(projectName, verifyCommands) {
+  console.log(`   cd ${projectName}`);
+  const steps = Array.isArray(verifyCommands) && verifyCommands.length
+    ? verifyCommands
+    : ['Run your language-specific install + test commands'];
+  console.log('   Next steps:');
+  steps.forEach((cmd) => console.log(`     ${cmd}`));
   console.log('\n   Edit AGENTS.md (or equivalent) to customize the AI contract.');
   console.log('   Happy scaffolding. Your rules, your choice of stack.\n');
 }
@@ -338,6 +350,7 @@ export {
   ensureDir,
   copyAndRender,
   runNew,
+  printPostScaffoldSteps,
   USAGE,
 };
 

@@ -96,6 +96,8 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           command: 'new',
           name,
           template: tmpl.id,
+          owner: 'tbra-owner',
+          description: 'Tetrahedral barycentric coords',
           auto: true,
           git: false,
         });
@@ -124,14 +126,23 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 
         if (tmpl.id === 'go') {
           const goMod = fs.readFileSync(path.join(targetDir, 'go.mod'), 'utf8');
-          expect(goMod).toContain('module github.com/jml6m/');
+          expect(goMod).toContain('module github.com/tbra-owner/');
           expect(goMod).not.toContain('{{');
         }
 
         if (tmpl.id === 'java') {
           const pom = fs.readFileSync(path.join(targetDir, 'pom.xml'), 'utf8');
-          expect(pom).toContain('<groupId>io.github.jml6m</groupId>');
+          expect(pom).toContain('<groupId>io.github.tbraowner</groupId>');
           expect(pom).not.toContain('{{');
+        }
+
+        if (tmpl.id === 'rust') {
+          expect(fs.existsSync(path.join(targetDir, '.gitignore'))).toBe(true);
+          const cargo = fs.readFileSync(path.join(targetDir, 'Cargo.toml'), 'utf8');
+          expect(cargo).toContain('description = "Tetrahedral barycentric coords"');
+          expect(cargo).toContain('repository = "https://github.com/tbra-owner/');
+          const gitignore = fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8');
+          expect(gitignore).toContain('/target/');
         }
       } finally {
         cleanup(tempRoot);

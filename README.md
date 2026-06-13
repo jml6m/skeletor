@@ -29,7 +29,7 @@ We use `@clack/prompts` for a modern experience:
 - Confirmation step
 - Proper cancel handling and nice spinners/intro/outro
 
-`--auto` stays fully non-interactive for scripts (requires `--template`; uses default owner/description).
+`--auto` stays fully non-interactive for scripts (requires `--template`). Pass `--owner` / `--description` on the CLI when scaffolding non-interactively.
 
 ## Pushing to GitHub
 
@@ -50,11 +50,12 @@ node src/index.js new my-project
 node src/index.js new my-api --template typescript
 
 # Non-interactive (scripts)
-npx @jml6m/skeletor new my-service --auto --template go
+npx @jml6m/skeletor new my-service --auto --template go --owner jml6m --description "My service"
 ```
 
 Common flags:
 - `--template <id>` (javascript, typescript, python, go, rust, java, csharp, ...)
+- `--owner <user>` / `--description <text>` (for `--auto`, or as interactive defaults)
 - `--auto` (skip all prompts; requires `--template`)
 - `--no-git` (skip git init; git is on by default)
 

@@ -22,7 +22,8 @@
   - `new <name>` is the primary command.
   - When no `--template` and interactive (TTY + no `--auto`): show nice clack select.
   - `--auto` must remain fully non-interactive for scripting; it requires `--template`.
-  - Owner and description are interactive-only prompts (no CLI flags); `--auto` uses defaults.
+  - `--owner` and `--description` work on the CLI (especially with `--auto`); interactive mode still prompts but uses CLI values as defaults when provided.
+  - Template `.gitignore` files must be named `.gitignore.tmpl` so npm publish includes them (npm strips bare `.gitignore` from packages).
   - Keep the generator itself (copyAndRender + render) dependency-free and simple.
 
 - **After any implementation work (templates, CLI, tests, docs, etc.)**

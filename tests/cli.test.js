@@ -1,7 +1,13 @@
 // IMPORTANT: set before importing src so the guard in src/index.js skips main() + process.exit
 process.env.SKELETOR_CLI_TEST = '1';
 
-import { parseArgs, render, buildRenderVars, getAvailableTemplates } from '../src/index.js';
+import {
+  parseArgs,
+  render,
+  buildRenderVars,
+  getAvailableTemplates,
+  printPostScaffoldSteps,
+} from '../src/index.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -22,14 +28,37 @@ describe('skeletor CLI pure functions', () => {
     const argv = [
       'node', 'skeletor', 'new', 'demo',
       '--template', 'typescript',
+      '--owner', 'acme',
+      '--description', 'A test project',
       '--auto',
       '--no-git'
     ];
     const result = parseArgs(argv);
     expect(result.name).toBe('demo');
     expect(result.template).toBe('typescript');
+    expect(result.owner).toBe('acme');
+    expect(result.description).toBe('A test project');
     expect(result.auto).toBe(true);
     expect(result.git).toBe(false);
+  });
+
+  test('buildRenderVars includes REPO_URL', () => {
+    const vars = buildRenderVars({ name: 'tbra', owner: 'jml6m', description: 'Test' });
+    expect(vars.REPO_URL).toBe('https://github.com/jml6m/tbra');
+  });
+
+  test('printPostScaffoldSteps lists all verify commands', () => {
+    const logs = [];
+    const orig = console.log;
+    console.log = (...args) => logs.push(args.join(' '));
+    try {
+      printPostScaffoldSteps('my-app', ['cargo check', 'cargo test']);
+    } finally {
+      console.log = orig;
+    }
+    expect(logs.some((l) => l.includes('cargo check'))).toBe(true);
+    expect(logs.some((l) => l.includes('cargo test'))).toBe(true);
+    expect(logs.some((l) => l.includes('Next steps:'))).toBe(true);
   });
 
   test('parseArgs falls back to help for unknown', () => {
