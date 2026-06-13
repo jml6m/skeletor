@@ -34,6 +34,14 @@ export function renderLayerContent(content, vars) {
   return out;
 }
 
+/** Map layer file paths that cannot be tracked (e.g. .env.*) to project output paths. */
+export function resolveLayerOutputPath(relPath) {
+  if (relPath === 'env.example' || relPath.endsWith('/env.example')) {
+    return relPath.replace(/(^|\/)env\.example$/, '$1.env.example');
+  }
+  return relPath;
+}
+
 export function loadBundles() {
   if (!fs.existsSync(BUNDLES_PATH)) return {};
   try {
@@ -342,7 +350,8 @@ export function planLayerApply(options) {
     };
 
     for (const { srcPath, relPath } of fileEntries) {
-      const outRel = relPath.endsWith('.tmpl') ? relPath.slice(0, -'.tmpl'.length) : relPath;
+      let outRel = relPath.endsWith('.tmpl') ? relPath.slice(0, -'.tmpl'.length) : relPath;
+      outRel = resolveLayerOutputPath(outRel);
       const dest = path.join(projectDir, outRel);
       const exists = fs.existsSync(dest);
       let action = 'add';
@@ -420,7 +429,7 @@ export function applyLayers(options) {
       }
       let content = fs.readFileSync(file.srcPath, 'utf8');
       content = renderLayerContent(content, vars);
-      const dest = path.join(projectDir, file.relPath);
+      const dest = path.join(projectDir, resolveLayerOutputPath(file.relPath));
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.writeFileSync(dest, content, 'utf8');
     }
