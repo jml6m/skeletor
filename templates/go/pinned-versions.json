@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "status": "active",
+  "statusMessage": null,
+  "lastReviewed": "2026-06-14",
+  "runtime": {
+    "go": { "version": "1.22.0", "policy": "minor" }
+  },
+  "packages": {}
+}

@@ -22,6 +22,13 @@ import {
   templatePromptDefaults,
   writeTemplateAnswers,
 } from './template-prompts.js';
+import {
+  loadPinnedVersions,
+  validatePinnedVersionsManifest,
+  buildPinTokens,
+  checkTemplateGenerationAllowed,
+  writePinnedVersionsSnapshot,
+} from './pinned-versions.js';
 import { writeProjectManifest, readProjectManifest } from './manifest.js';
 import {
   applyLayers,
@@ -64,6 +71,7 @@ new options:
   --github              Create GitHub remote via gh CLI (after git init)
   --private             Use --private with --github (default: public)
   --uv                  Python: use uv sync instead of pip install (non-interactive)
+  --allow-deprecated-template  Allow scaffolding templates marked deprecated in pinned-versions.json
 
 enhance options:
   --add <id[,id...]>    Layers to apply
@@ -117,6 +125,7 @@ function parseArgs(argv) {
     github: false,
     githubPrivate: false,
     uv: false,
+    allowDeprecatedTemplate: false,
   };
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
@@ -141,6 +150,7 @@ function parseArgs(argv) {
       else if (a === '--github') result.github = true;
       else if (a === '--private') result.githubPrivate = true;
       else if (a === '--uv') result.uv = true;
+      else if (a === '--allow-deprecated-template') result.allowDeprecatedTemplate = true;
       else if (!a.startsWith('-') && !result.name) result.name = a;
     }
     return result;
@@ -228,7 +238,7 @@ function copyAndRender(src, dest, vars) {
   if (stat.isDirectory()) {
     ensureDir(dest);
     for (const entry of fs.readdirSync(src)) {
-      if (entry === 'node_modules' || entry === '.git' || entry === 'template.json' || entry === 'layer.json') continue;
+      if (entry === 'node_modules' || entry === '.git' || entry === 'template.json' || entry === 'layer.json' || entry === 'pinned-versions.json') continue;
       const outEntry = renderPathSegment(entry, vars);
       copyAndRender(path.join(src, entry), path.join(dest, outEntry), vars);
     }
@@ -459,6 +469,24 @@ async function runNew(opts) {
     process.exit(1);
   }
 
+  const pinned = loadPinnedVersions(templateInfo.dir);
+  const pinManifestErrors = validatePinnedVersionsManifest(pinned, chosenTemplateId);
+  if (pinManifestErrors.length) {
+    logError(`❌ Pin manifest error: ${pinManifestErrors.join('; ')}`);
+    process.exit(1);
+  }
+
+  const pinStatus = checkTemplateGenerationAllowed(pinned, {
+    allowDeprecatedTemplate: opts.allowDeprecatedTemplate,
+  });
+  if (pinStatus.blocked) {
+    logError(`❌ ${pinStatus.message}`);
+    process.exit(1);
+  }
+  if (pinStatus.warn) {
+    p.log.warn(pinStatus.warn);
+  }
+
   if (isInteractive) {
     const recommended = getRecommendedLayers(templateInfo);
     const noLayerFlags = !opts.withLayers.length && !opts.bundle && !opts.withRecommended;
@@ -515,7 +543,17 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const vars = buildRenderVars({ name, owner: finalOwner, description: finalDesc, extra: { ...layerVars, ...templateVars } });
+  const pinTokens = buildPinTokens(pinned, templateInfo);
+  if (pinned?.runtime?.python?.version && !templateVars.PYTHON_VERSION) {
+    templateVars.PYTHON_VERSION = pinned.runtime.python.version;
+  }
+
+  const vars = buildRenderVars({
+    name,
+    owner: finalOwner,
+    description: finalDesc,
+    extra: { ...layerVars, ...templateVars, ...pinTokens },
+  });
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 
   let layoutId = 'default';
@@ -538,6 +576,7 @@ async function runNew(opts) {
     verifyCommands: verifyCommandsBase,
   });
   writeTemplateAnswers(targetDir, templateVars);
+  writePinnedVersionsSnapshot(targetDir, pinned);
 
   let verifyCommands = [...verifyCommandsBase];
 

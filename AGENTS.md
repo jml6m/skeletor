@@ -7,6 +7,7 @@
 
 - **Templates live in `templates/<id>/`**
   - Every template **must** have a `template.json` manifest with at least: `id`, `name`, `description`, `language`, `verifyCommands` (array of commands a developer runs after scaffolding, e.g. `["npm install", "npm test"]` or `["cargo test"]`).
+  - Every template **must** have a `pinned-versions.json` beside `template.json`. This is the source of truth for runtime and dependency pins (`status`: `active` | `needs-review` | `deprecated`). Template `.tmpl` files reference `{{PIN_*}}` tokens generated from this manifest. Bump pins deliberately after validation; set `needs-review` or `deprecated` when upstream majors land before the template is patched.
   - Use the standard tokens in file *contents*: `{{PROJECT_NAME}}`, `{{REPO_OWNER}}`, `{{REPO_NAME}}`, `{{DESCRIPTION}}`, `{{YEAR}}`.
   - **Any file that contains real ecosystem dependency declarations** (e.g. `package.json`, `pyproject.toml`, `Cargo.toml`, `pom.xml`, `*.csproj`, `go.mod`) **must use a `.tmpl` suffix** in the template directory (e.g. `package.json.tmpl`). The generator strips the suffix on output so the generated project has the conventional filename. This keeps skeletor's own dependency graph clean.
   - Filenames are **not** auto-rendered (current limitation). Use conventional fixed names inside the template (user can rename after generation).

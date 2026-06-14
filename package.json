@@ -22,6 +22,7 @@
     "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags",
     "publish:dry": "npm publish --dry-run",
     "release:preflight": "node scripts/publish-preflight.mjs",
+    "pin:check": "node scripts/check-pin-updates.mjs",
     "prepublishOnly": "npm run lint && npm run audit:ci && npm test"
   },
   "publishConfig": {

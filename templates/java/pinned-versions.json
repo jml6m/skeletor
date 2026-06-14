@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "status": "active",
+  "statusMessage": null,
+  "lastReviewed": "2026-06-14",
+  "runtime": {
+    "java": { "version": "17", "policy": "major" }
+  },
+  "packages": {
+    "junit-jupiter": {
+      "version": "5.10.2",
+      "policy": "exact",
+      "ecosystem": "maven",
+      "spec": "5.10.2"
+    },
+    "maven-surefire-plugin": {
+      "version": "3.2.5",
+      "policy": "exact",
+      "ecosystem": "maven",
+      "spec": "3.2.5"
+    }
+  }
+}

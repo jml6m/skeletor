@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "status": "active",
+  "statusMessage": null,
+  "lastReviewed": "2026-06-14",
+  "runtime": {
+    "node": {
+      "version": "20.19.0",
+      "policy": "major",
+      "engines": ">=20.19.0 <21.0.0"
+    }
+  },
+  "packages": {
+    "module-alias": { "version": "2.3.4", "policy": "major" },
+    "cross-env": { "version": "10.1.0", "policy": "major" },
+    "eslint": { "version": "8.57.0", "policy": "major" },
+    "eslint-import-resolver-jsconfig": { "version": "1.1.0", "policy": "major" },
+    "eslint-plugin-import": { "version": "2.32.0", "policy": "major" },
+    "eslint-plugin-unused-imports": { "version": "4.4.1", "policy": "major" },
+    "husky": { "version": "9.1.7", "policy": "major" },
+    "jest": { "version": "29.7.0", "policy": "major" },
+    "jscpd": { "version": "4.0.0", "policy": "major" },
+    "knip": { "version": "5.86.0", "policy": "major" },
+    "lint-staged": { "version": "15.2.0", "policy": "major" },
+    "madge": { "version": "8.0.0", "policy": "major" },
+    "npm-run-all": { "version": "4.1.5", "policy": "major" },
+    "prettier": { "version": "3.3.3", "policy": "minor" },
+    "prettier-plugin-organize-imports": { "version": "4.3.0", "policy": "major" },
+    "prettier-plugin-pkg": { "version": "0.21.2", "policy": "major" }
+  }
+}

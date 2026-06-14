@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "status": "active",
+  "statusMessage": null,
+  "lastReviewed": "2026-06-14",
+  "runtime": {
+    "dotnet": { "version": "8.0", "policy": "major" }
+  },
+  "packages": {
+    "Microsoft.NET.Test.Sdk": { "version": "17.8.0", "policy": "exact", "ecosystem": "nuget" },
+    "xunit": { "version": "2.6.6", "policy": "exact", "ecosystem": "nuget" },
+    "xunit.runner.visualstudio": { "version": "2.5.6", "policy": "exact", "ecosystem": "nuget" }
+  }
+}

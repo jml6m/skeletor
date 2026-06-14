@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "status": "active",
+  "statusMessage": null,
+  "lastReviewed": "2026-06-14",
+  "runtime": {
+    "python": { "version": "3.11", "policy": "minor" }
+  },
+  "packages": {
+    "ruff": { "version": "0.6.9", "policy": "minor", "ecosystem": "pypi", "spec": "ruff>=0.6.9,<0.7.0" },
+    "pytest": { "version": "8.3.0", "policy": "major", "ecosystem": "pypi", "spec": "pytest>=8.3.0,<9.0.0" },
+    "pytest-cov": { "version": "5.0.0", "policy": "major", "ecosystem": "pypi", "spec": "pytest-cov>=5.0.0,<6.0.0" },
+    "mypy": { "version": "1.11.0", "policy": "minor", "ecosystem": "pypi", "spec": "mypy>=1.11.0,<1.12.0" },
+    "setuptools": { "version": "68.0.0", "policy": "major", "ecosystem": "pypi", "spec": "setuptools>=68.0.0,<69.0.0" },
+    "wheel": { "version": "0.44.0", "policy": "major", "ecosystem": "pypi", "spec": "wheel>=0.44.0,<0.45.0" }
+  }
+}

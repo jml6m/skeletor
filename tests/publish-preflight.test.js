@@ -1,9 +1,11 @@
 import { execSync } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SCRIPT = path.join(ROOT, 'scripts', 'publish-preflight.mjs');
+const PKG_VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 
 function runPreflight(env = {}) {
   return execSync(`node "${SCRIPT}"`, {
@@ -16,11 +18,11 @@ function runPreflight(env = {}) {
 describe('publish-preflight', () => {
   test('passes when tag matches package.json version', () => {
     const out = runPreflight({
-      GITHUB_REF: 'refs/tags/v0.2.2',
+      GITHUB_REF: `refs/tags/v${PKG_VERSION}`,
       SKELETOR_SKIP_NPM_PUBLISHED_CHECK: '1',
     });
     expect(out).toContain('Preflight OK');
-    expect(out).toContain('@jml6m/skeletor@0.2.2');
+    expect(out).toContain(`@jml6m/skeletor@${PKG_VERSION}`);
   });
 
   test('fails when tag does not match package.json version', () => {
