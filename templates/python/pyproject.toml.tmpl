@@ -3,8 +3,8 @@ name = "{{PROJECT_NAME}}"
 version = "0.1.0"
 description = "{{DESCRIPTION}}"
 readme = "README.md"
-requires-python = ">=3.11"
-license = {text = "UNLICENSED"}
+requires-python = ">={{PYTHON_VERSION}}"
+license = {text = "{{LICENSE}}"}
 authors = [
   {name = "{{REPO_OWNER}}"}
 ]
@@ -35,7 +35,7 @@ python_files = ["test_*.py", "*_test.py"]
 addopts = "-q --strict-markers"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "{{PYTHON_VERSION}}"
 strict = true
 warn_return_any = true
 warn_unused_ignores = true

@@ -1,0 +1,12 @@
+{
+  "id": "log-table",
+  "name": "Terminal-width-aware log tables",
+  "description": "cli-table3 + string-width log table utility with display-width truncation and config defaults.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": { "packageJson": "patch/package.json.json" }
+}

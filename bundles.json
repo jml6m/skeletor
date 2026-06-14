@@ -1,11 +1,15 @@
 {
   "node-cli": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example"]
+    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example", "log-table"]
   },
   "express-api": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example"]
+    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example", "free-port"]
+  },
+  "cli-report": {
+    "template": "javascript",
+    "layers": ["governance", "quality-gates", "log-table"]
   },
   "ts-library": {
     "template": "typescript",

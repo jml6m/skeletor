@@ -1,0 +1,22 @@
+{
+  "id": "free-port",
+  "name": "Free-port helper",
+  "description": "Zero-dependency cross-platform port freeing script with prestart hook and port registry.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "prompts": [
+    {
+      "id": "appPort",
+      "type": "select",
+      "message": "Default server port",
+      "default": "3000",
+      "options": ["3000", "3001", "4200", "8080"],
+      "token": "APP_PORT"
+    }
+  ]
+}

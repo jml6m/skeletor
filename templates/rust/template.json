@@ -10,7 +10,10 @@
     "workspace": { "dir": "layouts/workspace" }
   },
   "recommendedLayers": ["governance"],
+  "features": ["rust"],
   "verifyCommands": [
+    "cargo fmt --check",
+    "cargo clippy -- -D warnings",
     "cargo check",
     "cargo test"
   ]

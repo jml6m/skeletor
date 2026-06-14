@@ -4,6 +4,7 @@
   "description": "Standard .NET console project with .csproj, Program.cs, and xUnit tests.",
   "language": "csharp",
   "recommendedLayers": ["governance"],
+  "features": ["dotnet"],
   "verifyCommands": [
     "dotnet build",
     "dotnet test"

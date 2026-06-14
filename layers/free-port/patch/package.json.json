@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "free-port": "node scripts/free-port.js {{APP_PORT}}",
+    "prestart": "npm run free-port"
+  }
+}

@@ -29,16 +29,20 @@ if (ref.startsWith('refs/tags/')) {
   pass(`Tag ${tag} matches package.json version ${version}`);
 }
 
-try {
-  const published = execSync(`npm view ${name}@${version} version`, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
-  if (published === version) {
-    fail(`${name}@${version} is already on npm. Bump version before publishing.`);
+if (process.env.SKELETOR_SKIP_NPM_PUBLISHED_CHECK !== '1') {
+  try {
+    const published = execSync(`npm view ${name}@${version} version`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+    if (published === version) {
+      fail(`${name}@${version} is already on npm. Bump version before publishing.`);
+    }
+  } catch {
+    pass(`${name}@${version} is not published yet`);
   }
-} catch {
-  pass(`${name}@${version} is not published yet`);
+} else {
+  pass(`Skipped npm published check (SKELETOR_SKIP_NPM_PUBLISHED_CHECK)`);
 }
 
 pass(`Preflight OK for ${name}@${version}`);

@@ -142,6 +142,16 @@ describe('enhance command', () => {
     }
   });
 
+  test('gatherLayerPrompts includes free-port port question', () => {
+    const { prompts, errors } = gatherLayerPrompts(
+      ['free-port'],
+      { template: 'javascript', language: 'javascript' },
+    );
+    expect(errors).toEqual([]);
+    expect(prompts.map((p) => p.token)).toContain('APP_PORT');
+    expect(layerPromptDefaults(prompts).APP_PORT).toBe('3000');
+  });
+
   test('gatherLayerPrompts includes layer-specific questions', () => {
     const { prompts, errors } = gatherLayerPrompts(
       ['logger-winston'],

@@ -1,4 +1,4 @@
-package app;
+package {{JAVA_PACKAGE}};
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

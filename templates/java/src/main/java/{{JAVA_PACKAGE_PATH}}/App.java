@@ -1,4 +1,4 @@
-package app;
+package {{JAVA_PACKAGE}};
 
 /**
  * {{PROJECT_NAME}}

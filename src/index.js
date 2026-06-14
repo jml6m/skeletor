@@ -14,6 +14,14 @@ import {
   promptLayerValue,
   promptOwnerSelect,
 } from './interactive-prompts.js';
+import { applyFeatureConfigs } from './features.js';
+import {
+  adjustVerifyCommandsForAnswers,
+  gatherTemplatePrompts,
+  promptForTemplateVars,
+  templatePromptDefaults,
+  writeTemplateAnswers,
+} from './template-prompts.js';
 import { writeProjectManifest, readProjectManifest } from './manifest.js';
 import {
   applyLayers,
@@ -53,6 +61,9 @@ new options:
   --description <text>  Project description (optional)
   --auto                Non-interactive; requires --template
   --no-git              Skip git init
+  --github              Create GitHub remote via gh CLI (after git init)
+  --private             Use --private with --github (default: public)
+  --uv                  Python: use uv sync instead of pip install (non-interactive)
 
 enhance options:
   --add <id[,id...]>    Layers to apply
@@ -103,6 +114,9 @@ function parseArgs(argv) {
     force: false,
     allowDirty: false,
     noInstall: false,
+    github: false,
+    githubPrivate: false,
+    uv: false,
   };
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
@@ -124,6 +138,9 @@ function parseArgs(argv) {
       else if (a === '--description' || a === '-d') result.description = args[++i] || null;
       else if (a === '--auto') result.auto = true;
       else if (a === '--no-git') result.git = false;
+      else if (a === '--github') result.github = true;
+      else if (a === '--private') result.githubPrivate = true;
+      else if (a === '--uv') result.uv = true;
       else if (!a.startsWith('-') && !result.name) result.name = a;
     }
     return result;
@@ -158,6 +175,11 @@ function render(content, vars) {
   return out;
 }
 
+function renderPathSegment(segment, vars) {
+  let out = segment.endsWith('.tmpl') ? segment.slice(0, -'.tmpl'.length) : segment;
+  return render(out, vars);
+}
+
 function sanitizeIdentifierSegment(value) {
   return String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
 }
@@ -169,6 +191,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
   const repoOwner = owner;
   const ownerSegment = sanitizeIdentifierSegment(repoOwner);
   const namespace = String(name).replace(/-/g, '_');
+  const javaPackage = `io.github.${ownerSegment}`;
   return {
     PROJECT_NAME: name,
     REPO_OWNER: repoOwner,
@@ -176,10 +199,20 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     DESCRIPTION: description || DEFAULT_DESCRIPTION,
     YEAR: new Date().getFullYear(),
     NAMESPACE: namespace,
-    GROUP_ID: `io.github.${ownerSegment}`,
+    GROUP_ID: javaPackage,
+    JAVA_PACKAGE: javaPackage,
+    JAVA_PACKAGE_PATH: javaPackage.replace(/\./g, '/'),
     GO_MODULE: `github.com/${repoOwner}/${name}`,
     REPO_URL: `https://github.com/${repoOwner}/${name}`,
     LOG_DIR: 'logs',
+    LICENSE: 'UNLICENSED',
+    AUTHOR: '',
+    AUTHOR_EMAIL: '',
+    PACKAGE_MANAGER: 'npm',
+    PYTHON_VERSION: '3.11',
+    PYTHON_PACKAGE_MANAGER: 'pip',
+    TARGET_FRAMEWORK: 'net8.0',
+    APP_PORT: '3000',
     ...extra,
   };
 }
@@ -196,7 +229,7 @@ function copyAndRender(src, dest, vars) {
     ensureDir(dest);
     for (const entry of fs.readdirSync(src)) {
       if (entry === 'node_modules' || entry === '.git' || entry === 'template.json' || entry === 'layer.json') continue;
-      const outEntry = entry.endsWith('.tmpl') ? entry.slice(0, -'.tmpl'.length) : entry;
+      const outEntry = renderPathSegment(entry, vars);
       copyAndRender(path.join(src, entry), path.join(dest, outEntry), vars);
     }
     return;
@@ -262,6 +295,27 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
       copyAndRender(src, dest, vars);
     }
   }
+
+  const sharedDirs = ['.github'];
+  for (const dir of sharedDirs) {
+    const src = path.join(templateInfo.dir, dir);
+    const dest = path.join(targetDir, dir);
+    if (fs.existsSync(src) && !fs.existsSync(dest)) {
+      copyAndRender(src, dest, vars);
+    }
+  }
+
+  if (Array.isArray(templateInfo.features) && templateInfo.features.length > 0) {
+    applyFeatureConfigs(targetDir, templateInfo);
+  }
+
+  if (vars.PYTHON_PACKAGE_MANAGER === 'uv' || vars.PYTHON_VERSION) {
+    const pyVersionPath = path.join(targetDir, '.python-version');
+    if (!fs.existsSync(pyVersionPath)) {
+      fs.writeFileSync(pyVersionPath, `${vars.PYTHON_VERSION || '3.11'}\n`, 'utf8');
+    }
+  }
+
   return layoutId;
 }
 
@@ -431,6 +485,18 @@ async function runNew(opts) {
     layerVars = await promptForLayerVars(layerPrompts);
   }
 
+  const baseVars = buildRenderVars({ name, owner: finalOwner, description: finalDesc, extra: layerVars });
+  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId, baseVars);
+  let templateVars = templatePromptDefaults(templatePromptDefs);
+  if (opts.uv && chosenTemplateId === 'python') {
+    templateVars.PYTHON_PACKAGE_MANAGER = 'uv';
+  }
+  if (isInteractive) {
+    const prompted = await promptForTemplateVars(templatePromptDefs);
+    if (p.isCancel(prompted)) { p.cancel('Cancelled.'); process.exit(0); }
+    templateVars = { ...templateVars, ...prompted };
+  }
+
   if (isInteractive) {
     const layerNote = layerIds.length ? ` + ${layerIds.length} enhancement layer(s)` : '';
     const shouldContinue = await promptConfirmRecommended({
@@ -449,7 +515,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const vars = buildRenderVars({ name, owner: finalOwner, description: finalDesc, extra: layerVars });
+  const vars = buildRenderVars({ name, owner: finalOwner, description: finalDesc, extra: { ...layerVars, ...templateVars } });
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 
   let layoutId = 'default';
@@ -460,14 +526,20 @@ async function runNew(opts) {
     process.exit(1);
   }
 
+  const verifyCommandsBase = adjustVerifyCommandsForAnswers(
+    [...(templateInfo.verifyCommands || [])],
+    vars,
+  );
+
   writeInitialManifest(targetDir, {
     templateId: chosenTemplateId,
     owner: finalOwner,
     layoutId,
-    verifyCommands: templateInfo.verifyCommands,
+    verifyCommands: verifyCommandsBase,
   });
+  writeTemplateAnswers(targetDir, templateVars);
 
-  let verifyCommands = [...(templateInfo.verifyCommands || [])];
+  let verifyCommands = [...verifyCommandsBase];
 
   if (layerIds.length) {
     if (opts.withRecommended) {
@@ -500,6 +572,9 @@ async function runNew(opts) {
       execSync('git add -A', { cwd: targetDir, stdio: 'ignore' });
       execSync('git commit -q -m "chore: initial commit from skeletor"', { cwd: targetDir, stdio: 'ignore' });
       p.log.success('Git repository initialized');
+      if (opts.github) {
+        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate);
+      }
     } catch {
       p.log.warn('Git init skipped (git not available or failed)');
     }
@@ -613,6 +688,32 @@ async function runEnhance(opts) {
   }
 }
 
+function createGithubRemote(targetDir, name, owner, isPrivate) {
+  try {
+    execSync('gh --version', { stdio: 'ignore' });
+  } catch {
+    p.log.warn('gh CLI not available — skipping --github remote creation');
+    return;
+  }
+  const visibility = isPrivate ? '--private' : '--public';
+  try {
+    execSync(`gh repo create ${owner}/${name} ${visibility} --source=. --remote=origin`, {
+      cwd: targetDir,
+      stdio: 'pipe',
+    });
+    p.log.success(`GitHub remote created: ${owner}/${name}`);
+    try {
+      execSync('git push -u origin HEAD', { cwd: targetDir, stdio: 'pipe' });
+      p.log.success('Initial commit pushed to origin');
+    } catch {
+      p.log.warn('Remote created but push failed — run: git push -u origin HEAD');
+    }
+  } catch (e) {
+    const msg = e.stderr?.toString() || e.message || String(e);
+    p.log.warn(`gh repo create failed: ${msg.trim()}`);
+  }
+}
+
 function printPostScaffoldSteps(projectName, verifyCommands) {
   console.log(`   cd ${projectName}`);
   const steps = Array.isArray(verifyCommands) && verifyCommands.length
@@ -669,6 +770,7 @@ function main() {
 export {
   parseArgs,
   render,
+  renderPathSegment,
   buildRenderVars,
   sanitizeIdentifierSegment,
   getAvailableTemplates,

@@ -15,7 +15,7 @@ export default {
     '**/__tests__/**/*.test.js'
   ],
   // Do not run the example tests that live inside the *scaffolded templates*
-  testPathIgnorePatterns: ['/templates/'],
+  testPathIgnorePatterns: ['/templates/', '/layers/'],
   // Prevent Jest haste module name collisions from the template package.json files (they contain {{PROJECT_NAME}})
   modulePathIgnorePatterns: ['<rootDir>/templates/'],
   haste: {

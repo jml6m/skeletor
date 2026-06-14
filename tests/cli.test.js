@@ -4,6 +4,7 @@ process.env.SKELETOR_CLI_TEST = '1';
 import {
   parseArgs,
   render,
+  renderPathSegment,
   buildRenderVars,
   getAvailableTemplates,
   printPostScaffoldSteps,
@@ -28,6 +29,26 @@ describe('skeletor CLI pure functions', () => {
     const result = parseArgs(['node', 'skeletor', 'new', 'my-api', '--template', 'typescript', '--with-recommended', '--auto']);
     expect(result.withRecommended).toBe(true);
     expect(result.template).toBe('typescript');
+  });
+
+  test('parseArgs handles --github --private and --uv', () => {
+    const result = parseArgs([
+      'node', 'skeletor', 'new', 'demo',
+      '--template', 'python',
+      '--auto',
+      '--github',
+      '--private',
+      '--uv',
+    ]);
+    expect(result.github).toBe(true);
+    expect(result.githubPrivate).toBe(true);
+    expect(result.uv).toBe(true);
+  });
+
+  test('renderPathSegment substitutes tokens in paths', () => {
+    const vars = { JAVA_PACKAGE_PATH: 'io/github/acme' };
+    expect(renderPathSegment('{{JAVA_PACKAGE_PATH}}', vars)).toBe('io/github/acme');
+    expect(renderPathSegment('file.tmpl', vars)).toBe('file');
   });
 
   test('parseArgs respects flags', () => {

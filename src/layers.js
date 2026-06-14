@@ -410,7 +410,8 @@ export function planLayerApply(options) {
     if (layer.patch?.packageJson) {
       const patchPath = path.join(layer.dir, layer.patch.packageJson);
       if (fs.existsSync(patchPath)) {
-        layerPlan.packageJsonPatch = JSON.parse(fs.readFileSync(patchPath, 'utf8'));
+        const patchRaw = renderLayerContent(fs.readFileSync(patchPath, 'utf8'), vars);
+        layerPlan.packageJsonPatch = JSON.parse(patchRaw);
       }
     }
 

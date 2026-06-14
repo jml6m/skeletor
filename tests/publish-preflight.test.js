@@ -15,7 +15,10 @@ function runPreflight(env = {}) {
 
 describe('publish-preflight', () => {
   test('passes when tag matches package.json version', () => {
-    const out = runPreflight({ GITHUB_REF: 'refs/tags/v0.2.2' });
+    const out = runPreflight({
+      GITHUB_REF: 'refs/tags/v0.2.2',
+      SKELETOR_SKIP_NPM_PUBLISHED_CHECK: '1',
+    });
     expect(out).toContain('Preflight OK');
     expect(out).toContain('@jml6m/skeletor@0.2.2');
   });

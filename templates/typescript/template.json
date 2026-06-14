@@ -4,6 +4,7 @@
   "description": "Modern TypeScript (ESM) with strict settings, flat ESLint + typescript-eslint, your Prettier rules, path aliases, knip/jscpd/madge, release gates, AGENTS.md, and full health checks. Good default for new TS projects.",
   "language": "typescript",
   "recommendedLayers": ["governance", "quality-gates", "zod-config", "env-example"],
+  "features": ["node", "jest", "prettier", "eslint", "husky", "knip", "jscpd", "madge", "prompt-gen"],
   "verifyCommands": [
     "npm install",
     "npm run format",
