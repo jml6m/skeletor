@@ -17,6 +17,9 @@ mod tests {
 
     #[test]
     fn test_hello() {
-        assert_eq!(hello("tester"), "Hello, tester from {{PROJECT_NAME}}!");
+        assert_eq!(
+            hello("tester"),
+            "Hello, tester from {{PROJECT_NAME}}!"
+        );
     }
 }
