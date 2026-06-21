@@ -52,3 +52,13 @@
 The user will provide specific guidance/flavors. Until then, use clean "standard library + modern defaults" (as done for go/rust/java/csharp).
 
 Update this file when the development process or conventions for skeletor itself change.
+
+## Branch & ref hygiene
+
+- **Auto-delete on merge** is enabled — merged PR branches are removed automatically; don't rely on them persisting.
+- **Branch naming**: short-lived topic branches off `main`, prefixed by intent — `feat/`, `fix/`, `chore/`, `docs/`. Open a PR into `main`; **squash-merge** keeps `main` linear (the repo ruleset enforces no force-push / no deletion on `main`).
+- **Tag/ref retention**: release tags `v*` are **permanent and immutable** — never delete or move a published tag (it backs the `@jml6m/skeletor` npm release); fix a mistake with a new `vX.Y.Z`. Non-release refs are disposable.
+- **Periodic stale-branch sweep** (manual, report-only — never auto-delete beyond the merge cleanup):
+  - List remote branches by last commit, newest last:
+    `git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/remotes/origin`
+  - Cross-reference against open PRs (`gh pr list --state open`) and delete only stale, merged, PR-less branches deliberately.
