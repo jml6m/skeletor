@@ -62,3 +62,8 @@ Update this file when the development process or conventions for skeletor itself
   - List remote branches by last commit, newest last:
     `git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/remotes/origin`
   - Cross-reference against open PRs (`gh pr list --state open`) and delete only stale, merged, PR-less branches deliberately.
+
+## Documentation conventions
+
+- **Linkable paths must be clickable links.** Any in-repo path mentioned in a Markdown file must be written as a clickable link to the target (e.g. `[src/index.js](./src/index.js)`), not as bare inline code. Command examples and illustrative / non-existent paths are exempt.
+- Docs are gated by [`.github/workflows/docs-lint.yml`](./.github/workflows/docs-lint.yml): [lychee](https://lychee.cli.rs/) validates that links and `#anchors` resolve, and [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) enforces formatting per [`.markdownlint-cli2.yaml`](./.markdownlint-cli2.yaml). Emitted `templates/` and `layers/` fixtures are excluded (covered by the verify-templates job). Run `markdownlint-cli2 --fix '**/*.md'` before pushing.
