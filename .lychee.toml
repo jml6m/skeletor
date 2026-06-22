@@ -18,3 +18,10 @@ exclude_path = [
   "templates",
   "layers",
 ]
+
+# URLs excluded from checking (regex against the full URL; literal strings).
+# npmjs.com returns 403 to automated clients (anti-bot) though the package links are valid.
+exclude = [
+  '^https?://(www\.)?npmjs\.com',
+  '^https?://localhost',
+]
