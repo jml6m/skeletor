@@ -1,0 +1,20 @@
+# Lychee link-checker config. See https://lychee.cli.rs/usage/config/ for full schema.
+
+include_fragments = true
+accept = [200, 206, 429]
+max_concurrency = 8
+max_retries = 2
+retry_wait_time = 3
+timeout = 20
+
+# templates/ holds emitted scaffolding fixtures (with placeholder content) — they are
+# validated separately by the verify-templates job, not by docs-lint.
+exclude_path = [
+  "node_modules",
+  "dist",
+  "coverage",
+  "lib",
+  ".github",
+  "templates",
+  "layers",
+]

@@ -46,6 +46,7 @@ If the tag already exists (e.g. `v0.2.0`):
 
 - **Preferred:** Actions → **Publish to npm** → **Run workflow** (workflow_dispatch), or **Re-run failed jobs**.
 - **Re-tag:** only if you deleted the remote tag first:
+
   ```bash
   git push origin :refs/tags/v0.2.0
   git tag -d v0.2.0
