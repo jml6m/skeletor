@@ -67,3 +67,20 @@ Update this file when the development process or conventions for skeletor itself
 
 - **Linkable paths must be clickable links.** Any in-repo path mentioned in a Markdown file must be written as a clickable link to the target (e.g. `[src/index.js](./src/index.js)`), not as bare inline code. Command examples and illustrative / non-existent paths are exempt.
 - Docs are gated by [`.github/workflows/docs-lint.yml`](./.github/workflows/docs-lint.yml): [lychee](https://lychee.cli.rs/) validates that links and `#anchors` resolve, and [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) enforces formatting per [`.markdownlint-cli2.yaml`](./.markdownlint-cli2.yaml). Emitted `templates/` and `layers/` fixtures are excluded (covered by the verify-templates job). Run `markdownlint-cli2 --fix '**/*.md'` before pushing.
+
+## Opening PRs — author as the app, not the admin
+
+Command-line agents must not open PRs on this repo using the default `jml6m`
+credentials. GitHub forbids approving your own PR, so an admin-authored PR leaves the
+owner able only to "Comment" — and it blocks merge wherever an approving review is
+required. Author PRs as the **`jml6m-bot` GitHub App** (App `4163019`) instead, so the
+admin can review and Approve them:
+
+```bash
+git push -u origin <branch>
+GH_TOKEN="$(~/workspaces/.tooling/gh-app-token.sh jml6m/skeletor)" gh pr create --fill
+```
+
+CI and Actions get the same identity from the `APP_ID` / `APP_PRIVATE_KEY` repo secrets
+via `actions/create-github-app-token`. The GitHub App is the standard automation
+identity for this repo — personal access tokens are not used.
