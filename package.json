@@ -13,6 +13,7 @@
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
     "lint": "npm run lint:encoding",
     "lint:encoding": "node scripts/check-encoding.mjs",
+    "lint:docs": "npx --yes markdownlint-cli2@0.14.0 \"**/*.md\"",
     "audit:ci": "node scripts/audit-ci.mjs",
     "npm:reinstall": "node scripts/reinstall.mjs",
     "git:pull": "node scripts/git-pull-all.mjs",

@@ -8,6 +8,7 @@ config:
   MD033: false
   MD036: false
   MD040: false
+  MD060: false
   MD041: true
   MD025: true
   MD034: true
@@ -22,6 +23,12 @@ ignores:
   - 'dist/**'
   - 'coverage/**'
   - 'lib/**'
-  - '.github/**'
+  - '.github/ISSUE_TEMPLATE/**'   # issue templates authored without an H1
+  - '.github/pull_request_template.md'
   - 'templates/**' # emitted scaffolding fixtures; covered by the verify-templates job
   - 'layers/**'    # emitted enhancement-layer fixtures (incl. AGENTS.snippet.md fragments)
+  # Agent-instruction files — formatting is irrelevant (only an agent reads them); their links are
+  # still checked by lychee, which does not honor this list.
+  - 'AGENTS.md'
+  - 'CLAUDE.md'
+  - '.github/copilot-instructions.md'

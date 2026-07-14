@@ -1,6 +1,8 @@
 # Lychee link-checker config. See https://lychee.cli.rs/usage/config/ for full schema.
 
-include_fragments = true
+# Fragments (anchors + text fragments). String enum matches lychee 0.24.x, pinned via
+# lycheeVersion in docs-lint.yml.
+include_fragments = "full"
 accept = [200, 206, 429]
 max_concurrency = 8
 max_retries = 2
@@ -22,6 +24,7 @@ exclude_path = [
 # URLs excluded from checking (regex against the full URL; literal strings).
 # npmjs.com returns 403 to automated clients (anti-bot) though the package links are valid.
 exclude = [
-  '^https?://(www\.)?npmjs\.com',
+  '^https?://(www\.)?npmjs\.(com|org)',   # npmjs 403s automated clients
   '^https?://localhost',
+  '^https?://127\.0\.0\.1',
 ]
