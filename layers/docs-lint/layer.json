@@ -1,0 +1,12 @@
+{
+  "id": "docs-lint",
+  "name": "Docs lint (lychee + markdownlint)",
+  "description": "Pinned docs-lint CI matching the account baseline: lychee 0.24.2 link/anchor checking + markdownlint-cli2. Emits .github/workflows/docs-lint.yml, .lychee.toml, .markdownlint-cli2.yaml, and a markdownlint-only lint:docs script.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript", "typescript"],
+    "templates": ["javascript", "typescript"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": { "packageJson": "patch/package.json.json" }
+}
