@@ -1,26 +1,26 @@
 {
   "node-cli": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example", "log-table"]
+    "layers": ["governance", "quality-gates", "docs-lint", "zod-config", "logger-winston", "env-example", "log-table"]
   },
   "express-api": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "zod-config", "logger-winston", "env-example", "free-port"]
+    "layers": ["governance", "quality-gates", "docs-lint", "zod-config", "logger-winston", "env-example", "free-port"]
   },
   "cli-report": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "log-table"]
+    "layers": ["governance", "quality-gates", "docs-lint", "log-table"]
   },
   "ts-library": {
     "template": "typescript",
-    "layers": ["governance", "quality-gates", "library-publishing"]
+    "layers": ["governance", "quality-gates", "docs-lint", "library-publishing"]
   },
   "ts-native": {
     "template": "typescript",
-    "layers": ["governance", "quality-gates", "test-harness:playwright"]
+    "layers": ["governance", "quality-gates", "docs-lint", "test-harness:playwright"]
   },
   "ts-benchmark": {
     "template": "typescript",
-    "layers": ["governance", "quality-gates"]
+    "layers": ["governance", "quality-gates", "docs-lint"]
   }
 }
