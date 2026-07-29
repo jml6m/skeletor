@@ -99,7 +99,7 @@ The following are intentionally **not** provided in full to agents by default. A
 - Authentication / token / JWT utilities
 - Any file that would require hard-coding real secrets
 
-**Never** output real secrets, tokens, or keys. Use config + env.
+**Never** output real secrets, tokens, keys, GitHub App IDs, PATs, or Actions secret values. Use config + env. Do not commit App IDs or credential values into source, docs, or agent instruction files.
 
 ---
 
@@ -108,3 +108,11 @@ The following are intentionally **not** provided in full to agents by default. A
 - Your personal conventions are derived from analysis of multiple active GitHub-linked workspaces.
 - Update this file when the project's architecture or policies evolve.
 - `npm run prompt:gen` (or with `--all`) can be used to produce a full context dump for complex tasks.
+
+### GitHub credentials — never commit values
+
+Do **not** commit GitHub App IDs, installation IDs, client IDs/secrets, private keys,
+PATs, tokens, webhook secrets, or Actions secret/variable **values**. Refer to apps by
+slug/name, never numeric ID. Workflows may use secret *names* only
+(e.g. `${{ secrets.APP_ID }}`).
+
