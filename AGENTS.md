@@ -63,6 +63,15 @@ Update this file when the development process or conventions for skeletor itself
     `git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/remotes/origin`
   - Cross-reference against open PRs (`gh pr list --state open`) and delete only stale, merged, PR-less branches deliberately.
 
+## Task protocols
+
+Task-specific protocols live in [`docs/agent-rules/`](./docs/agent-rules/) and apply to every agent working in this repo, not just one tool:
+
+- [`issue-workflow.md`](./docs/agent-rules/issue-workflow.md) — GitHub issues are the planning source of truth.
+- [`fast-iteration.md`](./docs/agent-rules/fast-iteration.md) — use short-lived probe scripts to learn fast, then promote or delete.
+- [`testing.md`](./docs/agent-rules/testing.md) — what to test (the template manifest contract + generation).
+- [`session-validation.md`](./docs/agent-rules/session-validation.md) — the mandatory end-of-task validation gate.
+
 ## Documentation conventions
 
 - **Linkable paths must be clickable links.** Any in-repo path mentioned in a Markdown file must be written as a clickable link to the target (e.g. `[src/index.js](./src/index.js)`), not as bare inline code. Command examples and illustrative / non-existent paths are exempt.

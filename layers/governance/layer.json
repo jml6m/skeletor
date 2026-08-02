@@ -1,7 +1,7 @@
 {
   "id": "governance",
   "name": "Agent governance rules",
-  "description": "Ships .grok/rules/ (issue-workflow, fast-iteration, testing, session-validation) and matching AGENTS.md sections.",
+  "description": "Ships docs/agent-rules/ (issue-workflow, fast-iteration, testing, session-validation) and matching AGENTS.md sections.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["*"],
