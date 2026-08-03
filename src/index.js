@@ -48,6 +48,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 const TEMPLATES_DIR = path.join(ROOT, 'templates');
+const SHARED_TEMPLATES_DIR = path.join(TEMPLATES_DIR, '_shared');
 const SKELETOR_VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 
 const USAGE = `
@@ -253,6 +254,7 @@ function copyAndRender(src, dest, vars) {
 function getAvailableTemplates() {
   if (!fs.existsSync(TEMPLATES_DIR)) return [];
   return fs.readdirSync(TEMPLATES_DIR).filter((d) => {
+    if (d.startsWith('_')) return false;
     const p = path.join(TEMPLATES_DIR, d);
     return fs.statSync(p).isDirectory();
   });
@@ -299,11 +301,12 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
 
   const shared = ['AGENTS.md', 'README.md'];
   for (const file of shared) {
-    const src = path.join(templateInfo.dir, file);
     const dest = path.join(targetDir, file);
-    if (fs.existsSync(src) && !fs.existsSync(dest)) {
-      copyAndRender(src, dest, vars);
-    }
+    if (fs.existsSync(dest)) continue;
+    const templateSrc = path.join(templateInfo.dir, file);
+    const globalSrc = path.join(SHARED_TEMPLATES_DIR, file);
+    const src = fs.existsSync(templateSrc) ? templateSrc : fs.existsSync(globalSrc) ? globalSrc : null;
+    if (src) copyAndRender(src, dest, vars);
   }
 
   const sharedDirs = ['.github'];
