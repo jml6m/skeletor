@@ -27,7 +27,7 @@ Which area(s) of skeletor does this affect?
 - [ ] A specific existing template — which? <!-- javascript / typescript / python / rust / go / java / csharp -->
 - [ ] A new template (which language / stack?)
 - [ ] Tooling conventions (knip / jscpd / madge / prettier / eslint / husky / release.js)
-- [ ] Docs (`README.md`, `AGENTS.md`, `.github/copilot-instructions.md`)
+- [ ] Docs (`README.md`, `AGENTS.md`)
 - [ ] Repo infra (CI, dependabot, issue/PR templates)
 
 ## Proposed behavior

@@ -17,7 +17,7 @@
   Call out anything touching:
     - src/index.js (generator: parseArgs, copyAndRender, render, manifest loading)
     - templates/<language>/ (per-template files, *.tmpl rendering, template.json)
-    - AGENTS.md / .github/copilot-instructions.md (contract changes)
+    - AGENTS.md (contract changes)
 -->
 
 ## Templates Affected
