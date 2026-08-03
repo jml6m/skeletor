@@ -1,7 +1,7 @@
 {
   "id": "governance",
   "name": "Agent governance rules",
-  "description": "Appends agent governance protocols (issue workflow, loop prevention, PR safety) to AGENTS.md.",
+  "description": "Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["*"],
