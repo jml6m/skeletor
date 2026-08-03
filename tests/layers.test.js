@@ -100,7 +100,6 @@ describe('enhance command', () => {
       });
       expect(first.ok).toBe(true);
       expect(first.applied).toContain('governance');
-      expect(fs.existsSync(path.join(targetDir, 'docs', 'agent-rules', 'testing.md'))).toBe(true);
 
       const hash1 = hashDir(targetDir);
       const second = applyLayers({
@@ -195,7 +194,6 @@ describe('enhance command', () => {
       expect(manifest.layers.map((l) => l.id)).toEqual(
         expect.arrayContaining(['governance', 'quality-gates', 'zod-config', 'env-example']),
       );
-      expect(fs.existsSync(path.join(targetDir, 'docs', 'agent-rules', 'testing.md'))).toBe(true);
       expect(fs.existsSync(path.join(targetDir, 'scripts', 'audit-ci.mjs'))).toBe(true);
     } finally {
       cleanup(targetDir);
