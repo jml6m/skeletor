@@ -1,16 +1,15 @@
-# Dependabot configuration for skeletor
-
+# Dependabot — monthly multi-ecosystem group (gold baseline)
 version: 2
 
 multi-ecosystem-groups:
   all-dependencies:
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 1
     labels:
       - "dependencies"
     assignees:
       - "jml6m"
-    open-pull-requests-limit: 1
 
 updates:
   - package-ecosystem: "npm"
@@ -19,3 +18,9 @@ updates:
       - "*"
     multi-ecosystem-group: "all-dependencies"
     versioning-strategy: "increase"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "all-dependencies"

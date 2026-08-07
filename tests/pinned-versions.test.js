@@ -87,6 +87,6 @@ describe('pinned-versions', () => {
     const pinned = JSON.parse(fs.readFileSync(path.join(tmpl.dir, 'pinned-versions.json'), 'utf8'));
     const tokens = buildPinTokens(pinned, tmpl);
     expect(tokens.PIN_JEST).toBe('^29.7.0');
-    expect(tokens.PIN_RUNTIME_NODE_ENGINES).toBe('>=20.19.0 <21.0.0');
+    expect(tokens.PIN_RUNTIME_NODE_ENGINES).toBe('>=22');
   });
 });
