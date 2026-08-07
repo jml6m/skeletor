@@ -14,3 +14,8 @@ CLAUDE.md                          @jml6m
 .cursorrules                       @jml6m
 GEMINI.md                          @jml6m
 .grok/                             @jml6m
+
+# package.json governance — dependency, scripts, and important metadata
+# changes require @jml6m review (ruleset: Require review from Code Owners).
+# Lockfiles intentionally NOT listed (high churn / transitive noise).
+package.json                       @jml6m
