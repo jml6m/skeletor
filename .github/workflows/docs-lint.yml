@@ -42,4 +42,3 @@ jobs:
       - name: Run markdownlint
         run: markdownlint-cli2 '**/*.md'
 
-# re-trigger required docs-lint on config-only PRs
