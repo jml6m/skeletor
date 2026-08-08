@@ -1,11 +1,12 @@
-# Dependabot — monthly multi-ecosystem group (gold baseline)
+# Dependabot — monthly multi-ecosystem gold baseline
+# Docs: https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configuring-multi-ecosystem-updates
+# patterns: required when using multi-ecosystem-group. open-pull-requests-limit: per-updates only.
 version: 2
 
 multi-ecosystem-groups:
   all-dependencies:
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 1
     labels:
       - "dependencies"
     assignees:
@@ -17,6 +18,7 @@ updates:
     patterns:
       - "*"
     multi-ecosystem-group: "all-dependencies"
+    open-pull-requests-limit: 1
     versioning-strategy: "increase"
 
   - package-ecosystem: "github-actions"
@@ -24,3 +26,4 @@ updates:
     patterns:
       - "*"
     multi-ecosystem-group: "all-dependencies"
+    open-pull-requests-limit: 1
