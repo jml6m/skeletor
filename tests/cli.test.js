@@ -45,6 +45,11 @@ describe('skeletor CLI pure functions', () => {
     expect(result.uv).toBe(true);
   });
 
+  test('parseArgs handles --codeowners', () => {
+    const result = parseArgs(['node', 'skeletor', 'new', 'demo', '--template', 'go', '--auto', '--codeowners']);
+    expect(result.codeowners).toBe(true);
+  });
+
   test('renderPathSegment substitutes tokens in paths', () => {
     const vars = { JAVA_PACKAGE_PATH: 'io/github/acme' };
     expect(renderPathSegment('{{JAVA_PACKAGE_PATH}}', vars)).toBe('io/github/acme');

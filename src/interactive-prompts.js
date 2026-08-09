@@ -119,6 +119,18 @@ export async function promptOwnerSelect(opts) {
 }
 
 /**
+ * @param {{ message: string, options: { value: string, label: string, hint?: string }[], initialValues?: string[] }} opts
+ */
+export async function promptMultiSelectRecommended(opts) {
+  return p.multiselect({
+    message: opts.message,
+    options: opts.options,
+    initialValues: opts.initialValues || [],
+    required: false,
+  });
+}
+
+/**
  * @param {{ message: string, default?: string, options?: string[] }} pr
  */
 export async function promptLayerValue(pr) {
