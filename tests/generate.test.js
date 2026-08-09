@@ -118,10 +118,11 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         // a developer runs after `skeletor new --template ${tmpl.id}`.
         expect(Array.isArray(tmpl.verifyCommands) && tmpl.verifyCommands.length > 0).toBe(true);
 
-        // Assert no .tmpl suffixes or skeletor manifest leak into the generated project.
+        // Assert no .tmpl suffixes or skeletor tooling state leak into the generated project.
         const allFiles = listFilesRecursive(targetDir);
         expect(allFiles.every((f) => !f.endsWith('.tmpl'))).toBe(true);
         expect(fs.existsSync(path.join(targetDir, 'template.json'))).toBe(false);
+        expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
 
         // Assert the expected unsuffixed manifest exists for this template.
         const manifest = expectedManifest[tmpl.id];

@@ -237,17 +237,3 @@ export function validatePinTokenCoverage(templateDir, pinned, templateInfo = {})
 
   return errors;
 }
-
-/**
- * @param {string} targetDir
- * @param {object} pinned
- */
-export function writePinnedVersionsSnapshot(targetDir, pinned) {
-  const dir = path.join(targetDir, '.skeletor');
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, PINNED_VERSIONS_FILENAME),
-    `${JSON.stringify(pinned, null, 2)}\n`,
-    'utf8',
-  );
-}

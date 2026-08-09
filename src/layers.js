@@ -7,12 +7,6 @@ import {
   detectJsonIndent,
   serializePackageJson,
 } from './merge-package-json.js';
-import {
-  readProjectManifest,
-  writeProjectManifest,
-  isLayerApplied,
-  recordLayerApplied,
-} from './manifest.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,46 +84,6 @@ export function loadLayerById(layerId) {
     throw new Error(`Layer directory "${dirName}" id mismatch: expected "${layerId}", got "${manifest.id}"`);
   }
   return manifest;
-}
-
-/**
- * @param {string} projectDir
- */
-export function inferProjectContext(projectDir) {
-  const existing = readProjectManifest(projectDir);
-  if (existing) {
-    return {
-      template: existing.template || 'unknown',
-      language: templateToLanguage(existing.template),
-      manifest: existing,
-      adoptedExisting: !!existing.adoptedExisting,
-    };
-  }
-
-  if (fs.existsSync(path.join(projectDir, 'tsconfig.json'))) {
-    return { template: 'typescript', language: 'typescript', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'package.json'))) {
-    return { template: 'javascript', language: 'javascript', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'Cargo.toml'))) {
-    return { template: 'rust', language: 'rust', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'go.mod'))) {
-    return { template: 'go', language: 'go', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'pyproject.toml'))) {
-    return { template: 'python', language: 'python', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'pom.xml'))) {
-    return { template: 'java', language: 'java', manifest: null, adoptedExisting: true };
-  }
-  const csprojs = fs.readdirSync(projectDir).filter((f) => f.endsWith('.csproj'));
-  if (csprojs.length) {
-    return { template: 'csharp', language: 'csharp', manifest: null, adoptedExisting: true };
-  }
-
-  throw new Error('Could not infer project type. Scaffold with skeletor new or add .skeletor/manifest.json.');
 }
 
 function templateToLanguage(template) {
@@ -267,19 +221,6 @@ export function expandBundle(bundleName, templateId) {
   return bundle.layers || [];
 }
 
-/**
- * @param {string} projectDir
- */
-export function isGitDirty(projectDir) {
-  try {
-    execSync('git rev-parse --is-inside-work-tree', { cwd: projectDir, stdio: 'pipe' });
-    const status = execSync('git status --porcelain', { cwd: projectDir, stdio: 'pipe' }).toString();
-    return status.trim().length > 0;
-  } catch {
-    return false;
-  }
-}
-
 function listLayerFiles(layer, filesDir) {
   const results = [];
   function walk(src, rel = '') {
@@ -330,33 +271,21 @@ export function planLayerApply(options) {
     layerIds,
     vars = {},
     force = false,
-    skeletorVersion = '0.2.0',
-    owner = null,
-    template = null,
+    template,
   } = options;
 
-  const ctx = template
-    ? { template, language: templateToLanguage(template), manifest: readProjectManifest(projectDir), adoptedExisting: false }
-    : inferProjectContext(projectDir);
+  if (!template) {
+    throw new Error('planLayerApply requires a template id (layers apply only at scaffold time).');
+  }
+  const ctx = { template, language: templateToLanguage(template) };
 
   const { order, autoAdded, errors } = resolveLayerOrder(layerIds, ctx);
   if (errors.length) {
     return { ok: false, errors, plan: null };
   }
 
-  let manifest = ctx.manifest || {
-    skeletorVersion,
-    template: ctx.template,
-    createdAt: new Date().toISOString().slice(0, 10),
-    adoptedExisting: ctx.adoptedExisting,
-    owner,
-    layers: [],
-    verifyCommands: [],
-  };
-
   const plan = {
     layers: [],
-    skipped: [],
     autoAdded,
     conflicts: [],
     postApply: [],
@@ -364,10 +293,6 @@ export function planLayerApply(options) {
   };
 
   for (const id of order) {
-    if (isLayerApplied(manifest, id)) {
-      plan.skipped.push(id);
-      continue;
-    }
     const layer = loadLayerById(id);
     const filesDir = path.join(layer.dir, layer.files?.dir || 'files');
     const fileEntries = listLayerFiles(layer, filesDir);
@@ -427,7 +352,7 @@ export function planLayerApply(options) {
     plan.verifyCommands.push(...(layer.verifyCommands || []));
   }
 
-  return { ok: true, errors: [], plan, ctx, manifest };
+  return { ok: true, errors: [], plan, ctx };
 }
 
 /**
@@ -438,18 +363,16 @@ export function applyLayers(options) {
   const planResult = planLayerApply(options);
   if (!planResult.ok) return planResult;
 
-  const { plan, ctx, manifest: initialManifest } = planResult;
-  let manifest = { ...initialManifest };
+  const { plan } = planResult;
   const allConflicts = [];
 
   if (dryRun) {
-    return { ...planResult, applied: [], conflicts: allConflicts, dryRun: true };
+    return { ...planResult, applied: [], conflicts: allConflicts, verifyCommands: [], dryRun: true };
   }
 
   const applied = [];
   const projectDir = options.projectDir;
   const vars = options.vars || {};
-  const skeletorVersion = options.skeletorVersion || '0.2.0';
 
   for (const layerPlan of plan.layers) {
     const layer = loadLayerById(layerPlan.id);
@@ -484,18 +407,8 @@ export function applyLayers(options) {
       fs.writeFileSync(agentsPath, updated, 'utf8');
     }
 
-    manifest = recordLayerApplied(manifest, { id: layer.id, version: layer.version || '1.0.0' });
-    manifest.skeletorVersion = skeletorVersion;
     applied.push(layerPlan.id);
   }
-
-  const verifySet = new Set([
-    ...(Array.isArray(manifest.verifyCommands) ? manifest.verifyCommands : []),
-    ...plan.verifyCommands,
-  ]);
-  manifest.verifyCommands = [...verifySet];
-
-  writeProjectManifest(projectDir, manifest);
 
   if (!options.noInstall && applied.length) {
     for (const cmd of plan.postApply) {
@@ -508,7 +421,7 @@ export function applyLayers(options) {
     }
   }
 
-  return { ...planResult, applied, conflicts: allConflicts, dryRun: false, manifest };
+  return { ...planResult, applied, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
 }
 
 export function validateLayerManifests() {

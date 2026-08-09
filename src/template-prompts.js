@@ -1,10 +1,7 @@
 /**
  * Template-specific interactive prompts (license, author, stack choices).
- * Answers are saved to .skeletor/answers.json for reproducibility.
  */
 
-import fs from 'fs';
-import path from 'path';
 import * as p from '@clack/prompts';
 import { promptSelectRecommended } from './interactive-prompts.js';
 
@@ -164,16 +161,6 @@ export async function promptForTemplateVars(prompts) {
     vars[pr.token] = String(answer).trim() || String(pr.default ?? '');
   }
   return vars;
-}
-
-/**
- * @param {string} targetDir
- * @param {Record<string, string>} answers
- */
-export function writeTemplateAnswers(targetDir, answers) {
-  const dir = path.join(targetDir, '.skeletor');
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'answers.json'), `${JSON.stringify(answers, null, 2)}\n`, 'utf8');
 }
 
 /**
