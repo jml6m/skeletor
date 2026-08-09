@@ -7,6 +7,12 @@
 
 Run the project's tests before submitting changes and keep the test suite green.
 
+## GitHub repo setup
+
+Branch ruleset, merge-button config, and tag protection are GitHub.com settings —
+skeletor doesn't touch them. See [docs/GITHUB-SETUP.md](./docs/GITHUB-SETUP.md)
+for a one-time checklist to run after your first push.
+
 ## Critical Protocols
 
 ### Three-Strike Rule (Loop Prevention)

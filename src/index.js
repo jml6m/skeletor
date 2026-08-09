@@ -299,7 +299,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   const { layoutId, sourceDir } = resolveTemplateLayout(templateInfo, layout);
   copyAndRender(sourceDir, targetDir, vars);
 
-  const shared = ['AGENTS.md', 'README.md'];
+  const shared = ['AGENTS.md', 'README.md', 'docs/GITHUB-SETUP.md'];
   for (const file of shared) {
     const dest = path.join(targetDir, file);
     if (fs.existsSync(dest)) continue;
