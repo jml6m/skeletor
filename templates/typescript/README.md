@@ -11,7 +11,7 @@ This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) a
 - Knip (dead code), jscpd (dupes), madge (circular) via `npm run health:full`
 - Custom `release.js` (one bump per PR, major gates via GitHub issue labels `vN-required`)
 - AGENTS.md as the Single Source of Truth for coding standards + AI agent protocols
-- Path aliases (`@src`, `@utils`, etc.) enforced at lint + runtime (module-alias)
+- Native Node subpath imports (`#foo` → `./src/foo`, via `package.json`'s `imports` field) instead of bundler-style path aliases
 
 See [AGENTS.md](./AGENTS.md) for the full contract.
 

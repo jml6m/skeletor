@@ -102,7 +102,9 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
       const targetDir = path.resolve(process.cwd(), name);
 
       try {
-        // Programmatic generation (step 3) using the real logic.
+        // Programmatic generation (step 3) using the real logic. Applies recommended
+        // layers so CI's full verify run (SKELETOR_VERIFY_COMMANDS=1) exercises the
+        // same layer-interaction paths a real `--with-recommended` scaffold hits.
         await runNewProgrammatic({
           command: 'new',
           name,
@@ -111,6 +113,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           description: 'Tetrahedral barycentric coords',
           auto: true,
           git: false,
+          withRecommended: true,
         });
 
         // Validate that the template declares its post-generation verification steps (step 4).

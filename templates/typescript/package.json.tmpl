@@ -24,10 +24,9 @@
     "health:circular": "madge --circular --extensions ts src || node -e \"process.exit(0)\"",
     "health:full": "npm-run-all --sequential health:dead health:dupes health:circular"
   },
-  "dependencies": {
-    "module-alias": "{{PIN_MODULE_ALIAS}}"
-  },
   "devDependencies": {
+    "@eslint/js": "{{PIN_ESLINT_JS}}",
+    "@types/jest": "{{PIN_TYPES_JEST}}",
     "@types/node": "{{PIN_TYPES_NODE}}",
     "cross-env": "{{PIN_CROSS_ENV}}",
     "eslint": "{{PIN_ESLINT}}",
