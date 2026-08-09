@@ -20,23 +20,17 @@ import {
   gatherTemplatePrompts,
   promptForTemplateVars,
   templatePromptDefaults,
-  writeTemplateAnswers,
 } from './template-prompts.js';
 import {
   loadPinnedVersions,
   validatePinnedVersionsManifest,
   buildPinTokens,
   checkTemplateGenerationAllowed,
-  writePinnedVersionsSnapshot,
 } from './pinned-versions.js';
-import { writeProjectManifest, readProjectManifest } from './manifest.js';
 import {
   applyLayers,
   expandBundle,
   getLayersWithManifests,
-  inferProjectContext,
-  isGitDirty,
-  layerAppliesTo,
   loadBundles,
   resolveLayerOrder,
   gatherLayerPrompts,
@@ -56,13 +50,12 @@ const USAGE = `
 
 Usage:
   skeletor new <name> [options]
-  skeletor enhance [path] [options]
   skeletor --help
 
 new options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
   --layout <name>       Template layout (single, lib, workspace — when supported)
-  --with <id[,id...]>   Enhancement layers to apply after scaffold
+  --with <id[,id...]>   Enhancement layers to apply at scaffold time
   --with-recommended    Apply this template's recommendedLayers (see template.json)
   --bundle <name>       Named layer preset (see bundles.json)
   --owner <user>        GitHub owner/org (skips auto-detection)
@@ -74,23 +67,11 @@ new options:
   --uv                  Python: use uv sync instead of pip install (non-interactive)
   --allow-deprecated-template  Allow scaffolding templates marked deprecated in pinned-versions.json
 
-enhance options:
-  --add <id[,id...]>    Layers to apply
-  --bundle <name>       Named layer preset
-  --list                List compatible layers (marks applied)
-  --status              Show .skeletor/manifest.json
-  --dry-run             Preview changes without writing
-  --force               Overwrite conflicting files
-  --allow-dirty         Override dirty-git guard (not recommended)
-  --no-install          Skip postApply commands
-
 Examples:
   skeletor new my-api --template typescript --with-recommended
   skeletor new my-api --template typescript --with governance,quality-gates
   skeletor new my-lib --auto --template typescript --bundle ts-library
   skeletor new tbra --auto --template rust --layout workspace
-  skeletor enhance --add logger-winston
-  skeletor enhance ./my-api --add zod-config --dry-run
 `;
 
 function log(msg) { console.log(msg); }
@@ -106,23 +87,15 @@ function parseArgs(argv) {
   const result = {
     command: null,
     name: null,
-    path: null,
     template: null,
     layout: null,
     withLayers: [],
     withRecommended: false,
     bundle: null,
-    addLayers: [],
     owner: null,
     description: null,
     auto: false,
     git: true,
-    list: false,
-    status: false,
-    dryRun: false,
-    force: false,
-    allowDirty: false,
-    noInstall: false,
     github: false,
     githubPrivate: false,
     uv: false,
@@ -153,23 +126,6 @@ function parseArgs(argv) {
       else if (a === '--uv') result.uv = true;
       else if (a === '--allow-deprecated-template') result.allowDeprecatedTemplate = true;
       else if (!a.startsWith('-') && !result.name) result.name = a;
-    }
-    return result;
-  }
-
-  if (args[0] === 'enhance') {
-    result.command = 'enhance';
-    for (let i = 1; i < args.length; i++) {
-      const a = args[i];
-      if (a === '--add') result.addLayers = parseCommaList(args[++i]);
-      else if (a === '--bundle') result.bundle = args[++i] || null;
-      else if (a === '--list') result.list = true;
-      else if (a === '--status') result.status = true;
-      else if (a === '--dry-run') result.dryRun = true;
-      else if (a === '--force') result.force = true;
-      else if (a === '--allow-dirty') result.allowDirty = true;
-      else if (a === '--no-install') result.noInstall = true;
-      else if (!a.startsWith('-') && !result.path) result.path = a;
     }
     return result;
   }
@@ -338,7 +294,7 @@ function getRecommendedLayers(templateInfo) {
 
 function collectLayerIds(opts, templateInfo) {
   const templateId = typeof templateInfo === 'string' ? templateInfo : templateInfo?.id;
-  const ids = [...(opts.withLayers || opts.addLayers || [])];
+  const ids = [...(opts.withLayers || [])];
   if (opts.withRecommended) {
     const info = typeof templateInfo === 'string'
       ? getTemplatesWithManifests().find((t) => t.id === templateInfo)
@@ -349,19 +305,6 @@ function collectLayerIds(opts, templateInfo) {
     ids.push(...expandBundle(opts.bundle, templateId));
   }
   return [...new Set(ids)];
-}
-
-function writeInitialManifest(targetDir, { templateId, owner, layoutId, verifyCommands }) {
-  writeProjectManifest(targetDir, {
-    skeletorVersion: SKELETOR_VERSION,
-    template: templateId,
-    layout: layoutId,
-    createdAt: new Date().toISOString().slice(0, 10),
-    adoptedExisting: false,
-    owner,
-    layers: [],
-    verifyCommands: verifyCommands || [],
-  });
 }
 
 async function chooseTemplateInteractively(templates) {
@@ -411,12 +354,6 @@ async function resolveOwnerForNew(opts, isInteractive) {
   }
 
   return candidates[0].owner;
-}
-
-function resolveOwnerForProject(projectDir, manifestOwner) {
-  if (manifestOwner?.trim()) return manifestOwner.trim();
-  const candidates = detectGithubOwners(projectDir);
-  return candidates[0]?.owner ?? null;
 }
 
 async function promptForLayerVars(prompts) {
@@ -572,15 +509,6 @@ async function runNew(opts) {
     vars,
   );
 
-  writeInitialManifest(targetDir, {
-    templateId: chosenTemplateId,
-    owner: finalOwner,
-    layoutId,
-    verifyCommands: verifyCommandsBase,
-  });
-  writeTemplateAnswers(targetDir, templateVars);
-  writePinnedVersionsSnapshot(targetDir, pinned);
-
   let verifyCommands = [...verifyCommandsBase];
 
   if (layerIds.length) {
@@ -592,8 +520,6 @@ async function runNew(opts) {
       layerIds,
       vars,
       template: chosenTemplateId,
-      owner: finalOwner,
-      skeletorVersion: SKELETOR_VERSION,
       force: false,
       noInstall: true,
     });
@@ -604,8 +530,7 @@ async function runNew(opts) {
     if (result.autoAdded?.length) {
       p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
     }
-    const manifest = readProjectManifest(targetDir);
-    verifyCommands = manifest?.verifyCommands || verifyCommands;
+    verifyCommands = [...new Set([...verifyCommands, ...result.verifyCommands])];
   }
 
   if (git) {
@@ -624,110 +549,6 @@ async function runNew(opts) {
 
   p.outro('✅ Done!');
   printPostScaffoldSteps(name, verifyCommands);
-}
-
-async function runEnhance(opts) {
-  const projectDir = path.resolve(process.cwd(), opts.path || '.');
-  if (!fs.existsSync(projectDir)) {
-    logError(`❌ Project path does not exist: ${projectDir}`);
-    process.exit(1);
-  }
-
-  if (opts.status) {
-    const manifest = readProjectManifest(projectDir);
-    if (!manifest) {
-      log('No .skeletor/manifest.json found.');
-      process.exit(0);
-    }
-    console.log(JSON.stringify(manifest, null, 2));
-    process.exit(0);
-  }
-
-  let ctx;
-  try {
-    ctx = inferProjectContext(projectDir);
-  } catch (e) {
-    logError(`❌ ${e.message}`);
-    process.exit(1);
-  }
-
-  if (opts.list) {
-    const layers = getLayersWithManifests();
-    const applied = new Set((ctx.manifest?.layers || []).map((l) => l.id));
-    log(`Compatible layers for ${ctx.template}:`);
-    for (const layer of layers) {
-      if (!layerAppliesTo(layer, ctx)) continue;
-      const mark = applied.has(layer.id) ? ' [applied]' : '';
-      log(`  • ${layer.id} — ${layer.name}${mark}`);
-    }
-    process.exit(0);
-  }
-
-  const layerIds = collectLayerIds(opts, ctx.template);
-  if (!layerIds.length) {
-    logError('❌ Provide --add <layers> or --bundle <name>.');
-    process.exit(1);
-  }
-
-  if (!opts.allowDirty && !opts.dryRun && isGitDirty(projectDir)) {
-    logError('❌ Git working tree is dirty. Commit or stash changes before enhancing.');
-    logError('   Pass --allow-dirty to override (not recommended).');
-    process.exit(1);
-  }
-
-  const enhanceOwner = resolveOwnerForProject(projectDir, ctx.manifest?.owner);
-  if (!enhanceOwner) {
-    logError('❌ Could not determine GitHub owner for this project.');
-    logError('   Scaffold with skeletor new --owner <org>, or ensure git remote / package.json / gh CLI is available.');
-    process.exit(1);
-  }
-
-  const result = applyLayers({
-    projectDir,
-    layerIds,
-    vars: buildRenderVars({
-      name: path.basename(projectDir),
-      owner: enhanceOwner,
-      description: ctx.manifest?.description || DEFAULT_DESCRIPTION,
-    }),
-    force: opts.force,
-    dryRun: opts.dryRun,
-    noInstall: opts.noInstall,
-    skeletorVersion: SKELETOR_VERSION,
-    owner: enhanceOwner,
-    template: ctx.manifest ? ctx.template : undefined,
-  });
-
-  if (!result.ok) {
-    logError(`❌ ${result.errors.join('; ')}`);
-    process.exit(1);
-  }
-
-  if (opts.dryRun) {
-    p.outro('Dry run — no files written.');
-    for (const lp of result.plan.layers) {
-      log(`Layer ${lp.id}:`);
-      for (const f of lp.files) log(`  ${f.action}: ${f.relPath}`);
-      if (lp.packageJsonPatch) log('  merge: package.json');
-      if (lp.agentsSection) log(`  append AGENTS.md: ${lp.agentsSection.section}`);
-    }
-    if (result.plan.skipped.length) log(`Skipped (already applied): ${result.plan.skipped.join(', ')}`);
-    if (result.plan.autoAdded?.length) log(`Would auto-add: ${result.plan.autoAdded.join(', ')}`);
-    process.exit(0);
-  }
-
-  if (result.applied.length) {
-    p.outro(`✅ Applied layers: ${result.applied.join(', ')}`);
-    if (result.conflicts?.length) {
-      p.log.warn(`${result.conflicts.length} package.json merge note(s) — existing values kept.`);
-    }
-    const manifest = readProjectManifest(projectDir);
-    if (manifest?.verifyCommands?.length) {
-      printPostScaffoldSteps('.', manifest.verifyCommands);
-    }
-  } else {
-    p.outro('No changes — all requested layers already applied.');
-  }
 }
 
 function createGithubRemote(targetDir, name, owner, isPrivate) {
@@ -801,12 +622,6 @@ function main() {
     });
   }
 
-  if (opts.command === 'enhance') {
-    runEnhance(opts).catch((e) => {
-      logError('❌ Enhance failed: ' + (e?.message || e));
-      process.exit(1);
-    });
-  }
 }
 
 export {
@@ -823,7 +638,6 @@ export {
   ensureDir,
   copyAndRender,
   runNew,
-  runEnhance,
   printPostScaffoldSteps,
   collectLayerIds,
   getRecommendedLayers,
