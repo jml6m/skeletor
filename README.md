@@ -48,18 +48,11 @@ npx @jml6m/skeletor new my-service --auto --template go --owner acme-corp
 - `--auto` — non-interactive; requires `--template`
 - `--no-git` — skip `git init`
 
-Interactive prompts use **select lists** with `(recommended)` labels. `enhance` blocks dirty git trees unless `--allow-dirty`.
+Interactive prompts use **select lists** with `(recommended)` labels.
 
-## Enhancement layers (v0.2+)
+## Enhancement layers
 
-Apply during `new` or later via `enhance`:
-
-```bash
-skeletor enhance --add governance,quality-gates
-skeletor enhance --list
-```
-
-Layers are recorded in `.skeletor/manifest.json`.
+Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bundle` on `skeletor new` (see [Common flags](#common-flags) above). Skeletor is a one-shot generator: it writes a project once and leaves nothing of its own behind to track or manage afterward.
 
 ## Rich interactive CLI
 

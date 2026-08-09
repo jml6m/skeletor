@@ -60,7 +60,7 @@ describe('pinned-versions', () => {
     expect(result.warn).toContain('needs review');
   });
 
-  test('generation writes pinned snapshot to .skeletor/', async () => {
+  test('generation substitutes pin tokens without leaving skeletor state behind', async () => {
     const name = `pin-snap-${Date.now()}`;
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -72,8 +72,7 @@ describe('pinned-versions', () => {
         auto: true,
         git: false,
       });
-      const snapshot = path.join(targetDir, '.skeletor', 'pinned-versions.json');
-      expect(fs.existsSync(snapshot)).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
       const goMod = fs.readFileSync(path.join(targetDir, 'go.mod'), 'utf8');
       expect(goMod).toContain('go 1.22');
       expect(goMod).not.toContain('{{PIN');
