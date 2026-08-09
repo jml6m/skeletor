@@ -1,0 +1,11 @@
+{
+  "id": "dependabot",
+  "name": "Dependabot config",
+  "description": "Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions, matching the account-wide baseline.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["*"],
+    "templates": ["*"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" }
+}

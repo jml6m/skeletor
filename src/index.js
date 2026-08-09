@@ -195,6 +195,20 @@ function sanitizeIdentifierSegment(value) {
   return String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
 }
 
+const DEPENDABOT_ECOSYSTEM_BY_LANGUAGE = {
+  javascript: 'npm',
+  typescript: 'npm',
+  python: 'pip',
+  go: 'gomod',
+  rust: 'cargo',
+  java: 'maven',
+  csharp: 'nuget',
+};
+
+function dependabotEcosystemFor(language) {
+  return DEPENDABOT_ECOSYSTEM_BY_LANGUAGE[language] || 'npm';
+}
+
 function buildRenderVars({ name, owner, description, extra = {} }) {
   if (!owner) {
     throw new Error('owner is required');
@@ -555,7 +569,12 @@ async function runNew(opts) {
     name,
     owner: finalOwner,
     description: finalDesc,
-    extra: { ...layerVars, ...templateVars, ...pinTokens },
+    extra: {
+      ...layerVars,
+      ...templateVars,
+      ...pinTokens,
+      DEPENDABOT_ECOSYSTEM: dependabotEcosystemFor(templateInfo.language || chosenTemplateId),
+    },
   });
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 

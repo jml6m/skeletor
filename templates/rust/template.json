@@ -9,7 +9,7 @@
     "lib": { "dir": "layouts/lib" },
     "workspace": { "dir": "layouts/workspace" }
   },
-  "recommendedLayers": ["governance"],
+  "recommendedLayers": ["governance", "dependabot"],
   "features": ["rust"],
   "verifyCommands": [
     "cargo fmt --check",
