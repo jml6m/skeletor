@@ -5,6 +5,7 @@
   "language": "typescript",
   "recommendedLayers": [
     "governance",
+    "dependabot",
     "quality-gates",
     "docs-lint",
     "zod-config",
