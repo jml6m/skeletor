@@ -11,10 +11,6 @@
     }
   },
   "packages": {
-    "module-alias": {
-      "version": "2.3.4",
-      "policy": "major"
-    },
     "@types/node": {
       "version": "22.0.0",
       "policy": "major"
@@ -25,6 +21,10 @@
     },
     "eslint": {
       "version": "9.0.0",
+      "policy": "major"
+    },
+    "@eslint/js": {
+      "version": "9.9.0",
       "policy": "major"
     },
     "eslint-plugin-unused-imports": {
@@ -41,6 +41,10 @@
     },
     "jest": {
       "version": "29.7.0",
+      "policy": "major"
+    },
+    "@types/jest": {
+      "version": "29.5.14",
       "policy": "major"
     },
     "jscpd": {

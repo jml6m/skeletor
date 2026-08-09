@@ -299,6 +299,27 @@ function listLayerFiles(layer, filesDir) {
 }
 
 /**
+ * Some layers ship both a .js and a .ts variant of the same file (e.g. zod-config's
+ * env.config.js/.ts) so they can apply to both the javascript and typescript templates.
+ * Drop whichever twin doesn't match the target language so both never land in the same project.
+ * @param {{ srcPath: string, relPath: string }[]} fileEntries
+ * @param {{ language: string }} ctx
+ */
+export function filterFilesByLanguage(fileEntries, ctx) {
+  const preferredExt = ctx.language === 'typescript' ? '.ts' : '.js';
+  const droppedExt = preferredExt === '.ts' ? '.js' : '.ts';
+  const basenames = new Set(
+    fileEntries
+      .filter((f) => f.relPath.endsWith(preferredExt))
+      .map((f) => f.relPath.slice(0, -preferredExt.length)),
+  );
+  return fileEntries.filter((f) => {
+    if (!f.relPath.endsWith(droppedExt)) return true;
+    return !basenames.has(f.relPath.slice(0, -droppedExt.length));
+  });
+}
+
+/**
  * @param {string} agentsPath
  * @param {string} section
  * @param {string} snippet
@@ -370,7 +391,7 @@ export function planLayerApply(options) {
     }
     const layer = loadLayerById(id);
     const filesDir = path.join(layer.dir, layer.files?.dir || 'files');
-    const fileEntries = listLayerFiles(layer, filesDir);
+    const fileEntries = filterFilesByLanguage(listLayerFiles(layer, filesDir), ctx);
     const layerPlan = {
       id,
       files: [],
