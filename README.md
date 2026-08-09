@@ -47,6 +47,7 @@ npx @jml6m/skeletor new my-service --auto --template go --owner acme-corp
 - `--description <text>` — optional (generic default when omitted)
 - `--auto` — non-interactive; requires `--template`
 - `--no-git` — skip `git init`
+- `--codeowners` — generate a scoped `.github/CODEOWNERS` (interactive: pick from recommended paths; `--auto`: full candidate set)
 
 Interactive prompts use **select lists** with `(recommended)` labels. `enhance` blocks dirty git trees unless `--allow-dirty`.
 
