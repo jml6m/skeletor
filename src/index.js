@@ -12,8 +12,10 @@ import { detectGithubOwners } from './detect-owner.js';
 import {
   promptConfirmRecommended,
   promptLayerValue,
+  promptMultiSelectRecommended,
   promptOwnerSelect,
 } from './interactive-prompts.js';
+import { computeCodeownersCandidates, buildCodeownersContent } from './codeowners.js';
 import { applyFeatureConfigs } from './features.js';
 import {
   adjustVerifyCommandsForAnswers,
@@ -66,6 +68,7 @@ new options:
   --private             Use --private with --github (default: public)
   --uv                  Python: use uv sync instead of pip install (non-interactive)
   --allow-deprecated-template  Allow scaffolding templates marked deprecated in pinned-versions.json
+  --codeowners           Generate .github/CODEOWNERS (--auto: full candidate set; interactive: pick)
 
 Examples:
   skeletor new my-api --template typescript --with-recommended
@@ -100,6 +103,7 @@ function parseArgs(argv) {
     githubPrivate: false,
     uv: false,
     allowDeprecatedTemplate: false,
+    codeowners: false,
   };
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
@@ -124,6 +128,7 @@ function parseArgs(argv) {
       else if (a === '--github') result.github = true;
       else if (a === '--private') result.githubPrivate = true;
       else if (a === '--uv') result.uv = true;
+      else if (a === '--codeowners') result.codeowners = true;
       else if (a === '--allow-deprecated-template') result.allowDeprecatedTemplate = true;
       else if (!a.startsWith('-') && !result.name) result.name = a;
     }
@@ -465,6 +470,27 @@ async function runNew(opts) {
     templateVars = { ...templateVars, ...prompted };
   }
 
+  const codeownersCandidates = computeCodeownersCandidates(templateInfo);
+  let codeownersPaths = [];
+  if (isInteractive) {
+    const wantCodeowners = await promptConfirmRecommended({
+      message: 'Generate a scoped CODEOWNERS file for this repo? (recommended)',
+      recommended: true,
+    });
+    if (p.isCancel(wantCodeowners)) { p.cancel('Cancelled.'); process.exit(0); }
+    if (wantCodeowners) {
+      const selected = await promptMultiSelectRecommended({
+        message: 'Which paths need review from the repo owner before merge?',
+        options: codeownersCandidates.map((c) => ({ value: c.path, label: c.path, hint: c.hint })),
+        initialValues: codeownersCandidates.map((c) => c.path),
+      });
+      if (p.isCancel(selected)) { p.cancel('Cancelled.'); process.exit(0); }
+      codeownersPaths = selected;
+    }
+  } else if (opts.codeowners) {
+    codeownersPaths = codeownersCandidates.map((c) => c.path);
+  }
+
   if (isInteractive) {
     const layerNote = layerIds.length ? ` + ${layerIds.length} enhancement layer(s)` : '';
     const shouldContinue = await promptConfirmRecommended({
@@ -531,6 +557,13 @@ async function runNew(opts) {
       p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
     }
     verifyCommands = [...new Set([...verifyCommands, ...result.verifyCommands])];
+  }
+
+  if (codeownersPaths.length) {
+    const codeownersDest = path.join(targetDir, '.github', 'CODEOWNERS');
+    fs.mkdirSync(path.dirname(codeownersDest), { recursive: true });
+    fs.writeFileSync(codeownersDest, buildCodeownersContent(codeownersPaths, finalOwner), 'utf8');
+    p.log.success(`CODEOWNERS written for: ${codeownersPaths.join(', ')}`);
   }
 
   if (git) {
