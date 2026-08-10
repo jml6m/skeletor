@@ -1,0 +1,20 @@
+# Exact allowlist of markdown files permitted in this public repo. Any tracked
+# *.md file not listed here, and not under an exempt_globs path, fails the
+# "docs-policy" job in .github/workflows/docs-lint.yml. Widening this list
+# requires a PR — this file is CODEOWNERS-gated to @jml6m — so new/renamed
+# docs always get a human review, not just an agent's judgment call.
+#
+# Enforced by: .github/scripts/check-docs-policy.sh
+
+allowed:
+  - README.md                              # Public project overview, usage, install instructions
+  - AGENTS.md                               # Agent operating instructions (source of truth)
+  - CLAUDE.md                                # Thin @AGENTS.md import pointer only
+  - docs/RELEASE.md                          # Release process reference
+  - .github/ISSUE_TEMPLATE/bug_report.md
+  - .github/ISSUE_TEMPLATE/feature_request.md
+  - .github/pull_request_template.md
+
+exempt_globs:
+  - "templates/**"  # emitted scaffolding fixtures — content skeletor generates for new projects
+  - "layers/**"      # emitted enhancement-layer fixtures (incl. AGENTS.snippet.md fragments)
