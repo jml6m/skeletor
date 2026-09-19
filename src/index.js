@@ -13,6 +13,7 @@ import {
   promptConfirmRecommended,
   promptLayerValue,
   promptMultiSelectRecommended,
+  promptSelectRecommended,
   promptOptionalText,
   promptOwnerSelect,
 } from './interactive-prompts.js';
@@ -57,7 +58,7 @@ Usage:
 
 new options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
-  --layout <name>       Template layout (single, lib, workspace — when supported)
+  --layout <name>       Template layout: rust single|lib|workspace, python flat|src
   --with <id[,id...]>   Enhancement layers to apply at scaffold time
   --with-recommended    Apply this template's recommendedLayers (see template.json)
   --bundle <name>       Named layer preset (see bundles.json)
@@ -498,6 +499,19 @@ async function runNew(opts) {
     templateVars = { ...templateVars, ...prompted };
   }
 
+  let chosenLayout = opts.layout;
+  if (isInteractive && templateInfo.layouts && !chosenLayout) {
+    const layoutIds = Object.keys(templateInfo.layouts);
+    const picked = await promptSelectRecommended({
+      message: 'Project layout',
+      options: layoutIds,
+      recommended: templateInfo.defaultLayout || layoutIds[0],
+      allowCustom: false,
+    });
+    if (p.isCancel(picked)) { p.cancel('Cancelled.'); process.exit(0); }
+    chosenLayout = picked;
+  }
+
   const codeownersCandidates = computeCodeownersCandidates(templateInfo);
   let codeownersPaths = [];
   if (isInteractive) {
@@ -567,14 +581,14 @@ async function runNew(opts) {
 
   let layoutId = 'default';
   try {
-    layoutId = copyTemplateToProject(templateInfo, targetDir, vars, opts.layout);
+    layoutId = copyTemplateToProject(templateInfo, targetDir, vars, chosenLayout);
   } catch (e) {
     logError(`❌ ${e.message}`);
     process.exit(1);
   }
 
   const verifyCommandsBase = adjustVerifyCommandsForAnswers(
-    [...(templateInfo.verifyCommands || [])],
+    [...(templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [])],
     vars,
   );
 

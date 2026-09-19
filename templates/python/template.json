@@ -1,8 +1,32 @@
 {
   "id": "python",
   "name": "Python",
-  "description": "Modern Python with best-practice defaults: pyproject.toml, ruff (lint + format), pytest, basic typing layout, src/ structure, and an AGENTS.md contract.",
+  "description": "Modern Python with best-practice defaults: pyproject.toml, ruff (lint + format), pytest, mypy, and an AGENTS.md contract. Flat layout (scripts at the repo root, no packaging) by default; --layout src for an installable src/ package.",
   "language": "python",
+  "defaultLayout": "flat",
+  "layouts": {
+    "flat": {
+      "dir": "layouts/flat",
+      "verifyCommands": [
+        "python -m pip install --upgrade \"pip>=25.1\" --quiet",
+        "python -m pip install --group dev --quiet",
+        "python -m ruff format --check .",
+        "python -m ruff check .",
+        "python -m pytest -q",
+        "python -m mypy ."
+      ]
+    },
+    "src": {
+      "dir": "layouts/src",
+      "verifyCommands": [
+        "python -m pip install -e \".[dev]\" --quiet",
+        "python -m ruff format --check .",
+        "python -m ruff check .",
+        "python -m pytest -q",
+        "python -m mypy src"
+      ]
+    }
+  },
   "recommendedLayers": [
     "governance",
     "dependabot",
@@ -12,10 +36,11 @@
     "python"
   ],
   "verifyCommands": [
-    "python -m pip install -e \".[dev]\" --quiet",
+    "python -m pip install --upgrade \"pip>=25.1\" --quiet",
+    "python -m pip install --group dev --quiet",
     "python -m ruff format --check .",
     "python -m ruff check .",
     "python -m pytest -q",
-    "python -m mypy src"
+    "python -m mypy ."
   ]
 }

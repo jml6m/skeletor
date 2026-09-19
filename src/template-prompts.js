@@ -170,12 +170,13 @@ export async function promptForTemplateVars(prompts) {
  */
 export function adjustVerifyCommandsForAnswers(verifyCommands, vars) {
   if (vars.PYTHON_PACKAGE_MANAGER === 'uv') {
-    return verifyCommands.map((cmd) => {
-      if (cmd.includes('pip install')) {
-        return 'uv sync --all-extras';
-      }
+    // uv installs into its own .venv, so every later python invocation has to go through `uv run`.
+    const adjusted = verifyCommands.map((cmd) => {
+      if (cmd.includes('pip install')) return 'uv sync --all-extras';
+      if (cmd.startsWith('python ')) return `uv run ${cmd}`;
       return cmd;
     });
+    return [...new Set(adjusted)];
   }
   return verifyCommands;
 }

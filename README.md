@@ -18,7 +18,7 @@ Run `skeletor new my-project` for an interactive selector, or pass `--template <
 |----------|-------|
 | `javascript` | CJS — Prettier, ESLint, aliases, health tools, husky, AGENTS.md |
 | `typescript` | ESM + strict TS, flat ESLint, build, quality gates, AGENTS.md |
-| `python` | pyproject.toml, ruff, pytest, mypy, src layout |
+| `python` | pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
 | `go` | Standard module + tests |
 | `rust` | Cargo — `--layout single\|lib\|workspace` |
 | `java` | Maven + JUnit 5 |

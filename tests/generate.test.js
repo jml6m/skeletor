@@ -238,3 +238,44 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
     }).toThrow();
   });
 });
+
+describe('non-default template layouts', () => {
+  const layoutCases = getTemplatesWithManifests().flatMap((tmpl) =>
+    Object.entries(tmpl.layouts || {})
+      .filter(([id]) => id !== (tmpl.defaultLayout || Object.keys(tmpl.layouts)[0]))
+      .map(([id, layout]) => ({ tmpl, id, layout })),
+  );
+
+  test.each(layoutCases.map((c) => [c.tmpl.id, c.id, c]))('generates and verifies %s --layout %s', async (_t, _l, { tmpl, id, layout }) => {
+    const name = makeTempProjectName(`gen-${tmpl.id}-${id}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', auto: true, git: false, withRecommended: true });
+      expect(fs.existsSync(path.join(targetDir, 'AGENTS.md'))).toBe(true);
+      if (tmpl.id === 'python' && id === 'src') {
+        expect(fs.existsSync(path.join(targetDir, 'src', 'app', 'main.py'))).toBe(true);
+        expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(false);
+      }
+      if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
+        runVerifyCommands(targetDir, layout.verifyCommands || tmpl.verifyCommands);
+      }
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('python defaults to the flat layout (scripts at the repo root, no packaging)', async () => {
+    const name = makeTempProjectName('gen-python-flat');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: 'python', owner: 'tbra-owner', auto: true, git: false });
+      expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'src'))).toBe(false);
+      const pyproject = fs.readFileSync(path.join(targetDir, 'pyproject.toml'), 'utf8');
+      expect(pyproject).toContain('[dependency-groups]');
+      expect(pyproject).not.toContain('[build-system]');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+});
