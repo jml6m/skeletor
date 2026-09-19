@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import * as p from '@clack/prompts';
 import { detectGithubOwners } from './detect-owner.js';
 import {
@@ -579,6 +579,7 @@ async function runNew(opts) {
   );
 
   let verifyCommands = [...verifyCommandsBase];
+  let repoLabels = [];
 
   if (layerIds.length) {
     if (opts.withRecommended) {
@@ -596,6 +597,7 @@ async function runNew(opts) {
       logError(`❌ Layer apply failed: ${result.errors.join('; ')}`);
       process.exit(1);
     }
+    repoLabels = result.labels || [];
     if (result.autoAdded?.length) {
       p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
     }
@@ -616,18 +618,23 @@ async function runNew(opts) {
       execSync('git commit -q -m "chore: initial commit from skeletor"', { cwd: targetDir, stdio: 'ignore' });
       p.log.success('Git repository initialized');
       if (opts.github) {
-        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate);
+        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels);
       }
     } catch {
       p.log.warn('Git init skipped (git not available or failed)');
     }
   }
 
+  if (!opts.github && repoLabels.length) {
+    const names = repoLabels.map((l) => l.name).join(', ');
+    p.log.info(`Layers expect these labels on GitHub: ${names} — created automatically with --github, otherwise see AGENTS.md / .github/ISSUE_TEMPLATE.`);
+  }
+
   p.outro('✅ Done!');
   printPostScaffoldSteps(name, verifyCommands);
 }
 
-function createGithubRemote(targetDir, name, owner, isPrivate) {
+function createGithubRemote(targetDir, name, owner, isPrivate, labels = []) {
   try {
     execSync('gh --version', { stdio: 'ignore' });
   } catch {
@@ -647,9 +654,31 @@ function createGithubRemote(targetDir, name, owner, isPrivate) {
     } catch {
       p.log.warn('Remote created but push failed — run: git push -u origin HEAD');
     }
+    seedGithubLabels(targetDir, `${owner}/${name}`, labels);
   } catch (e) {
     const msg = e.stderr?.toString() || e.message || String(e);
     p.log.warn(`gh repo create failed: ${msg.trim()}`);
+  }
+}
+
+/**
+ * Creates the labels applied layers declare (e.g. `epic`, `chore`). `--force` keeps it idempotent.
+ * @param {string} targetDir
+ * @param {string} repo
+ * @param {{ name: string, color: string, description?: string }[]} labels
+ */
+function seedGithubLabels(targetDir, repo, labels) {
+  for (const label of labels) {
+    try {
+      execFileSync(
+        'gh',
+        ['label', 'create', label.name, '--color', label.color, '--description', label.description || '', '--force', '-R', repo],
+        { cwd: targetDir, stdio: 'pipe' },
+      );
+      p.log.success(`Label ready: ${label.name}`);
+    } catch {
+      p.log.warn(`Could not create label "${label.name}" — run: gh label create ${label.name} --color ${label.color}`);
+    }
   }
 }
 

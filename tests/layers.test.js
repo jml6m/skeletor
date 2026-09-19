@@ -73,6 +73,29 @@ describe('layer application', () => {
     expect(() => applyLayers({ projectDir: '.', layerIds: ['governance'] })).toThrow(/requires a template id/);
   });
 
+  test('issue-templates + issue-labels emit forms, the AGENTS section, and their labels', async () => {
+    const name = makeName('layer-labels');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'go', owner: 'acme', auto: true, git: false });
+      const result = applyLayers({
+        projectDir: targetDir,
+        layerIds: ['issue-templates', 'issue-labels'],
+        template: 'go',
+        vars: {},
+        noInstall: true,
+      });
+      expect(result.ok).toBe(true);
+      expect(result.labels.map((l) => l.name).sort()).toEqual(['chore', 'epic']);
+      for (const f of ['bug_report.md', 'feature_request.md', 'epic.yml', 'config.yml']) {
+        expect(fs.existsSync(path.join(targetDir, '.github', 'ISSUE_TEMPLATE', f))).toBe(true);
+      }
+      expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Issue labels');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
   test('dry-run writes nothing', async () => {
     const name = makeName('layer-dry');
     const targetDir = path.resolve(process.cwd(), name);

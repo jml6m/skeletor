@@ -1,16 +1,28 @@
 {
   "id": "rust",
   "name": "Rust",
-  "description": "Rust crate with Cargo — single binary, library, or workspace (core + cli) layouts.",
+  "description": "Rust crate with Cargo \u2014 single binary, library, or workspace (core + cli) layouts.",
   "language": "rust",
   "defaultLayout": "single",
   "layouts": {
-    "single": { "dir": "layouts/single" },
-    "lib": { "dir": "layouts/lib" },
-    "workspace": { "dir": "layouts/workspace" }
+    "single": {
+      "dir": "layouts/single"
+    },
+    "lib": {
+      "dir": "layouts/lib"
+    },
+    "workspace": {
+      "dir": "layouts/workspace"
+    }
   },
-  "recommendedLayers": ["governance", "dependabot"],
-  "features": ["rust"],
+  "recommendedLayers": [
+    "governance",
+    "dependabot",
+    "issue-templates"
+  ],
+  "features": [
+    "rust"
+  ],
   "verifyCommands": [
     "cargo fmt --check",
     "cargo clippy -- -D warnings",

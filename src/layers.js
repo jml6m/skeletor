@@ -392,6 +392,7 @@ export function applyLayers(options) {
   }
 
   const applied = [];
+  const labels = [];
   const projectDir = options.projectDir;
   const vars = options.vars || {};
 
@@ -428,6 +429,8 @@ export function applyLayers(options) {
       fs.writeFileSync(agentsPath, updated, 'utf8');
     }
 
+    if (Array.isArray(layer.labels)) labels.push(...layer.labels);
+
     applied.push(layerPlan.id);
   }
 
@@ -442,7 +445,7 @@ export function applyLayers(options) {
     }
   }
 
-  return { ...planResult, applied, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
+  return { ...planResult, applied, labels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
 }
 
 export function validateLayerManifests() {
@@ -460,6 +463,12 @@ export function validateLayerManifests() {
     if (layer.patch?.packageJson) {
       const p = path.join(layer.dir, layer.patch.packageJson);
       if (!fs.existsSync(p)) errors.push(`${layer.id}: patch missing: ${layer.patch.packageJson}`);
+    }
+
+    for (const label of layer.labels || []) {
+      if (!label?.name || !/^[0-9A-Fa-f]{6}$/.test(label.color || '')) {
+        errors.push(`${layer.id}: labels need a name and a 6-digit hex color`);
+      }
     }
 
     if (layer.docs?.agents?.append) {

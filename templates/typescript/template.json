@@ -6,6 +6,7 @@
   "recommendedLayers": [
     "governance",
     "dependabot",
+    "issue-templates",
     "quality-gates",
     "docs-lint",
     "zod-config",

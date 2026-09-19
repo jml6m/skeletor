@@ -3,8 +3,14 @@
   "name": "C# (.NET)",
   "description": "Standard .NET console project with .csproj, Program.cs, and xUnit tests.",
   "language": "csharp",
-  "recommendedLayers": ["governance", "dependabot"],
-  "features": ["dotnet"],
+  "recommendedLayers": [
+    "governance",
+    "dependabot",
+    "issue-templates"
+  ],
+  "features": [
+    "dotnet"
+  ],
   "verifyCommands": [
     "dotnet build",
     "dotnet test"
