@@ -85,7 +85,7 @@ describe('pinned-versions', () => {
     const tmpl = templates.find((t) => t.id === 'javascript');
     const pinned = JSON.parse(fs.readFileSync(path.join(tmpl.dir, 'pinned-versions.json'), 'utf8'));
     const tokens = buildPinTokens(pinned, tmpl);
-    expect(tokens.PIN_JEST).toBe('^29.7.0');
+    expect(tokens.PIN_JEST).toBe('^30.0.0');
     expect(tokens.PIN_RUNTIME_NODE_ENGINES).toBe('>=22');
   });
 });
