@@ -25,15 +25,23 @@ gh api repos/{{REPO_OWNER}}/{{REPO_NAME}}/rulesets \
     {
       "type": "pull_request",
       "parameters": {
-        "required_approving_review_count": 1,
+        "required_approving_review_count": 0,
         "dismiss_stale_reviews_on_push": true,
-        "require_code_owner_review": false
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false
       }
     }
   ]
 }
 JSON
 ```
+
+`required_approving_review_count` is `0` because GitHub never lets you approve your own pull
+request, so a solo maintainer would be locked out. Raise it to `1` once a second reviewer exists,
+or once PRs are authored by a bot or GitHub App, so a human can approve them. If you generated a
+`.github/CODEOWNERS`, set `require_code_owner_review` to `true` at the same time. The file on its own
+does not gate anything.
 
 Once CI is running on real PRs, list your workflow job names and add them as
 `required_status_checks` (fill in the `context` values from
@@ -50,11 +58,13 @@ Squash-only, delete branches on merge:
 
 ```bash
 gh api repos/{{REPO_OWNER}}/{{REPO_NAME}} --method PATCH \
-  -f allow_merge_commit=false \
-  -f allow_rebase_merge=false \
-  -f allow_squash_merge=true \
-  -f delete_branch_on_merge=true
+  -F allow_merge_commit=false \
+  -F allow_rebase_merge=false \
+  -F allow_squash_merge=true \
+  -F delete_branch_on_merge=true
 ```
+
+(`-F`, not `-f`: `-f` sends `"false"` as a string, which the API rejects for boolean fields.)
 
 ## 3. Tag ruleset (`v*`) — only if this repo cuts versioned releases
 
