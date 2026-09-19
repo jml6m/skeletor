@@ -4,7 +4,7 @@ const {
   computeColumnWidths,
   buildLogTable,
   cellDisplayWidth,
-} = require('../src/utils/logTable.js');
+} = require('@utils/logTable.js');
 
 describe('logTable', () => {
   test('resolveTerminalWidth honors explicit override', () => {

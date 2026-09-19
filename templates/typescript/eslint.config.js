@@ -7,7 +7,7 @@ import globals from 'globals';
 
 export default defineConfig([
   {
-    ignores: ['dist/**', 'eslint.config.js', 'scripts/**/*.js'],
+    ignores: ['dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'eslint.config.js', 'scripts/**/*.js'],
   },
   {
     files: ['src/config/env.config.ts'],

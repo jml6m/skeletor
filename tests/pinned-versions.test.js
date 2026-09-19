@@ -60,7 +60,7 @@ describe('pinned-versions', () => {
     expect(result.warn).toContain('needs review');
   });
 
-  test('generation writes pinned snapshot to .skeletor/', async () => {
+  test('generation substitutes pin tokens without leaving skeletor state behind', async () => {
     const name = `pin-snap-${Date.now()}`;
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -72,8 +72,7 @@ describe('pinned-versions', () => {
         auto: true,
         git: false,
       });
-      const snapshot = path.join(targetDir, '.skeletor', 'pinned-versions.json');
-      expect(fs.existsSync(snapshot)).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
       const goMod = fs.readFileSync(path.join(targetDir, 'go.mod'), 'utf8');
       expect(goMod).toContain('go 1.22');
       expect(goMod).not.toContain('{{PIN');
@@ -86,7 +85,7 @@ describe('pinned-versions', () => {
     const tmpl = templates.find((t) => t.id === 'javascript');
     const pinned = JSON.parse(fs.readFileSync(path.join(tmpl.dir, 'pinned-versions.json'), 'utf8'));
     const tokens = buildPinTokens(pinned, tmpl);
-    expect(tokens.PIN_JEST).toBe('^29.7.0');
+    expect(tokens.PIN_JEST).toBe('^30.0.0');
     expect(tokens.PIN_RUNTIME_NODE_ENGINES).toBe('>=22');
   });
 });

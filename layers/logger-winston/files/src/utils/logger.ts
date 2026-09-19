@@ -1,14 +1,14 @@
 import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
-import { config } from '../config/index.js';
+import { config } from '#config/index.js';
 
 const logDir = path.resolve(process.cwd(), '{{LOG_DIR}}');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
-const level = config.system.isProduction ? 'info' : 'debug';
+const level = config.system.logLevel ?? (config.system.isProduction ? 'info' : 'debug');
 
 const logger = winston.createLogger({
   level,

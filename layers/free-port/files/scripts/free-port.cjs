@@ -1,5 +1,10 @@
-import { execSync } from 'child_process';
+'use strict';
 
+const { execSync } = require('child_process');
+
+/**
+ * @param {number} ms
+ */
 function sleep(ms) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
@@ -7,6 +12,10 @@ function sleep(ms) {
   }
 }
 
+/**
+ * @param {number} port
+ * @returns {number[]}
+ */
 function findPidsOnPort(port) {
   const pids = new Set();
 
@@ -45,6 +54,10 @@ function findPidsOnPort(port) {
   return [...pids];
 }
 
+/**
+ * @param {number} pid
+ * @returns {boolean}
+ */
 function killPid(pid) {
   if (pid === process.pid) return false;
 
@@ -60,7 +73,11 @@ function killPid(pid) {
   }
 }
 
-export function freePort(port, options = {}) {
+/**
+ * @param {number} port
+ * @param {{ waitMs?: number, pollIntervalMs?: number }} [options]
+ */
+function freePort(port, options = {}) {
   const waitMs = options.waitMs ?? 2000;
   const pollIntervalMs = options.pollIntervalMs ?? 100;
   const pids = findPidsOnPort(port);
@@ -84,14 +101,10 @@ export function freePort(port, options = {}) {
   return { port, freed, alreadyFree: freed.length === 0 };
 }
 
-export { findPidsOnPort, killPid };
-
-import { fileURLToPath } from 'url';
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (require.main === module) {
   const port = Number(process.argv[2] || process.env.PORT || {{APP_PORT}});
   if (!Number.isInteger(port) || port <= 0) {
-    console.error('Usage: node scripts/free-port.mjs <port>');
+    console.error('Usage: node scripts/free-port.cjs <port>');
     process.exit(1);
   }
 
@@ -105,3 +118,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1);
   }
 }
+
+module.exports = { freePort, findPidsOnPort, killPid };

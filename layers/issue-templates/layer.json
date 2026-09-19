@@ -1,0 +1,14 @@
+{
+  "id": "issue-templates",
+  "name": "Issue templates",
+  "description": "Minimal repo-agnostic issue forms: bug report, feature request, epic (native sub-issues), and blank issues disabled. Seeds the epic label when --github creates the repo.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["*"],
+    "templates": ["*"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "labels": [
+    { "name": "epic", "color": "3E4B9E", "description": "Tracks a set of child issues" }
+  ]
+}

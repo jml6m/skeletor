@@ -1,0 +1,68 @@
+/**
+ * CODEOWNERS candidate paths + file generation.
+ * Candidates are derived from what the chosen template actually generates —
+ * not a fixed list — so a python scaffold isn't offered a package.json path.
+ */
+
+const BASE_CANDIDATES = [
+  { path: '.github/', hint: 'CI/CD workflows and repo automation' },
+  { path: 'AGENTS.md', hint: 'Agent instruction contract' },
+  { path: 'CLAUDE.md', hint: 'Claude Code pointer to AGENTS.md' },
+];
+
+const LANGUAGE_CANDIDATES = {
+  javascript: [
+    { path: 'package.json', hint: 'Dependencies, scripts, package metadata' },
+    { path: 'release.js', hint: 'Release script' },
+  ],
+  typescript: [
+    { path: 'package.json', hint: 'Dependencies, scripts, package metadata' },
+    { path: 'release.js', hint: 'Release script' },
+  ],
+};
+
+/**
+ * @param {{ language?: string }} templateInfo
+ * @param {string[]} [layerIds]
+ */
+export function computeCodeownersCandidates(templateInfo, layerIds = []) {
+  const languageCandidates = LANGUAGE_CANDIDATES[templateInfo?.language] || [];
+  const layerCandidates = layerIds.includes('docs-policy')
+    ? [{ path: '*.md', hint: 'Every Markdown add or edit (pairs with the docs-policy allowlist)' }]
+    : [];
+  return [...BASE_CANDIDATES, ...languageCandidates, ...layerCandidates];
+}
+
+/**
+ * Parses the free-text "extra paths" answer (comma- or whitespace-separated) into unique entries,
+ * dropping any already selected and any bare `*` catch-all.
+ * @param {string | undefined} input
+ * @param {string[]} [existing]
+ * @returns {string[]}
+ */
+export function parseCustomCodeownersPaths(input, existing = []) {
+  const seen = new Set(existing);
+  const out = [];
+  for (const raw of String(input || '').split(/[\s,]+/)) {
+    const entry = raw.trim();
+    if (!entry || entry === '*' || seen.has(entry)) continue;
+    seen.add(entry);
+    out.push(entry);
+  }
+  return out;
+}
+
+/**
+ * @param {string[]} paths
+ * @param {string} owner
+ */
+export function buildCodeownersContent(paths, owner) {
+  const header = `# CODEOWNERS — paths listed here require review from @${owner} before merge.
+# This alone does nothing: the repo's branch ruleset must also have
+# "Require review from Code Owners" enabled on the pull_request rule for
+# these paths to actually gate merge. Scoped intentionally — no blanket
+# "*" catch-all — so the rest of the repo keeps its normal review bar.
+`;
+  const lines = paths.map((p) => `${p.padEnd(24)}@${owner}`);
+  return `${header}\n${lines.join('\n')}\n`;
+}

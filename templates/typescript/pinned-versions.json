@@ -40,11 +40,11 @@
       "policy": "major"
     },
     "jest": {
-      "version": "29.7.0",
+      "version": "30.0.0",
       "policy": "major"
     },
     "@types/jest": {
-      "version": "29.5.14",
+      "version": "30.0.0",
       "policy": "major"
     },
     "jscpd": {
@@ -80,7 +80,7 @@
       "policy": "major"
     },
     "ts-jest": {
-      "version": "29.2.0",
+      "version": "29.4.0",
       "policy": "major"
     },
     "typescript": {

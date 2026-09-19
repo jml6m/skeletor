@@ -1,30 +1,26 @@
 import Table from 'cli-table3';
 import stringWidth from 'string-width';
-import { DEFAULT_LOG_TABLE_SETTINGS } from '../config/logTable.config.js';
+import { DEFAULT_LOG_TABLE_SETTINGS, type LogTableSettings } from '#config/logTable.config.js';
 
 const CLI_TABLE_HORIZONTAL_PADDING = 2;
 
-type ColumnSpec = {
+interface ColumnSpec {
   key: string;
   header: string;
   minWidth?: number;
   maxWidth?: number;
   weight?: number;
-};
+}
 
-type LogTableSettings = typeof DEFAULT_LOG_TABLE_SETTINGS & {
-  terminalWidth?: number;
-};
+export function resolveTerminalWidth(settings: Partial<LogTableSettings> = {}) {
+  const cfg: LogTableSettings = { ...DEFAULT_LOG_TABLE_SETTINGS, ...settings };
 
-export function resolveTerminalWidth(settings: LogTableSettings = DEFAULT_LOG_TABLE_SETTINGS) {
-  const cfg = { ...DEFAULT_LOG_TABLE_SETTINGS, ...settings };
-
-  if (Number.isFinite(cfg.terminalWidth) && cfg.terminalWidth! > 0) {
-    return clampTerminalWidth(cfg.terminalWidth!, cfg);
+  if (cfg.terminalWidth !== undefined && Number.isFinite(cfg.terminalWidth) && cfg.terminalWidth > 0) {
+    return clampTerminalWidth(cfg.terminalWidth, cfg);
   }
 
   const envColumns = Number.parseInt(process.env.COLUMNS || '', 10);
-  const stdoutColumns = process.stdout?.isTTY ? process.stdout.columns : null;
+  const stdoutColumns = process.stdout.isTTY ? process.stdout.columns : null;
   const detected = stdoutColumns || (Number.isFinite(envColumns) ? envColumns : null) || cfg.defaultTerminalWidth;
 
   return clampTerminalWidth(detected, cfg);
@@ -66,7 +62,7 @@ export function computeColumnWidths(
   columns: ColumnSpec[],
   rows: Record<string, unknown>[],
   terminalWidth: number,
-  settings: LogTableSettings = DEFAULT_LOG_TABLE_SETTINGS,
+  settings: Partial<LogTableSettings> = {},
 ) {
   const cfg = { ...DEFAULT_LOG_TABLE_SETTINGS, ...settings };
   const globalMax = cfg.maxCellWidth;
@@ -136,7 +132,7 @@ export function computeColumnWidths(
 export function buildLogTable(
   columns: ColumnSpec[],
   rows: Record<string, unknown>[],
-  options: { settings?: LogTableSettings; style?: Record<string, string[]>; tableOptions?: object } = {},
+  options: { settings?: Partial<LogTableSettings>; style?: Record<string, string[]>; tableOptions?: object } = {},
 ) {
   const settings = options.settings || DEFAULT_LOG_TABLE_SETTINGS;
   const terminalWidth = resolveTerminalWidth(settings);
@@ -160,9 +156,9 @@ export function buildLogTable(
 export function printLogTable(
   columns: ColumnSpec[],
   rows: Record<string, unknown>[],
-  options: { settings?: LogTableSettings; style?: Record<string, string[]>; tableOptions?: object } = {},
+  options: { settings?: Partial<LogTableSettings>; style?: Record<string, string[]>; tableOptions?: object } = {},
 ) {
   const output = buildLogTable(columns, rows, options);
-  if (output) console.log(output);
+  if (output) process.stdout.write(`${output}\n`);
   return output;
 }

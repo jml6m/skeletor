@@ -1,0 +1,22 @@
+name: Epic
+description: A larger initiative tracked through child issues
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An epic must have **at least one child issue**. If the work fits in one issue, file a
+        bug or feature request instead.
+
+        After creating the epic, add each child as a native sub-issue:
+
+        ```bash
+        gh issue create --parent <epic-number> --title "..." --body "..."
+        ```
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: The goal of the initiative and what "done" looks like.
+    validations:
+      required: true

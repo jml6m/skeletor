@@ -1,0 +1,16 @@
+{
+  "id": "issue-labels",
+  "name": "Issue label baseline (Tier B)",
+  "description": "Opt-in label conventions for repos with CI/release process: a chore label, the area: prefix rule, and criteria for gate labels. Seeds labels when --github creates the repo.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["*"],
+    "templates": ["*"]
+  },
+  "docs": {
+    "agents": { "section": "Issue labels", "append": "docs/AGENTS.snippet.md" }
+  },
+  "labels": [
+    { "name": "chore", "color": "EDEDED", "description": "Maintenance that is neither a feature nor a bug" }
+  ]
+}

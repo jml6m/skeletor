@@ -7,6 +7,28 @@
 
 Run the project's tests before submitting changes and keep the test suite green.
 
+## GitHub repo setup
+
+Branch ruleset, merge-button config, and tag protection are GitHub.com settings —
+skeletor doesn't touch them. See [docs/GITHUB-SETUP.md](./docs/GITHUB-SETUP.md)
+for a one-time checklist to run after your first push.
+
+## Branch & ref hygiene
+
+- Use short-lived topic branches off the default branch, prefixed by intent: `feat/`, `fix/`, `chore/`, `docs/`.
+  Squash-merge PRs and let GitHub delete merged branches automatically.
+- Release tags (`v*`) are permanent. Never delete or move a published tag; fix a mistake with a new version.
+- Stale-branch sweeps are manual and report-only. List branches with
+  `git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/remotes/origin`,
+  compare against `gh pr list --state open`, and delete only stale, merged, PR-less branches, one at a time.
+
+## Documentation conventions
+
+- Write in-repo paths in Markdown as clickable links (`[src/index.ts](./src/index.ts)`), not bare code spans.
+  Commands and illustrative paths are exempt.
+- Docs describe the project as it is now. Don't keep per-release doc archives; history belongs in git and
+  release notes.
+
 ## Critical Protocols
 
 ### Three-Strike Rule (Loop Prevention)

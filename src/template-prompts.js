@@ -1,10 +1,7 @@
 /**
  * Template-specific interactive prompts (license, author, stack choices).
- * Answers are saved to .skeletor/answers.json for reproducibility.
  */
 
-import fs from 'fs';
-import path from 'path';
 import * as p from '@clack/prompts';
 import { promptSelectRecommended } from './interactive-prompts.js';
 
@@ -167,28 +164,19 @@ export async function promptForTemplateVars(prompts) {
 }
 
 /**
- * @param {string} targetDir
- * @param {Record<string, string>} answers
- */
-export function writeTemplateAnswers(targetDir, answers) {
-  const dir = path.join(targetDir, '.skeletor');
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'answers.json'), `${JSON.stringify(answers, null, 2)}\n`, 'utf8');
-}
-
-/**
  * Adjust verify commands for template-specific choices.
  * @param {string[]} verifyCommands
  * @param {Record<string, string>} vars
  */
 export function adjustVerifyCommandsForAnswers(verifyCommands, vars) {
   if (vars.PYTHON_PACKAGE_MANAGER === 'uv') {
-    return verifyCommands.map((cmd) => {
-      if (cmd.includes('pip install')) {
-        return 'uv sync --all-extras';
-      }
+    // uv installs into its own .venv, so every later python invocation has to go through `uv run`.
+    const adjusted = verifyCommands.map((cmd) => {
+      if (cmd.includes('pip install')) return 'uv sync --all-extras';
+      if (cmd.startsWith('python ')) return `uv run ${cmd}`;
       return cmd;
     });
+    return [...new Set(adjusted)];
   }
   return verifyCommands;
 }

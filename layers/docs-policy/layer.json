@@ -1,0 +1,11 @@
+{
+  "id": "docs-policy",
+  "name": "Markdown allowlist (docs-policy)",
+  "description": "Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job; offers *.md as a CODEOWNERS path.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["*"],
+    "templates": ["*"]
+  },
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" }
+}

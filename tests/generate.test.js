@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 // We import the enriched template discovery (pure + side-effect guarded)
 process.env.SKELETOR_CLI_TEST = '1';
 import { getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
+import { loadBundles, loadLayerById } from '../src/layers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,10 +122,11 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         // a developer runs after `skeletor new --template ${tmpl.id}`.
         expect(Array.isArray(tmpl.verifyCommands) && tmpl.verifyCommands.length > 0).toBe(true);
 
-        // Assert no .tmpl suffixes or skeletor manifest leak into the generated project.
+        // Assert no .tmpl suffixes or skeletor tooling state leak into the generated project.
         const allFiles = listFilesRecursive(targetDir);
         expect(allFiles.every((f) => !f.endsWith('.tmpl'))).toBe(true);
         expect(fs.existsSync(path.join(targetDir, 'template.json'))).toBe(false);
+        expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
 
         // Assert the expected unsuffixed manifest exists for this template.
         const manifest = expectedManifest[tmpl.id];
@@ -152,6 +154,19 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
+        // Stale-issue bots are deliberately never emitted (2026-06 repo-hygiene convention).
+        expect(allFiles.some((f) => /(^|[\\/])stale\.ya?ml$/.test(f))).toBe(false);
+
+        for (const rel of allFiles) {
+          const text = fs.readFileSync(path.join(targetDir, rel), 'utf8');
+          expect({ rel, unresolved: text.match(/\{\{[A-Z][A-Z0-9_]*\}\}/g) }).toEqual({ rel, unresolved: null });
+        }
+
+        const dependabot = fs.readFileSync(path.join(targetDir, '.github', 'dependabot.yml'), 'utf8');
+        const ecosystem = { javascript: 'npm', typescript: 'npm', python: 'pip', go: 'gomod', rust: 'cargo', java: 'maven', csharp: 'nuget' }[tmpl.id];
+        expect(dependabot).toContain(`package-ecosystem: "${ecosystem}"`);
+        expect(dependabot).not.toMatch(/^\s*labels:/m);
+        expect(dependabot.includes('ignore:')).toBe(ecosystem === 'npm');
         expect(fs.existsSync(path.join(targetDir, '.python-version'))).toBe(tmpl.language === 'python');
 
         const textFiles = allFiles.filter((f) => /\.(c|m)?[jt]s$|\.py$|\.go$|\.rs$|\.java$|\.cs$/.test(f));
@@ -222,5 +237,86 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
     expect(() => {
       runCli('new skeletor-missing-template --auto --no-git');
     }).toThrow();
+  });
+});
+
+describe('non-default template layouts', () => {
+  const layoutCases = getTemplatesWithManifests().flatMap((tmpl) =>
+    Object.entries(tmpl.layouts || {})
+      .filter(([id]) => id !== (tmpl.defaultLayout || Object.keys(tmpl.layouts)[0]))
+      .map(([id, layout]) => ({ tmpl, id, layout })),
+  );
+
+  test.each(layoutCases.map((c) => [c.tmpl.id, c.id, c]))('generates and verifies %s --layout %s', async (_t, _l, { tmpl, id, layout }) => {
+    const name = makeTempProjectName(`gen-${tmpl.id}-${id}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', auto: true, git: false, withRecommended: true });
+      expect(fs.existsSync(path.join(targetDir, 'AGENTS.md'))).toBe(true);
+      if (tmpl.id === 'python' && id === 'src') {
+        expect(fs.existsSync(path.join(targetDir, 'src', 'app', 'main.py'))).toBe(true);
+        expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(false);
+      }
+      if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
+        runVerifyCommands(targetDir, layout.verifyCommands || tmpl.verifyCommands);
+      }
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('python defaults to the flat layout (scripts at the repo root, no packaging)', async () => {
+    const name = makeTempProjectName('gen-python-flat');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: 'python', owner: 'tbra-owner', auto: true, git: false });
+      expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'src'))).toBe(false);
+      const pyproject = fs.readFileSync(path.join(targetDir, 'pyproject.toml'), 'utf8');
+      expect(pyproject).toContain('[dependency-groups]');
+      expect(pyproject).not.toContain('[build-system]');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+});
+
+describe('optional layers and bundles', () => {
+  const OPTIONAL_LAYERS = ['free-port', 'log-table', 'logger-winston', 'test-harness:mongo-memory', 'test-harness:playwright', 'library-publishing', 'docs-policy', 'issue-labels'];
+  const templates = getTemplatesWithManifests().filter((t) => ['javascript', 'typescript'].includes(t.id));
+
+  const cases = [
+    ...templates.flatMap((tmpl) =>
+      OPTIONAL_LAYERS.filter((id) => loadLayerById(id).appliesTo.languages.some((l) => l === '*' || l === tmpl.language)).map((id) => ({
+        label: `${tmpl.id} + ${id}`,
+        tmpl,
+        opts: { withRecommended: true, withLayers: [id] },
+        extra: loadLayerById(id).verifyCommands || [],
+      })),
+    ),
+    ...Object.entries(loadBundles()).map(([bundle, def]) => ({
+      label: `bundle ${bundle}`,
+      tmpl: templates.find((t) => t.id === def.template),
+      opts: { bundle },
+      extra: [],
+    })),
+  ];
+
+  test.each(cases.map((c) => [c.label, c]))('%s scaffolds and verifies', async (_label, { tmpl, opts, extra }) => {
+    const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, owner: 'tbra-owner', auto: true, git: false, withLayers: [], ...opts });
+      const allFiles = listFilesRecursive(targetDir);
+      for (const rel of allFiles) {
+        expect({ rel, unresolved: fs.readFileSync(path.join(targetDir, rel), 'utf8').match(/\{\{[A-Z][A-Z0-9_]*\}\}/g) }).toEqual({ rel, unresolved: null });
+      }
+      if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
+        // Strict knip on top of the (report-only) health:dead script: layers must ship dead-code-clean.
+        runVerifyCommands(targetDir, [...new Set([...tmpl.verifyCommands, ...extra, 'npx knip'])]);
+      }
+    } finally {
+      cleanup(targetDir);
+    }
   });
 });

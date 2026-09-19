@@ -6,42 +6,41 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import * as p from '@clack/prompts';
 import { detectGithubOwners } from './detect-owner.js';
 import {
   promptConfirmRecommended,
   promptLayerValue,
+  promptMultiSelectRecommended,
+  promptSelectRecommended,
+  promptOptionalText,
   promptOwnerSelect,
 } from './interactive-prompts.js';
+import { buildCodeownersContent, computeCodeownersCandidates, parseCustomCodeownersPaths } from './codeowners.js';
 import { applyFeatureConfigs } from './features.js';
 import {
   adjustVerifyCommandsForAnswers,
   gatherTemplatePrompts,
   promptForTemplateVars,
   templatePromptDefaults,
-  writeTemplateAnswers,
 } from './template-prompts.js';
 import {
   loadPinnedVersions,
   validatePinnedVersionsManifest,
   buildPinTokens,
   checkTemplateGenerationAllowed,
-  writePinnedVersionsSnapshot,
 } from './pinned-versions.js';
-import { writeProjectManifest, readProjectManifest } from './manifest.js';
 import {
   applyLayers,
   expandBundle,
   getLayersWithManifests,
-  inferProjectContext,
-  isGitDirty,
-  layerAppliesTo,
   loadBundles,
   resolveLayerOrder,
   gatherLayerPrompts,
   layerPromptDefaults,
   validateLayerManifests,
+  writeDocsPolicyAllowlist,
 } from './layers.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,41 +55,29 @@ const USAGE = `
 
 Usage:
   skeletor new <name> [options]
-  skeletor enhance [path] [options]
   skeletor --help
 
 new options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
-  --layout <name>       Template layout (single, lib, workspace — when supported)
-  --with <id[,id...]>   Enhancement layers to apply after scaffold
+  --layout <name>       Template layout: rust single|lib|workspace, python flat|src
+  --with <id[,id...]>   Enhancement layers to apply at scaffold time
   --with-recommended    Apply this template's recommendedLayers (see template.json)
   --bundle <name>       Named layer preset (see bundles.json)
   --owner <user>        GitHub owner/org (skips auto-detection)
   --description <text>  Project description (optional)
-  --auto                Non-interactive; requires --template
+  --auto                Non-interactive; requires --template (or a --bundle, which names one)
   --no-git              Skip git init
   --github              Create GitHub remote via gh CLI (after git init)
   --private             Use --private with --github (default: public)
   --uv                  Python: use uv sync instead of pip install (non-interactive)
   --allow-deprecated-template  Allow scaffolding templates marked deprecated in pinned-versions.json
-
-enhance options:
-  --add <id[,id...]>    Layers to apply
-  --bundle <name>       Named layer preset
-  --list                List compatible layers (marks applied)
-  --status              Show .skeletor/manifest.json
-  --dry-run             Preview changes without writing
-  --force               Overwrite conflicting files
-  --allow-dirty         Override dirty-git guard (not recommended)
-  --no-install          Skip postApply commands
+  --codeowners           Generate .github/CODEOWNERS (--auto: full candidate set; interactive: pick)
 
 Examples:
   skeletor new my-api --template typescript --with-recommended
   skeletor new my-api --template typescript --with governance,quality-gates
   skeletor new my-lib --auto --template typescript --bundle ts-library
   skeletor new tbra --auto --template rust --layout workspace
-  skeletor enhance --add logger-winston
-  skeletor enhance ./my-api --add zod-config --dry-run
 `;
 
 function log(msg) { console.log(msg); }
@@ -106,27 +93,20 @@ function parseArgs(argv) {
   const result = {
     command: null,
     name: null,
-    path: null,
     template: null,
     layout: null,
     withLayers: [],
     withRecommended: false,
     bundle: null,
-    addLayers: [],
     owner: null,
     description: null,
     auto: false,
     git: true,
-    list: false,
-    status: false,
-    dryRun: false,
-    force: false,
-    allowDirty: false,
-    noInstall: false,
     github: false,
     githubPrivate: false,
     uv: false,
     allowDeprecatedTemplate: false,
+    codeowners: false,
   };
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
@@ -151,25 +131,9 @@ function parseArgs(argv) {
       else if (a === '--github') result.github = true;
       else if (a === '--private') result.githubPrivate = true;
       else if (a === '--uv') result.uv = true;
+      else if (a === '--codeowners') result.codeowners = true;
       else if (a === '--allow-deprecated-template') result.allowDeprecatedTemplate = true;
       else if (!a.startsWith('-') && !result.name) result.name = a;
-    }
-    return result;
-  }
-
-  if (args[0] === 'enhance') {
-    result.command = 'enhance';
-    for (let i = 1; i < args.length; i++) {
-      const a = args[i];
-      if (a === '--add') result.addLayers = parseCommaList(args[++i]);
-      else if (a === '--bundle') result.bundle = args[++i] || null;
-      else if (a === '--list') result.list = true;
-      else if (a === '--status') result.status = true;
-      else if (a === '--dry-run') result.dryRun = true;
-      else if (a === '--force') result.force = true;
-      else if (a === '--allow-dirty') result.allowDirty = true;
-      else if (a === '--no-install') result.noInstall = true;
-      else if (!a.startsWith('-') && !result.path) result.path = a;
     }
     return result;
   }
@@ -193,6 +157,33 @@ function renderPathSegment(segment, vars) {
 
 function sanitizeIdentifierSegment(value) {
   return String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
+}
+
+const DEPENDABOT_ECOSYSTEM_BY_LANGUAGE = {
+  javascript: 'npm',
+  typescript: 'npm',
+  python: 'pip',
+  go: 'gomod',
+  rust: 'cargo',
+  java: 'maven',
+  csharp: 'nuget',
+};
+
+function dependabotEcosystemFor(language, pythonPackageManager) {
+  if (language === 'python' && pythonPackageManager === 'uv') return 'uv';
+  return DEPENDABOT_ECOSYSTEM_BY_LANGUAGE[language] || 'npm';
+}
+
+// Majors a grouped PR would otherwise propose before the rest of the toolchain supports them
+// (e.g. a TypeScript major typescript-eslint rejects with ERESOLVE); @types/node tracks engines.node.
+const NPM_HELD_MAJORS = ['typescript', '@types/node', 'eslint', '@eslint/js'];
+
+function dependabotIgnoreFor(ecosystem) {
+  if (ecosystem !== 'npm') return '';
+  const entries = NPM_HELD_MAJORS.map(
+    (dep) => `      - dependency-name: "${dep}"\n        update-types: ["version-update:semver-major"]`,
+  );
+  return ['', '    # Majors need a deliberate toolchain bump, not a grouped Dependabot PR.', '    ignore:', ...entries].join('\n');
 }
 
 function buildRenderVars({ name, owner, description, extra = {} }) {
@@ -299,7 +290,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   const { layoutId, sourceDir } = resolveTemplateLayout(templateInfo, layout);
   copyAndRender(sourceDir, targetDir, vars);
 
-  const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md'];
+  const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md', 'docs/GITHUB-SETUP.md'];
   for (const file of shared) {
     const dest = path.join(targetDir, file);
     if (fs.existsSync(dest)) continue;
@@ -338,7 +329,7 @@ function getRecommendedLayers(templateInfo) {
 
 function collectLayerIds(opts, templateInfo) {
   const templateId = typeof templateInfo === 'string' ? templateInfo : templateInfo?.id;
-  const ids = [...(opts.withLayers || opts.addLayers || [])];
+  const ids = [...(opts.withLayers || [])];
   if (opts.withRecommended) {
     const info = typeof templateInfo === 'string'
       ? getTemplatesWithManifests().find((t) => t.id === templateInfo)
@@ -349,19 +340,6 @@ function collectLayerIds(opts, templateInfo) {
     ids.push(...expandBundle(opts.bundle, templateId));
   }
   return [...new Set(ids)];
-}
-
-function writeInitialManifest(targetDir, { templateId, owner, layoutId, verifyCommands }) {
-  writeProjectManifest(targetDir, {
-    skeletorVersion: SKELETOR_VERSION,
-    template: templateId,
-    layout: layoutId,
-    createdAt: new Date().toISOString().slice(0, 10),
-    adoptedExisting: false,
-    owner,
-    layers: [],
-    verifyCommands: verifyCommands || [],
-  });
 }
 
 async function chooseTemplateInteractively(templates) {
@@ -413,12 +391,6 @@ async function resolveOwnerForNew(opts, isInteractive) {
   return candidates[0].owner;
 }
 
-function resolveOwnerForProject(projectDir, manifestOwner) {
-  if (manifestOwner?.trim()) return manifestOwner.trim();
-  const candidates = detectGithubOwners(projectDir);
-  return candidates[0]?.owner ?? null;
-}
-
 async function promptForLayerVars(prompts) {
   const vars = {};
   for (const pr of prompts) {
@@ -447,6 +419,14 @@ async function runNew(opts) {
   }
 
   let chosenTemplateId = opts.template;
+  if (!chosenTemplateId && opts.bundle) {
+    const bundle = loadBundles()[opts.bundle];
+    if (!bundle) {
+      logError(`❌ Unknown bundle "${opts.bundle}". Available: ${Object.keys(loadBundles()).join(', ')}`);
+      process.exit(1);
+    }
+    chosenTemplateId = bundle.template;
+  }
   const isInteractive = !auto && process.stdout.isTTY;
   let finalOwner = await resolveOwnerForNew(opts, isInteractive);
   const finalDesc = opts.description || DEFAULT_DESCRIPTION;
@@ -528,6 +508,45 @@ async function runNew(opts) {
     templateVars = { ...templateVars, ...prompted };
   }
 
+  let chosenLayout = opts.layout;
+  if (isInteractive && templateInfo.layouts && !chosenLayout) {
+    const layoutIds = Object.keys(templateInfo.layouts);
+    const picked = await promptSelectRecommended({
+      message: 'Project layout',
+      options: layoutIds,
+      recommended: templateInfo.defaultLayout || layoutIds[0],
+      allowCustom: false,
+    });
+    if (p.isCancel(picked)) { p.cancel('Cancelled.'); process.exit(0); }
+    chosenLayout = picked;
+  }
+
+  const codeownersCandidates = computeCodeownersCandidates(templateInfo, layerIds);
+  let codeownersPaths = [];
+  if (isInteractive) {
+    const wantCodeowners = await promptConfirmRecommended({
+      message: 'Generate a scoped CODEOWNERS file for this repo? (recommended)',
+      recommended: true,
+    });
+    if (p.isCancel(wantCodeowners)) { p.cancel('Cancelled.'); process.exit(0); }
+    if (wantCodeowners) {
+      const selected = await promptMultiSelectRecommended({
+        message: 'Which paths need review from the repo owner before merge?',
+        options: codeownersCandidates.map((c) => ({ value: c.path, label: c.path, hint: c.hint })),
+        initialValues: codeownersCandidates.map((c) => c.path),
+      });
+      if (p.isCancel(selected)) { p.cancel('Cancelled.'); process.exit(0); }
+      const extra = await promptOptionalText({
+        message: 'Any other paths to protect? (comma-separated, blank for none)',
+        placeholder: 'e.g. migrations/, src/auth/',
+      });
+      if (p.isCancel(extra)) { p.cancel('Cancelled.'); process.exit(0); }
+      codeownersPaths = [...selected, ...parseCustomCodeownersPaths(extra, selected)];
+    }
+  } else if (opts.codeowners) {
+    codeownersPaths = codeownersCandidates.map((c) => c.path);
+  }
+
   if (isInteractive) {
     const layerNote = layerIds.length ? ` + ${layerIds.length} enhancement layer(s)` : '';
     const shouldContinue = await promptConfirmRecommended({
@@ -551,37 +570,39 @@ async function runNew(opts) {
     templateVars.PYTHON_VERSION = pinned.runtime.python.version;
   }
 
+  const dependabotEcosystem = dependabotEcosystemFor(
+    templateInfo.language || chosenTemplateId,
+    templateVars.PYTHON_PACKAGE_MANAGER,
+  );
   const vars = buildRenderVars({
     name,
     owner: finalOwner,
     description: finalDesc,
-    extra: { ...layerVars, ...templateVars, ...pinTokens },
+    extra: {
+      ...layerVars,
+      ...templateVars,
+      ...pinTokens,
+      DEPENDABOT_ECOSYSTEM: dependabotEcosystem,
+      DEPENDABOT_IGNORE: dependabotIgnoreFor(dependabotEcosystem),
+    },
   });
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 
   let layoutId = 'default';
   try {
-    layoutId = copyTemplateToProject(templateInfo, targetDir, vars, opts.layout);
+    layoutId = copyTemplateToProject(templateInfo, targetDir, vars, chosenLayout);
   } catch (e) {
     logError(`❌ ${e.message}`);
     process.exit(1);
   }
 
   const verifyCommandsBase = adjustVerifyCommandsForAnswers(
-    [...(templateInfo.verifyCommands || [])],
+    [...(templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [])],
     vars,
   );
 
-  writeInitialManifest(targetDir, {
-    templateId: chosenTemplateId,
-    owner: finalOwner,
-    layoutId,
-    verifyCommands: verifyCommandsBase,
-  });
-  writeTemplateAnswers(targetDir, templateVars);
-  writePinnedVersionsSnapshot(targetDir, pinned);
-
   let verifyCommands = [...verifyCommandsBase];
+  let repoLabels = [];
 
   if (layerIds.length) {
     if (opts.withRecommended) {
@@ -592,8 +613,6 @@ async function runNew(opts) {
       layerIds,
       vars,
       template: chosenTemplateId,
-      owner: finalOwner,
-      skeletorVersion: SKELETOR_VERSION,
       force: false,
       noInstall: true,
     });
@@ -601,11 +620,19 @@ async function runNew(opts) {
       logError(`❌ Layer apply failed: ${result.errors.join('; ')}`);
       process.exit(1);
     }
+    repoLabels = result.labels || [];
+    if (result.applied?.includes('docs-policy')) writeDocsPolicyAllowlist(targetDir);
     if (result.autoAdded?.length) {
       p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
     }
-    const manifest = readProjectManifest(targetDir);
-    verifyCommands = manifest?.verifyCommands || verifyCommands;
+    verifyCommands = [...new Set([...verifyCommands, ...result.verifyCommands])];
+  }
+
+  if (codeownersPaths.length) {
+    const codeownersDest = path.join(targetDir, '.github', 'CODEOWNERS');
+    fs.mkdirSync(path.dirname(codeownersDest), { recursive: true });
+    fs.writeFileSync(codeownersDest, buildCodeownersContent(codeownersPaths, finalOwner), 'utf8');
+    p.log.success(`CODEOWNERS written for: ${codeownersPaths.join(', ')}`);
   }
 
   if (git) {
@@ -615,122 +642,23 @@ async function runNew(opts) {
       execSync('git commit -q -m "chore: initial commit from skeletor"', { cwd: targetDir, stdio: 'ignore' });
       p.log.success('Git repository initialized');
       if (opts.github) {
-        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate);
+        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels);
       }
     } catch {
       p.log.warn('Git init skipped (git not available or failed)');
     }
   }
 
+  if (!opts.github && repoLabels.length) {
+    const names = repoLabels.map((l) => l.name).join(', ');
+    p.log.info(`Layers expect these labels on GitHub: ${names} — created automatically with --github, otherwise see AGENTS.md / .github/ISSUE_TEMPLATE.`);
+  }
+
   p.outro('✅ Done!');
   printPostScaffoldSteps(name, verifyCommands);
 }
 
-async function runEnhance(opts) {
-  const projectDir = path.resolve(process.cwd(), opts.path || '.');
-  if (!fs.existsSync(projectDir)) {
-    logError(`❌ Project path does not exist: ${projectDir}`);
-    process.exit(1);
-  }
-
-  if (opts.status) {
-    const manifest = readProjectManifest(projectDir);
-    if (!manifest) {
-      log('No .skeletor/manifest.json found.');
-      process.exit(0);
-    }
-    console.log(JSON.stringify(manifest, null, 2));
-    process.exit(0);
-  }
-
-  let ctx;
-  try {
-    ctx = inferProjectContext(projectDir);
-  } catch (e) {
-    logError(`❌ ${e.message}`);
-    process.exit(1);
-  }
-
-  if (opts.list) {
-    const layers = getLayersWithManifests();
-    const applied = new Set((ctx.manifest?.layers || []).map((l) => l.id));
-    log(`Compatible layers for ${ctx.template}:`);
-    for (const layer of layers) {
-      if (!layerAppliesTo(layer, ctx)) continue;
-      const mark = applied.has(layer.id) ? ' [applied]' : '';
-      log(`  • ${layer.id} — ${layer.name}${mark}`);
-    }
-    process.exit(0);
-  }
-
-  const layerIds = collectLayerIds(opts, ctx.template);
-  if (!layerIds.length) {
-    logError('❌ Provide --add <layers> or --bundle <name>.');
-    process.exit(1);
-  }
-
-  if (!opts.allowDirty && !opts.dryRun && isGitDirty(projectDir)) {
-    logError('❌ Git working tree is dirty. Commit or stash changes before enhancing.');
-    logError('   Pass --allow-dirty to override (not recommended).');
-    process.exit(1);
-  }
-
-  const enhanceOwner = resolveOwnerForProject(projectDir, ctx.manifest?.owner);
-  if (!enhanceOwner) {
-    logError('❌ Could not determine GitHub owner for this project.');
-    logError('   Scaffold with skeletor new --owner <org>, or ensure git remote / package.json / gh CLI is available.');
-    process.exit(1);
-  }
-
-  const result = applyLayers({
-    projectDir,
-    layerIds,
-    vars: buildRenderVars({
-      name: path.basename(projectDir),
-      owner: enhanceOwner,
-      description: ctx.manifest?.description || DEFAULT_DESCRIPTION,
-    }),
-    force: opts.force,
-    dryRun: opts.dryRun,
-    noInstall: opts.noInstall,
-    skeletorVersion: SKELETOR_VERSION,
-    owner: enhanceOwner,
-    template: ctx.manifest ? ctx.template : undefined,
-  });
-
-  if (!result.ok) {
-    logError(`❌ ${result.errors.join('; ')}`);
-    process.exit(1);
-  }
-
-  if (opts.dryRun) {
-    p.outro('Dry run — no files written.');
-    for (const lp of result.plan.layers) {
-      log(`Layer ${lp.id}:`);
-      for (const f of lp.files) log(`  ${f.action}: ${f.relPath}`);
-      if (lp.packageJsonPatch) log('  merge: package.json');
-      if (lp.agentsSection) log(`  append AGENTS.md: ${lp.agentsSection.section}`);
-    }
-    if (result.plan.skipped.length) log(`Skipped (already applied): ${result.plan.skipped.join(', ')}`);
-    if (result.plan.autoAdded?.length) log(`Would auto-add: ${result.plan.autoAdded.join(', ')}`);
-    process.exit(0);
-  }
-
-  if (result.applied.length) {
-    p.outro(`✅ Applied layers: ${result.applied.join(', ')}`);
-    if (result.conflicts?.length) {
-      p.log.warn(`${result.conflicts.length} package.json merge note(s) — existing values kept.`);
-    }
-    const manifest = readProjectManifest(projectDir);
-    if (manifest?.verifyCommands?.length) {
-      printPostScaffoldSteps('.', manifest.verifyCommands);
-    }
-  } else {
-    p.outro('No changes — all requested layers already applied.');
-  }
-}
-
-function createGithubRemote(targetDir, name, owner, isPrivate) {
+function createGithubRemote(targetDir, name, owner, isPrivate, labels = []) {
   try {
     execSync('gh --version', { stdio: 'ignore' });
   } catch {
@@ -750,9 +678,31 @@ function createGithubRemote(targetDir, name, owner, isPrivate) {
     } catch {
       p.log.warn('Remote created but push failed — run: git push -u origin HEAD');
     }
+    seedGithubLabels(targetDir, `${owner}/${name}`, labels);
   } catch (e) {
     const msg = e.stderr?.toString() || e.message || String(e);
     p.log.warn(`gh repo create failed: ${msg.trim()}`);
+  }
+}
+
+/**
+ * Creates the labels applied layers declare (e.g. `epic`, `chore`). `--force` keeps it idempotent.
+ * @param {string} targetDir
+ * @param {string} repo
+ * @param {{ name: string, color: string, description?: string }[]} labels
+ */
+function seedGithubLabels(targetDir, repo, labels) {
+  for (const label of labels) {
+    try {
+      execFileSync(
+        'gh',
+        ['label', 'create', label.name, '--color', label.color, '--description', label.description || '', '--force', '-R', repo],
+        { cwd: targetDir, stdio: 'pipe' },
+      );
+      p.log.success(`Label ready: ${label.name}`);
+    } catch {
+      p.log.warn(`Could not create label "${label.name}" — run: gh label create ${label.name} --color ${label.color}`);
+    }
   }
 }
 
@@ -801,12 +751,6 @@ function main() {
     });
   }
 
-  if (opts.command === 'enhance') {
-    runEnhance(opts).catch((e) => {
-      logError('❌ Enhance failed: ' + (e?.message || e));
-      process.exit(1);
-    });
-  }
 }
 
 export {
@@ -823,7 +767,6 @@ export {
   ensureDir,
   copyAndRender,
   runNew,
-  runEnhance,
   printPostScaffoldSteps,
   collectLayerIds,
   getRecommendedLayers,

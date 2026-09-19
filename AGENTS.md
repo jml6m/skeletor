@@ -18,11 +18,19 @@
   - The test suite in `tests/generate.test.js` automatically discovers new templates via `getTemplatesWithManifests()` and exercises generation + asserts the manifest contract (verifyCommands).
   - After changes, **always run `npm test`** to validate.
 
+- **Layout-specific output.** A template with `layouts` (rust, python) keeps each layout's files, including its `.github/` and `README.md`, under `layouts/<id>/`. A layout can override `verifyCommands`.
+
+- **Layers live in `layers/<id>/`** (`layer.json` plus `files/`), are applied only at `skeletor new` time, and are recorded nowhere in the generated project.
+  - A layer applied to both `javascript` (CommonJS) and `typescript` (ESM) must emit a correct module format for each. Ship `.js` (CommonJS) plus `.ts` twins, since the twin for the other language is dropped. Use `.cjs` for one script that must run in both.
+  - `patch.packageJson` is one file, or a `{ "javascript": …, "typescript": … }` map when dependencies differ (for example, `string-width` v4 is the last CommonJS major).
+  - `knip.entry` registers the layer's public API or harness files as knip entry points. `labels` declares GitHub labels that `--github` creates.
+  - Every optional layer and bundle is generated and verified in CI (`tests/generate.test.js`, "optional layers and bundles"), including a strict `npx knip`.
+
 - **CLI / src/index.js**
   - Use `@clack/prompts` for rich interactive experience (select with hints, text, confirm, intro/outro, cancel handling).
   - `new <name>` is the primary command.
   - When no `--template` and interactive (TTY + no `--auto`): show nice clack select.
-  - `--auto` must remain fully non-interactive for scripting; it requires `--template`.
+  - `--auto` must remain fully non-interactive for scripting; it requires `--template` (or a `--bundle`, which names its template).
   - `--owner` skips auto-detection (git remote → package.json → gh CLI); required in `--auto` when detection fails. No hardcoded default owner.
   - `--description` is optional (defaults to a generic string); no interactive description prompt.
   - Interactive prompts use select lists with `(recommended)` labels where applicable.
@@ -67,6 +75,7 @@ Update this file when the development process or conventions for skeletor itself
 
 - **Linkable paths must be clickable links.** Any in-repo path mentioned in a Markdown file must be written as a clickable link to the target (e.g. `[src/index.js](./src/index.js)`), not as bare inline code. Command examples and illustrative / non-existent paths are exempt.
 - Docs are gated by [`.github/workflows/docs-lint.yml`](./.github/workflows/docs-lint.yml): [lychee](https://lychee.cli.rs/) validates that links and `#anchors` resolve, and [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) enforces formatting per [`.markdownlint-cli2.yaml`](./.markdownlint-cli2.yaml). Emitted `templates/` and `layers/` fixtures are excluded (covered by the verify-templates job). Run `markdownlint-cli2 --fix '**/*.md'` before pushing.
+- **Markdown files are locked to an exact allowlist** — this is a public repo, and `.md` sprawl (agents documenting every decision in a new file) risks leaking internal notes/patterns and drowning the docs that matter. [`.github/docs-policy.yml`](./.github/docs-policy.yml) lists every path allowed to exist (plus `templates/**`/`layers/**`, exempt as emitted fixtures); [`.github/scripts/check-docs-policy.sh`](./.github/scripts/check-docs-policy.sh) enforces it as the `docs-policy` CI job. **Do not create a new top-level `.md` file** (design notes, decision logs, etc.) — put that content in the PR description or an issue instead. If a new doc file is genuinely warranted, add it to `docs-policy.yml`'s `allowed` list in the same PR; that file is CODEOWNERS-gated, so @jml6m reviews every addition.
 
 ## Opening PRs — author as the app, not the admin
 

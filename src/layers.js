@@ -7,12 +7,6 @@ import {
   detectJsonIndent,
   serializePackageJson,
 } from './merge-package-json.js';
-import {
-  readProjectManifest,
-  writeProjectManifest,
-  isLayerApplied,
-  recordLayerApplied,
-} from './manifest.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,46 +84,6 @@ export function loadLayerById(layerId) {
     throw new Error(`Layer directory "${dirName}" id mismatch: expected "${layerId}", got "${manifest.id}"`);
   }
   return manifest;
-}
-
-/**
- * @param {string} projectDir
- */
-export function inferProjectContext(projectDir) {
-  const existing = readProjectManifest(projectDir);
-  if (existing) {
-    return {
-      template: existing.template || 'unknown',
-      language: templateToLanguage(existing.template),
-      manifest: existing,
-      adoptedExisting: !!existing.adoptedExisting,
-    };
-  }
-
-  if (fs.existsSync(path.join(projectDir, 'tsconfig.json'))) {
-    return { template: 'typescript', language: 'typescript', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'package.json'))) {
-    return { template: 'javascript', language: 'javascript', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'Cargo.toml'))) {
-    return { template: 'rust', language: 'rust', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'go.mod'))) {
-    return { template: 'go', language: 'go', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'pyproject.toml'))) {
-    return { template: 'python', language: 'python', manifest: null, adoptedExisting: true };
-  }
-  if (fs.existsSync(path.join(projectDir, 'pom.xml'))) {
-    return { template: 'java', language: 'java', manifest: null, adoptedExisting: true };
-  }
-  const csprojs = fs.readdirSync(projectDir).filter((f) => f.endsWith('.csproj'));
-  if (csprojs.length) {
-    return { template: 'csharp', language: 'csharp', manifest: null, adoptedExisting: true };
-  }
-
-  throw new Error('Could not infer project type. Scaffold with skeletor new or add .skeletor/manifest.json.');
 }
 
 function templateToLanguage(template) {
@@ -267,19 +221,6 @@ export function expandBundle(bundleName, templateId) {
   return bundle.layers || [];
 }
 
-/**
- * @param {string} projectDir
- */
-export function isGitDirty(projectDir) {
-  try {
-    execSync('git rev-parse --is-inside-work-tree', { cwd: projectDir, stdio: 'pipe' });
-    const status = execSync('git status --porcelain', { cwd: projectDir, stdio: 'pipe' }).toString();
-    return status.trim().length > 0;
-  } catch {
-    return false;
-  }
-}
-
 function listLayerFiles(layer, filesDir) {
   const results = [];
   function walk(src, rel = '') {
@@ -320,6 +261,34 @@ export function filterFilesByLanguage(fileEntries, ctx) {
 }
 
 /**
+ * Registers a layer's public-API or harness files as knip entry points, so their exports and the
+ * dependencies they import aren't reported as dead code before the project starts using them.
+ * @param {string} projectDir
+ * @param {string[]} entries
+ */
+function addKnipEntries(projectDir, entries) {
+  const knipPath = path.join(projectDir, 'knip.json');
+  if (!fs.existsSync(knipPath)) return;
+  const knip = JSON.parse(fs.readFileSync(knipPath, 'utf8'));
+  knip.entry = [...new Set([...(knip.entry || []), ...entries])];
+  fs.writeFileSync(knipPath, `${JSON.stringify(knip, null, 2)}\n`, 'utf8');
+}
+
+/**
+ * `patch.packageJson` is either one patch file for every language, or a map of language → file
+ * for layers whose dependencies differ (e.g. a CommonJS-compatible major for the javascript template).
+ * @param {{ patch?: { packageJson?: string | Record<string, string> } }} layer
+ * @param {string} language
+ * @returns {string | null}
+ */
+function resolvePackageJsonPatch(layer, language) {
+  const spec = layer.patch?.packageJson;
+  if (!spec) return null;
+  if (typeof spec === 'string') return spec;
+  return spec[language] || null;
+}
+
+/**
  * @param {string} agentsPath
  * @param {string} section
  * @param {string} snippet
@@ -351,33 +320,21 @@ export function planLayerApply(options) {
     layerIds,
     vars = {},
     force = false,
-    skeletorVersion = '0.2.0',
-    owner = null,
-    template = null,
+    template,
   } = options;
 
-  const ctx = template
-    ? { template, language: templateToLanguage(template), manifest: readProjectManifest(projectDir), adoptedExisting: false }
-    : inferProjectContext(projectDir);
+  if (!template) {
+    throw new Error('planLayerApply requires a template id (layers apply only at scaffold time).');
+  }
+  const ctx = { template, language: templateToLanguage(template) };
 
   const { order, autoAdded, errors } = resolveLayerOrder(layerIds, ctx);
   if (errors.length) {
     return { ok: false, errors, plan: null };
   }
 
-  let manifest = ctx.manifest || {
-    skeletorVersion,
-    template: ctx.template,
-    createdAt: new Date().toISOString().slice(0, 10),
-    adoptedExisting: ctx.adoptedExisting,
-    owner,
-    layers: [],
-    verifyCommands: [],
-  };
-
   const plan = {
     layers: [],
-    skipped: [],
     autoAdded,
     conflicts: [],
     postApply: [],
@@ -385,10 +342,6 @@ export function planLayerApply(options) {
   };
 
   for (const id of order) {
-    if (isLayerApplied(manifest, id)) {
-      plan.skipped.push(id);
-      continue;
-    }
     const layer = loadLayerById(id);
     const filesDir = path.join(layer.dir, layer.files?.dir || 'files');
     const fileEntries = filterFilesByLanguage(listLayerFiles(layer, filesDir), ctx);
@@ -428,8 +381,9 @@ export function planLayerApply(options) {
       layerPlan.files.push({ relPath: outRel, action, srcPath });
     }
 
-    if (layer.patch?.packageJson) {
-      const patchPath = path.join(layer.dir, layer.patch.packageJson);
+    const patchRel = resolvePackageJsonPatch(layer, ctx.language);
+    if (patchRel) {
+      const patchPath = path.join(layer.dir, patchRel);
       if (fs.existsSync(patchPath)) {
         const patchRaw = renderLayerContent(fs.readFileSync(patchPath, 'utf8'), vars);
         layerPlan.packageJsonPatch = JSON.parse(patchRaw);
@@ -448,7 +402,7 @@ export function planLayerApply(options) {
     plan.verifyCommands.push(...(layer.verifyCommands || []));
   }
 
-  return { ok: true, errors: [], plan, ctx, manifest };
+  return { ok: true, errors: [], plan, ctx };
 }
 
 /**
@@ -459,18 +413,17 @@ export function applyLayers(options) {
   const planResult = planLayerApply(options);
   if (!planResult.ok) return planResult;
 
-  const { plan, ctx, manifest: initialManifest } = planResult;
-  let manifest = { ...initialManifest };
+  const { plan } = planResult;
   const allConflicts = [];
 
   if (dryRun) {
-    return { ...planResult, applied: [], conflicts: allConflicts, dryRun: true };
+    return { ...planResult, applied: [], conflicts: allConflicts, verifyCommands: [], dryRun: true };
   }
 
   const applied = [];
+  const labels = [];
   const projectDir = options.projectDir;
   const vars = options.vars || {};
-  const skeletorVersion = options.skeletorVersion || '0.2.0';
 
   for (const layerPlan of plan.layers) {
     const layer = loadLayerById(layerPlan.id);
@@ -505,18 +458,12 @@ export function applyLayers(options) {
       fs.writeFileSync(agentsPath, updated, 'utf8');
     }
 
-    manifest = recordLayerApplied(manifest, { id: layer.id, version: layer.version || '1.0.0' });
-    manifest.skeletorVersion = skeletorVersion;
+    if (Array.isArray(layer.knip?.entry)) addKnipEntries(projectDir, layer.knip.entry);
+
+    if (Array.isArray(layer.labels)) labels.push(...layer.labels);
+
     applied.push(layerPlan.id);
   }
-
-  const verifySet = new Set([
-    ...(Array.isArray(manifest.verifyCommands) ? manifest.verifyCommands : []),
-    ...plan.verifyCommands,
-  ]);
-  manifest.verifyCommands = [...verifySet];
-
-  writeProjectManifest(projectDir, manifest);
 
   if (!options.noInstall && applied.length) {
     for (const cmd of plan.postApply) {
@@ -529,7 +476,40 @@ export function applyLayers(options) {
     }
   }
 
-  return { ...planResult, applied, conflicts: allConflicts, dryRun: false, manifest };
+  return { ...planResult, applied, labels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
+}
+
+/**
+ * Seeds .github/docs-policy.yml with exactly the Markdown files the scaffold emitted,
+ * so the docs-policy check passes on the first commit and flags anything added later.
+ * @param {string} projectDir
+ */
+export function writeDocsPolicyAllowlist(projectDir) {
+  const found = [];
+  const walk = (dir, rel) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(path.join(dir, entry.name), relPath);
+      else if (entry.name.endsWith('.md')) found.push(relPath);
+    }
+  };
+  walk(projectDir, '');
+  const lines = [
+    '# Exact allowlist of Markdown files in this repo, enforced by the docs-policy workflow',
+    '# (.github/scripts/check-docs-policy.sh). A tracked *.md not listed here, and not under an',
+    '# exempt_globs prefix, fails CI. Add new docs here deliberately, in the same PR.',
+    '',
+    'allowed:',
+    ...found.sort().map((f) => `  - ${f}`),
+    '',
+    '# Directory prefixes whose Markdown is exempt, e.g. "fixtures/**".',
+    'exempt_globs:',
+    '',
+  ];
+  const dest = path.join(projectDir, '.github', 'docs-policy.yml');
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, lines.join('\n'), 'utf8');
 }
 
 export function validateLayerManifests() {
@@ -544,9 +524,15 @@ export function validateLayerManifests() {
       errors.push(`${layer.id}: files dir missing: ${filesDir}`);
     }
 
-    if (layer.patch?.packageJson) {
-      const p = path.join(layer.dir, layer.patch.packageJson);
-      if (!fs.existsSync(p)) errors.push(`${layer.id}: patch missing: ${layer.patch.packageJson}`);
+    const patchSpec = layer.patch?.packageJson;
+    for (const rel of typeof patchSpec === 'object' && patchSpec ? Object.values(patchSpec) : patchSpec ? [patchSpec] : []) {
+      if (!fs.existsSync(path.join(layer.dir, rel))) errors.push(`${layer.id}: patch missing: ${rel}`);
+    }
+
+    for (const label of layer.labels || []) {
+      if (!label?.name || !/^[0-9A-Fa-f]{6}$/.test(label.color || '')) {
+        errors.push(`${layer.id}: labels need a name and a 6-digit hex color`);
+      }
     }
 
     if (layer.docs?.agents?.append) {

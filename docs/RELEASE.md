@@ -38,7 +38,7 @@ The [Publish to npm](https://github.com/jml6m/skeletor/actions/workflows/publish
 4. Publish job runs only if release-gates pass (publish cannot bypass a failed verify-templates)
 5. Run `npm publish --dry-run` (auth preflight)
 6. Publish with provenance
-7. Remove stale `alpha` / `next` dist-tags on stable releases
+7. Try to remove stale `alpha` / `next` dist-tags on stable releases. This step is best-effort: a Trusted Publishing token can publish but can't change dist-tags, so it logs a 401 warning and moves on (see below).
 
 ### Re-run after a failed publish
 
@@ -71,7 +71,7 @@ npm run release:alpha   # bumps 0.2.0 → 0.2.1-alpha.0, pushes tag
 # or bump package.json manually, then tag v0.2.1-alpha.0
 ```
 
-Dist-tags: stable releases get `latest`; prereleases get the preid segment (`alpha`, `beta`, …) per the publish workflow. Stable publishes automatically remove stale `alpha` and `next` tags via `scripts/npm-dist-tag-hygiene.mjs`.
+Dist-tags: stable releases get `latest`; prereleases get the preid segment (`alpha`, `beta`, …) per the publish workflow. The dist-tag cleanup in `scripts/npm-dist-tag-hygiene.mjs` needs a real npm login, because OIDC tokens are publish-only. In CI it only warns, so run it (or `npm dist-tag rm @jml6m/skeletor <tag>`) locally while logged in as the package owner.
 
 After a manual stable publish, run:
 

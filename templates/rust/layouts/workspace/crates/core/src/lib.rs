@@ -1,7 +1,9 @@
 //! Core library for {{PROJECT_NAME}}
 
+const PROJECT: &str = "{{PROJECT_NAME}}-core";
+
 pub fn hello(name: &str) -> String {
-    format!("Hello, {} from {{PROJECT_NAME}}-core!", name)
+    format!("Hello, {name} from {PROJECT}!")
 }
 
 #[cfg(test)]
@@ -10,9 +12,6 @@ mod tests {
 
     #[test]
     fn test_hello() {
-        assert_eq!(
-            hello("tester"),
-            "Hello, tester from {{PROJECT_NAME}}-core!"
-        );
+        assert_eq!(hello("tester"), format!("Hello, tester from {PROJECT}!"));
     }
 }

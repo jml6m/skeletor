@@ -1,0 +1,44 @@
+[project]
+name = "{{PROJECT_NAME}}"
+version = "0.1.0"
+description = "{{DESCRIPTION}}"
+readme = "README.md"
+requires-python = ">={{PIN_RUNTIME_PYTHON}}"
+license = {text = "{{LICENSE}}"}
+authors = [
+  {name = "{{REPO_OWNER}}"}
+]
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "{{PIN_RUFF}}",
+  "{{PIN_PYTEST}}",
+  "{{PIN_PYTEST_COV}}",
+  "{{PIN_MYPY}}",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "{{PIN_RUNTIME_PYTHON_RUFF}}"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-q --strict-markers"
+
+[tool.mypy]
+python_version = "{{PIN_RUNTIME_PYTHON}}"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+exclude = ["^\\.venv/", "^build/"]
+

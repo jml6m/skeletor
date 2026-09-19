@@ -1,6 +1,6 @@
 const Table = require('cli-table3');
 const stringWidth = require('string-width');
-const { DEFAULT_LOG_TABLE_SETTINGS } = require('../config/logTable.config.js');
+const { DEFAULT_LOG_TABLE_SETTINGS } = require('@config/logTable.config.js');
 
 const CLI_TABLE_HORIZONTAL_PADDING = 2;
 
@@ -11,6 +11,8 @@ function resolveTerminalWidth(settings = {}) {
     return clampTerminalWidth(cfg.terminalWidth, cfg);
   }
 
+  // COLUMNS is terminal state set by the shell, not app config, so it is read directly.
+  // eslint-disable-next-line no-restricted-properties
   const envColumns = Number.parseInt(process.env.COLUMNS, 10);
   const stdoutColumns = process.stdout?.isTTY ? process.stdout.columns : null;
   const detected = stdoutColumns || (Number.isFinite(envColumns) ? envColumns : null) || cfg.defaultTerminalWidth;
@@ -135,7 +137,7 @@ function buildLogTable(columns, rows, options = {}) {
 
 function printLogTable(columns, rows, options = {}) {
   const output = buildLogTable(columns, rows, options);
-  if (output) console.log(output);
+  if (output) process.stdout.write(`${output}\n`);
   return output;
 }
 

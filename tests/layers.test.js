@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -7,7 +8,6 @@ process.env.SKELETOR_CLI_TEST = '1';
 
 import {
   runNew,
-  parseArgs,
   collectLayerIds,
   getRecommendedLayers,
   loadTemplateManifest,
@@ -21,7 +21,6 @@ import {
   gatherLayerPrompts,
   layerPromptDefaults,
 } from '../src/layers.js';
-import { readProjectManifest } from '../src/manifest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -70,46 +69,45 @@ describe('bundle expansion', () => {
   });
 });
 
-describe('enhance command', () => {
-  test('parseArgs handles enhance flags', () => {
-    const r = parseArgs(['node', 'skeletor', 'enhance', './app', '--add', 'governance', '--dry-run']);
-    expect(r.command).toBe('enhance');
-    expect(r.path).toBe('./app');
-    expect(r.addLayers).toEqual(['governance']);
-    expect(r.dryRun).toBe(true);
+describe('layer application', () => {
+  test('applyLayers requires a template id', () => {
+    expect(() => applyLayers({ projectDir: '.', layerIds: ['governance'] })).toThrow(/requires a template id/);
   });
 
-  test('apply governance layer is idempotent', async () => {
-    const name = makeName('layer-gov');
+  test('issue-templates + issue-labels emit forms, the AGENTS section, and their labels', async () => {
+    const name = makeName('layer-labels');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({
-        command: 'new',
-        name,
-        template: 'javascript',
-        auto: true,
-        git: false,
-        withLayers: [],
-      });
-
-      const first = applyLayers({
+      await runNew({ command: 'new', name, template: 'go', owner: 'acme', auto: true, git: false });
+      const result = applyLayers({
         projectDir: targetDir,
-        layerIds: ['governance'],
-        template: 'javascript',
+        layerIds: ['issue-templates', 'issue-labels'],
+        template: 'go',
+        vars: {},
         noInstall: true,
       });
-      expect(first.ok).toBe(true);
-      expect(first.applied).toContain('governance');
+      expect(result.ok).toBe(true);
+      expect(result.labels.map((l) => l.name).sort()).toEqual(['chore', 'epic']);
+      for (const f of ['bug_report.md', 'feature_request.md', 'epic.yml', 'config.yml']) {
+        expect(fs.existsSync(path.join(targetDir, '.github', 'ISSUE_TEMPLATE', f))).toBe(true);
+      }
+      expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Issue labels');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
 
-      const hash1 = hashDir(targetDir);
-      const second = applyLayers({
-        projectDir: targetDir,
-        layerIds: ['governance'],
-        template: 'javascript',
-        noInstall: true,
-      });
-      expect(second.applied).toEqual([]);
-      expect(hashDir(targetDir)).toBe(hash1);
+  test('docs-policy seeds an allowlist of exactly the emitted markdown and its check passes', async () => {
+    const name = makeName('layer-docs-policy');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'go', owner: 'acme', auto: true, git: true, withLayers: ['docs-policy'] });
+      const policy = fs.readFileSync(path.join(targetDir, '.github', 'docs-policy.yml'), 'utf8');
+      expect(policy).toContain('  - README.md');
+      expect(policy).toContain('  - AGENTS.md');
+      execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true });
+      fs.writeFileSync(path.join(targetDir, 'NOTES.md'), '# notes\n');
+      expect(() => execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true })).toThrow();
     } finally {
       cleanup(targetDir);
     }
@@ -190,11 +188,16 @@ describe('enhance command', () => {
         git: false,
         withRecommended: true,
       });
-      const manifest = readProjectManifest(targetDir);
-      expect(manifest.layers.map((l) => l.id)).toEqual(
-        expect.arrayContaining(['governance', 'quality-gates', 'zod-config', 'env-example']),
-      );
+      // governance
+      expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Critical Protocols');
+      // quality-gates
       expect(fs.existsSync(path.join(targetDir, 'scripts', 'audit-ci.mjs'))).toBe(true);
+      // zod-config
+      expect(fs.existsSync(path.join(targetDir, 'src', 'config', 'env.config.ts'))).toBe(true);
+      // env-example
+      expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
+      // no lingering skeletor state
+      expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
     } finally {
       cleanup(targetDir);
     }
@@ -212,8 +215,7 @@ describe('enhance command', () => {
         git: false,
         withLayers: ['governance', 'env-example'],
       });
-      const manifest = readProjectManifest(targetDir);
-      expect(manifest.layers.map((l) => l.id)).toEqual(expect.arrayContaining(['governance', 'env-example']));
+      expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Critical Protocols');
       expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
     } finally {
       cleanup(targetDir);
@@ -237,8 +239,6 @@ describe('rust layouts', () => {
       expect(fs.existsSync(path.join(targetDir, 'Cargo.toml'))).toBe(true);
       expect(fs.existsSync(path.join(targetDir, 'crates', 'core', 'src', 'lib.rs'))).toBe(true);
       expect(fs.existsSync(path.join(targetDir, 'crates', 'cli', 'src', 'main.rs'))).toBe(true);
-      const manifest = readProjectManifest(targetDir);
-      expect(manifest.layout).toBe('workspace');
     } finally {
       cleanup(targetDir);
     }
