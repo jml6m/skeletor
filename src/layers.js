@@ -448,6 +448,39 @@ export function applyLayers(options) {
   return { ...planResult, applied, labels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
 }
 
+/**
+ * Seeds .github/docs-policy.yml with exactly the Markdown files the scaffold emitted,
+ * so the docs-policy check passes on the first commit and flags anything added later.
+ * @param {string} projectDir
+ */
+export function writeDocsPolicyAllowlist(projectDir) {
+  const found = [];
+  const walk = (dir, rel) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(path.join(dir, entry.name), relPath);
+      else if (entry.name.endsWith('.md')) found.push(relPath);
+    }
+  };
+  walk(projectDir, '');
+  const lines = [
+    '# Exact allowlist of Markdown files in this repo, enforced by the docs-policy workflow',
+    '# (.github/scripts/check-docs-policy.sh). A tracked *.md not listed here, and not under an',
+    '# exempt_globs prefix, fails CI. Add new docs here deliberately, in the same PR.',
+    '',
+    'allowed:',
+    ...found.sort().map((f) => `  - ${f}`),
+    '',
+    '# Directory prefixes whose Markdown is exempt, e.g. "fixtures/**".',
+    'exempt_globs:',
+    '',
+  ];
+  const dest = path.join(projectDir, '.github', 'docs-policy.yml');
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, lines.join('\n'), 'utf8');
+}
+
 export function validateLayerManifests() {
   const errors = [];
   for (const dirName of getAvailableLayerIds()) {

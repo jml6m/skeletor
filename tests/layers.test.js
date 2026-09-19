@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -91,6 +92,22 @@ describe('layer application', () => {
         expect(fs.existsSync(path.join(targetDir, '.github', 'ISSUE_TEMPLATE', f))).toBe(true);
       }
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Issue labels');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('docs-policy seeds an allowlist of exactly the emitted markdown and its check passes', async () => {
+    const name = makeName('layer-docs-policy');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'go', owner: 'acme', auto: true, git: true, withLayers: ['docs-policy'] });
+      const policy = fs.readFileSync(path.join(targetDir, '.github', 'docs-policy.yml'), 'utf8');
+      expect(policy).toContain('  - README.md');
+      expect(policy).toContain('  - AGENTS.md');
+      execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true });
+      fs.writeFileSync(path.join(targetDir, 'NOTES.md'), '# notes\n');
+      expect(() => execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true })).toThrow();
     } finally {
       cleanup(targetDir);
     }

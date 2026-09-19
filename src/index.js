@@ -40,6 +40,7 @@ import {
   gatherLayerPrompts,
   layerPromptDefaults,
   validateLayerManifests,
+  writeDocsPolicyAllowlist,
 } from './layers.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -512,7 +513,7 @@ async function runNew(opts) {
     chosenLayout = picked;
   }
 
-  const codeownersCandidates = computeCodeownersCandidates(templateInfo);
+  const codeownersCandidates = computeCodeownersCandidates(templateInfo, layerIds);
   let codeownersPaths = [];
   if (isInteractive) {
     const wantCodeowners = await promptConfirmRecommended({
@@ -612,6 +613,7 @@ async function runNew(opts) {
       process.exit(1);
     }
     repoLabels = result.labels || [];
+    if (result.applied?.includes('docs-policy')) writeDocsPolicyAllowlist(targetDir);
     if (result.autoAdded?.length) {
       p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
     }

@@ -60,6 +60,7 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 |---|---|---|---|
 | `dependabot` | all | yes | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions, matching the account-wide baseline |
 | `docs-lint` | javascript, typescript | yes | Pinned docs-lint CI matching the account baseline: lychee 0.24.2 link/anchor checking + markdownlint-cli2 |
+| `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job; offers *.md as a CODEOWNERS path |
 | `env-example` | javascript, typescript | yes | Ships a comprehensive .env.example with documented variables |
 | `free-port` | javascript, typescript |  | Zero-dependency cross-platform port freeing script with prestart hook and port registry |
 | `governance` | all | yes | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md |

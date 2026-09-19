@@ -23,10 +23,14 @@ const LANGUAGE_CANDIDATES = {
 
 /**
  * @param {{ language?: string }} templateInfo
+ * @param {string[]} [layerIds]
  */
-export function computeCodeownersCandidates(templateInfo) {
+export function computeCodeownersCandidates(templateInfo, layerIds = []) {
   const languageCandidates = LANGUAGE_CANDIDATES[templateInfo?.language] || [];
-  return [...BASE_CANDIDATES, ...languageCandidates];
+  const layerCandidates = layerIds.includes('docs-policy')
+    ? [{ path: '*.md', hint: 'Every Markdown add or edit (pairs with the docs-policy allowlist)' }]
+    : [];
+  return [...BASE_CANDIDATES, ...languageCandidates, ...layerCandidates];
 }
 
 /**
