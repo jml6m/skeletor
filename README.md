@@ -8,7 +8,7 @@ Generates projects pre-configured with lint/format/health/release defaults (JS/T
 npx @jml6m/skeletor new my-api --template typescript --with-recommended
 ```
 
-Current release: **v0.2.x** on npm (`latest`).
+Latest release: [![npm](https://img.shields.io/npm/v/@jml6m/skeletor)](https://www.npmjs.com/package/@jml6m/skeletor) (`npm view @jml6m/skeletor version`).
 
 ## Available Templates
 
