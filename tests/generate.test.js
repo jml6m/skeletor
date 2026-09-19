@@ -153,6 +153,8 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
+        // Stale-issue bots are deliberately never emitted (2026-06 repo-hygiene convention).
+        expect(allFiles.some((f) => /(^|[\\/])stale\.ya?ml$/.test(f))).toBe(false);
 
         for (const rel of allFiles) {
           const text = fs.readFileSync(path.join(targetDir, rel), 'utf8');
