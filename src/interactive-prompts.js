@@ -119,6 +119,13 @@ export async function promptOwnerSelect(opts) {
 }
 
 /**
+ * @param {{ message: string, placeholder?: string }} opts
+ */
+export async function promptOptionalText(opts) {
+  return p.text({ message: opts.message, placeholder: opts.placeholder, defaultValue: '' });
+}
+
+/**
  * @param {{ message: string, options: { value: string, label: string, hint?: string }[], initialValues?: string[] }} opts
  */
 export async function promptMultiSelectRecommended(opts) {

@@ -7,6 +7,7 @@
 const BASE_CANDIDATES = [
   { path: '.github/', hint: 'CI/CD workflows and repo automation' },
   { path: 'AGENTS.md', hint: 'Agent instruction contract' },
+  { path: 'CLAUDE.md', hint: 'Claude Code pointer to AGENTS.md' },
 ];
 
 const LANGUAGE_CANDIDATES = {
@@ -26,6 +27,25 @@ const LANGUAGE_CANDIDATES = {
 export function computeCodeownersCandidates(templateInfo) {
   const languageCandidates = LANGUAGE_CANDIDATES[templateInfo?.language] || [];
   return [...BASE_CANDIDATES, ...languageCandidates];
+}
+
+/**
+ * Parses the free-text "extra paths" answer (comma- or whitespace-separated) into unique entries,
+ * dropping any already selected and any bare `*` catch-all.
+ * @param {string | undefined} input
+ * @param {string[]} [existing]
+ * @returns {string[]}
+ */
+export function parseCustomCodeownersPaths(input, existing = []) {
+  const seen = new Set(existing);
+  const out = [];
+  for (const raw of String(input || '').split(/[\s,]+/)) {
+    const entry = raw.trim();
+    if (!entry || entry === '*' || seen.has(entry)) continue;
+    seen.add(entry);
+    out.push(entry);
+  }
+  return out;
 }
 
 /**

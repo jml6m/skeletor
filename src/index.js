@@ -13,9 +13,10 @@ import {
   promptConfirmRecommended,
   promptLayerValue,
   promptMultiSelectRecommended,
+  promptOptionalText,
   promptOwnerSelect,
 } from './interactive-prompts.js';
-import { computeCodeownersCandidates, buildCodeownersContent } from './codeowners.js';
+import { buildCodeownersContent, computeCodeownersCandidates, parseCustomCodeownersPaths } from './codeowners.js';
 import { applyFeatureConfigs } from './features.js';
 import {
   adjustVerifyCommandsForAnswers,
@@ -499,7 +500,12 @@ async function runNew(opts) {
         initialValues: codeownersCandidates.map((c) => c.path),
       });
       if (p.isCancel(selected)) { p.cancel('Cancelled.'); process.exit(0); }
-      codeownersPaths = selected;
+      const extra = await promptOptionalText({
+        message: 'Any other paths to protect? (comma-separated, blank for none)',
+        placeholder: 'e.g. migrations/, src/auth/',
+      });
+      if (p.isCancel(extra)) { p.cancel('Cancelled.'); process.exit(0); }
+      codeownersPaths = [...selected, ...parseCustomCodeownersPaths(extra, selected)];
     }
   } else if (opts.codeowners) {
     codeownersPaths = codeownersCandidates.map((c) => c.path);

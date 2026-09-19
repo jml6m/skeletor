@@ -4,7 +4,7 @@ import path from 'path';
 process.env.SKELETOR_CLI_TEST = '1';
 
 import { runNew } from '../src/index.js';
-import { computeCodeownersCandidates, buildCodeownersContent } from '../src/codeowners.js';
+import { buildCodeownersContent, computeCodeownersCandidates, parseCustomCodeownersPaths } from '../src/codeowners.js';
 
 function makeName(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -17,7 +17,7 @@ function cleanup(dir) {
 describe('codeowners candidates', () => {
   test('base candidates apply to every language', () => {
     const candidates = computeCodeownersCandidates({ language: 'go' });
-    expect(candidates.map((c) => c.path)).toEqual(['.github/', 'AGENTS.md']);
+    expect(candidates.map((c) => c.path)).toEqual(['.github/', 'AGENTS.md', 'CLAUDE.md']);
   });
 
   test('javascript/typescript add package.json and release.js', () => {
@@ -34,6 +34,20 @@ describe('codeowners candidates', () => {
     expect(content).toContain('.github/');
     expect(content).toContain('@jml6m');
     expect(content).not.toMatch(/^\*\s/m);
+  });
+});
+
+describe('custom codeowners paths', () => {
+  test('splits on commas and whitespace, dedupes, drops * and already-selected paths', () => {
+    expect(parseCustomCodeownersPaths(' migrations/, src/auth/  migrations/ * AGENTS.md', ['AGENTS.md'])).toEqual([
+      'migrations/',
+      'src/auth/',
+    ]);
+  });
+
+  test('blank or missing input yields nothing', () => {
+    expect(parseCustomCodeownersPaths('')).toEqual([]);
+    expect(parseCustomCodeownersPaths(undefined)).toEqual([]);
   });
 });
 
