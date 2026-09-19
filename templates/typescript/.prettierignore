@@ -2,4 +2,3 @@ dist/
 coverage/
 package-lock.json
 prompt.md
-.skeletor/
