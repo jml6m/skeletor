@@ -15,6 +15,11 @@ CLAUDE.md                          @jml6m
 GEMINI.md                          @jml6m
 .grok/                             @jml6m
 
+# Markdown allowlist policy — this is a public repo, so every *.md add/change
+# needs review (docs-policy.yml's exact allowlist is enforced separately in
+# CI by the "docs-policy" job; this line is what makes the review mandatory).
+*.md                                @jml6m
+
 # package.json governance — dependency, scripts, and important metadata
 # changes require @jml6m review (ruleset: Require review from Code Owners).
 # Lockfiles intentionally NOT listed (high churn / transitive noise).
