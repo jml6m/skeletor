@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "status": "active",
   "statusMessage": null,
-  "lastReviewed": "2026-08-07",
+  "lastReviewed": "2026-09-19",
   "runtime": {
     "node": {
       "version": "24",
@@ -13,10 +13,6 @@
   "packages": {
     "module-alias": {
       "version": "2.3.4",
-      "policy": "major"
-    },
-    "cross-env": {
-      "version": "10.1.0",
       "policy": "major"
     },
     "eslint": {

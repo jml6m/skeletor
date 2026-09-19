@@ -1,4 +1,4 @@
-import { config } from '#config/env.config.js';
+import { config } from '#config/index.js';
 
 /**
  * Structured logger stub.

@@ -299,7 +299,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   const { layoutId, sourceDir } = resolveTemplateLayout(templateInfo, layout);
   copyAndRender(sourceDir, targetDir, vars);
 
-  const shared = ['AGENTS.md', 'README.md'];
+  const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md'];
   for (const file of shared) {
     const dest = path.join(targetDir, file);
     if (fs.existsSync(dest)) continue;
@@ -322,7 +322,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
     applyFeatureConfigs(targetDir, templateInfo);
   }
 
-  if (vars.PYTHON_PACKAGE_MANAGER === 'uv' || vars.PYTHON_VERSION) {
+  if (templateInfo.language === 'python') {
     const pyVersionPath = path.join(targetDir, '.python-version');
     if (!fs.existsSync(pyVersionPath)) {
       fs.writeFileSync(pyVersionPath, `${vars.PYTHON_VERSION || '3.11'}\n`, 'utf8');

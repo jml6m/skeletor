@@ -102,7 +102,9 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
       const targetDir = path.resolve(process.cwd(), name);
 
       try {
-        // Programmatic generation (step 3) using the real logic.
+        // Programmatic generation (step 3) using the real logic. Applies recommended
+        // layers so CI's full verify run (SKELETOR_VERIFY_COMMANDS=1) exercises the
+        // same layer-interaction paths a real `--with-recommended` scaffold hits.
         await runNewProgrammatic({
           command: 'new',
           name,
@@ -111,6 +113,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           description: 'Tetrahedral barycentric coords',
           auto: true,
           git: false,
+          withRecommended: true,
         });
 
         // Validate that the template declares its post-generation verification steps (step 4).
@@ -146,6 +149,25 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           expect(pom).toContain('<groupId>io.github.tbraowner</groupId>');
           expect(pom).not.toContain('{{');
           expect(fs.existsSync(path.join(targetDir, 'src', 'main', 'java', 'io', 'github', 'tbraowner', 'App.java'))).toBe(true);
+        }
+
+        expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
+        expect(fs.existsSync(path.join(targetDir, '.python-version'))).toBe(tmpl.language === 'python');
+
+        const textFiles = allFiles.filter((f) => /\.(c|m)?[jt]s$|\.py$|\.go$|\.rs$|\.java$|\.cs$/.test(f));
+        for (const rel of textFiles) {
+          const firstLine = fs.readFileSync(path.join(targetDir, rel), 'utf8').split('\n')[0];
+          const posixRel = rel.split(path.sep).join('/');
+          // A leading comment that just names the file is a copy/paste-era leftover (#69).
+          expect({ rel: posixRel, firstLine: /^(\/\/|#|\/\*)/.test(firstLine) && firstLine.includes(posixRel) }).toEqual({ rel: posixRel, firstLine: false });
+        }
+
+        const pkgPath = path.join(targetDir, 'package.json');
+        if (fs.existsSync(pkgPath) && JSON.parse(fs.readFileSync(pkgPath, 'utf8')).type === 'module') {
+          // .js files in an ESM package can't use require() (#36); CommonJS helpers need a .cjs name.
+          for (const rel of allFiles.filter((f) => f.endsWith('.js'))) {
+            expect({ rel, usesRequire: /\brequire\(/.test(fs.readFileSync(path.join(targetDir, rel), 'utf8')) }).toEqual({ rel, usesRequire: false });
+          }
         }
 
         if (tmpl.features?.length) {
