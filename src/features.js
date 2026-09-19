@@ -124,7 +124,6 @@ export function buildKnipConfig(features, templateInfo) {
     $schema: 'https://unpkg.com/knip@5/schema.json',
     entry: [`src/index.${ext}`],
     project: [`src/**/*.${ext}`, `tests/**/*.${ext}`],
-    ignore: ['db/**', 'migrations/**', 'scripts/**'],
     ignoreExportsUsedInFile: true,
   };
 }
@@ -183,6 +182,20 @@ export function validateTemplateFeatures(templateInfo) {
 }
 
 /**
+ * @param {string} targetDir
+ * @returns {Record<string, string[]> | null}
+ */
+function readJsconfigPaths(targetDir) {
+  const jsconfigPath = path.join(targetDir, 'jsconfig.json');
+  if (!fs.existsSync(jsconfigPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(jsconfigPath, 'utf8')).compilerOptions?.paths || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Write manifest-driven config files into a generated project.
  * @param {string} targetDir
  * @param {{ features?: string[], language?: string }} templateInfo
@@ -195,6 +208,9 @@ export function applyFeatureConfigs(targetDir, templateInfo) {
 
   const knip = buildKnipConfig(features, templateInfo);
   if (knip) {
+    // knip can't follow module-alias at runtime, but it does honour the same `paths` map jsconfig declares.
+    const aliasPaths = readJsconfigPaths(targetDir);
+    if (aliasPaths) knip.paths = aliasPaths;
     fs.writeFileSync(path.join(targetDir, 'knip.json'), `${JSON.stringify(knip, null, 2)}\n`, 'utf8');
   }
 

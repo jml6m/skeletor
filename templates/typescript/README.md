@@ -11,7 +11,7 @@ This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) a
 - Knip (dead code), jscpd (dupes), madge (circular) via `npm run health:full`
 - Custom `release.js` (one bump per PR, major gates via GitHub issue labels `vN-required`)
 - AGENTS.md as the Single Source of Truth for coding standards + AI agent protocols
-- Native Node subpath imports (`#foo` → `./src/foo`, via `package.json`'s `imports` field) instead of bundler-style path aliases
+- Native Node subpath imports (`import logger from '#utils/logger.js'`): `tsconfig.json` `paths` resolves them to `src/` for type-checking and Jest, and `package.json` `imports` resolves them to the compiled `dist/` at runtime
 
 See [AGENTS.md](./AGENTS.md) for the full contract.
 
@@ -21,7 +21,10 @@ See [AGENTS.md](./AGENTS.md) for the full contract.
 npm install
 npm run format
 npm run lint
+npm run typecheck
+npm run build
 npm test
+npm start
 npm run health:full
 ```
 

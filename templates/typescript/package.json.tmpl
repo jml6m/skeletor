@@ -10,10 +10,11 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "prepare": "husky",
-    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
-    "test": "jest --verbose",
-    "test:coverage": "jest --coverage --verbose",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --verbose",
+    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage --verbose",
     "release:patch": "node release.js patch",
     "release:minor": "node release.js minor",
     "release:major": "node release.js major",
@@ -47,10 +48,10 @@
     "typescript-eslint": "{{PIN_TYPESCRIPT_ESLINT}}"
   },
   "imports": {
-    "#*": "./src/*"
+    "#*": "./dist/*"
   },
   "lint-staged": {
-    "*.{js,json,md,yml,yaml}": "prettier --write"
+    "*.{ts,js,cjs,json,md,yml,yaml}": "prettier --write"
   },
   "engines": {
     "node": "{{PIN_RUNTIME_NODE_ENGINES}}"
