@@ -153,6 +153,17 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
+
+        for (const rel of allFiles) {
+          const text = fs.readFileSync(path.join(targetDir, rel), 'utf8');
+          expect({ rel, unresolved: text.match(/\{\{[A-Z][A-Z0-9_]*\}\}/g) }).toEqual({ rel, unresolved: null });
+        }
+
+        const dependabot = fs.readFileSync(path.join(targetDir, '.github', 'dependabot.yml'), 'utf8');
+        const ecosystem = { javascript: 'npm', typescript: 'npm', python: 'pip', go: 'gomod', rust: 'cargo', java: 'maven', csharp: 'nuget' }[tmpl.id];
+        expect(dependabot).toContain(`package-ecosystem: "${ecosystem}"`);
+        expect(dependabot).not.toMatch(/^\s*labels:/m);
+        expect(dependabot.includes('ignore:')).toBe(ecosystem === 'npm');
         expect(fs.existsSync(path.join(targetDir, '.python-version'))).toBe(tmpl.language === 'python');
 
         const textFiles = allFiles.filter((f) => /\.(c|m)?[jt]s$|\.py$|\.go$|\.rs$|\.java$|\.cs$/.test(f));

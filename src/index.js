@@ -167,8 +167,21 @@ const DEPENDABOT_ECOSYSTEM_BY_LANGUAGE = {
   csharp: 'nuget',
 };
 
-function dependabotEcosystemFor(language) {
+function dependabotEcosystemFor(language, pythonPackageManager) {
+  if (language === 'python' && pythonPackageManager === 'uv') return 'uv';
   return DEPENDABOT_ECOSYSTEM_BY_LANGUAGE[language] || 'npm';
+}
+
+// Majors a grouped PR would otherwise propose before the rest of the toolchain supports them
+// (e.g. a TypeScript major typescript-eslint rejects with ERESOLVE); @types/node tracks engines.node.
+const NPM_HELD_MAJORS = ['typescript', '@types/node', 'eslint', '@eslint/js'];
+
+function dependabotIgnoreFor(ecosystem) {
+  if (ecosystem !== 'npm') return '';
+  const entries = NPM_HELD_MAJORS.map(
+    (dep) => `      - dependency-name: "${dep}"\n        update-types: ["version-update:semver-major"]`,
+  );
+  return ['', '    # Majors need a deliberate toolchain bump, not a grouped Dependabot PR.', '    ignore:', ...entries].join('\n');
 }
 
 function buildRenderVars({ name, owner, description, extra = {} }) {
@@ -534,6 +547,10 @@ async function runNew(opts) {
     templateVars.PYTHON_VERSION = pinned.runtime.python.version;
   }
 
+  const dependabotEcosystem = dependabotEcosystemFor(
+    templateInfo.language || chosenTemplateId,
+    templateVars.PYTHON_PACKAGE_MANAGER,
+  );
   const vars = buildRenderVars({
     name,
     owner: finalOwner,
@@ -542,7 +559,8 @@ async function runNew(opts) {
       ...layerVars,
       ...templateVars,
       ...pinTokens,
-      DEPENDABOT_ECOSYSTEM: dependabotEcosystemFor(templateInfo.language || chosenTemplateId),
+      DEPENDABOT_ECOSYSTEM: dependabotEcosystem,
+      DEPENDABOT_IGNORE: dependabotIgnoreFor(dependabotEcosystem),
     },
   });
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
