@@ -4,9 +4,29 @@
   "description": "cli-table3 + string-width log table utility with display-width truncation and config defaults.",
   "version": "1.0.0",
   "appliesTo": {
-    "languages": ["javascript", "typescript"],
-    "templates": ["javascript", "typescript"]
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "templates": [
+      "javascript",
+      "typescript"
+    ]
   },
-  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
-  "patch": { "packageJson": "patch/package.json.json" }
+  "files": {
+    "dir": "files",
+    "overwrite": false,
+    "onConflict": "skip"
+  },
+  "patch": {
+    "packageJson": {
+      "javascript": "patch/package.javascript.json",
+      "typescript": "patch/package.typescript.json"
+    }
+  },
+  "knip": {
+    "entry": [
+      "src/utils/logTable.{js,ts}"
+    ]
+  }
 }

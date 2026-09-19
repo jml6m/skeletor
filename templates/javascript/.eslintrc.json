@@ -1,12 +1,24 @@
 {
+  "ignorePatterns": [
+    "dist/",
+    "coverage/",
+    "playwright-report/",
+    "test-results/"
+  ],
   "env": {
     "node": true,
     "es2021": true,
     "commonjs": true,
     "jest": true
   },
-  "extends": ["eslint:recommended", "plugin:import/recommended"],
-  "plugins": ["unused-imports", "import"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:import/recommended"
+  ],
+  "plugins": [
+    "unused-imports",
+    "import"
+  ],
   "parserOptions": {
     "ecmaVersion": "latest"
   },
@@ -14,7 +26,10 @@
     "import/resolver": {
       "jsconfig": {
         "config": "jsconfig.json",
-        "extensions": [".js", ".json"]
+        "extensions": [
+          ".js",
+          ".json"
+        ]
       }
     }
   },
@@ -38,14 +53,21 @@
       }
     ],
     "no-console": "warn",
-    "no-empty": ["error", { "allowEmptyCatch": false }],
+    "no-empty": [
+      "error",
+      {
+        "allowEmptyCatch": false
+      }
+    ],
     "no-undef": "error",
     "no-restricted-imports": [
       "error",
       {
         "patterns": [
           {
-            "group": ["../*"],
+            "group": [
+              "../*"
+            ],
             "message": "Do not use parent imports. Use architectural aliases (e.g. @services, @utils) or sibling imports (./)."
           }
         ]
@@ -67,19 +89,30 @@
   },
   "overrides": [
     {
-      "files": ["knip.config.js", "release.js", "scripts/**/*.js", "tests/**/*.js"],
+      "files": [
+        "knip.config.js",
+        "release.js",
+        "scripts/**/*.js",
+        "tests/**/*.js"
+      ],
       "rules": {
         "no-console": "off"
       }
     },
     {
-      "files": ["release.js", "scripts/**/*.js", "tests/support/**/*.js"],
+      "files": [
+        "release.js",
+        "scripts/**/*.js",
+        "tests/support/**/*.js"
+      ],
       "rules": {
         "no-restricted-properties": "off"
       }
     },
     {
-      "files": ["src/config/env.config.js"],
+      "files": [
+        "src/config/env.config.js"
+      ],
       "rules": {
         "no-restricted-properties": "off"
       }

@@ -1,6 +1,6 @@
-import { env } from './env.config.js';
+const { env } = require('./env.config.js');
 
-export const config = {
+const config = {
   system: {
     env: env.NODE_ENV,
     isProduction: env.NODE_ENV === 'production',
@@ -12,3 +12,5 @@ export const config = {
     logLevel: env.LOG_LEVEL,
   },
 };
+
+module.exports = { config };

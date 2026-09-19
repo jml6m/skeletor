@@ -1,10 +1,10 @@
-const {
+import {
   resolveTerminalWidth,
   truncateCell,
   computeColumnWidths,
   buildLogTable,
   cellDisplayWidth,
-} = require('@utils/logTable.js');
+} from '#utils/logTable.js';
 
 describe('logTable', () => {
   test('resolveTerminalWidth honors explicit override', () => {

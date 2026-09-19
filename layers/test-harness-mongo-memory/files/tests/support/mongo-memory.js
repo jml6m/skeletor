@@ -1,15 +1,17 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
 let mongoServer;
 
-export async function startMongoMemory() {
+async function startMongoMemory() {
   mongoServer = await MongoMemoryServer.create();
   return mongoServer.getUri();
 }
 
-export async function stopMongoMemory() {
+async function stopMongoMemory() {
   if (mongoServer) {
     await mongoServer.stop();
     mongoServer = undefined;
   }
 }
+
+module.exports = { startMongoMemory, stopMongoMemory };

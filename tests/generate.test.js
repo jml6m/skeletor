@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 // We import the enriched template discovery (pure + side-effect guarded)
 process.env.SKELETOR_CLI_TEST = '1';
 import { getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
+import { loadBundles, loadLayerById } from '../src/layers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -274,6 +275,46 @@ describe('non-default template layouts', () => {
       const pyproject = fs.readFileSync(path.join(targetDir, 'pyproject.toml'), 'utf8');
       expect(pyproject).toContain('[dependency-groups]');
       expect(pyproject).not.toContain('[build-system]');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+});
+
+describe('optional layers and bundles', () => {
+  const OPTIONAL_LAYERS = ['free-port', 'log-table', 'logger-winston', 'test-harness:mongo-memory', 'test-harness:playwright', 'library-publishing', 'docs-policy', 'issue-labels'];
+  const templates = getTemplatesWithManifests().filter((t) => ['javascript', 'typescript'].includes(t.id));
+
+  const cases = [
+    ...templates.flatMap((tmpl) =>
+      OPTIONAL_LAYERS.filter((id) => loadLayerById(id).appliesTo.languages.some((l) => l === '*' || l === tmpl.language)).map((id) => ({
+        label: `${tmpl.id} + ${id}`,
+        tmpl,
+        opts: { withRecommended: true, withLayers: [id] },
+        extra: loadLayerById(id).verifyCommands || [],
+      })),
+    ),
+    ...Object.entries(loadBundles()).map(([bundle, def]) => ({
+      label: `bundle ${bundle}`,
+      tmpl: templates.find((t) => t.id === def.template),
+      opts: { bundle },
+      extra: [],
+    })),
+  ];
+
+  test.each(cases.map((c) => [c.label, c]))('%s scaffolds and verifies', async (_label, { tmpl, opts, extra }) => {
+    const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, owner: 'tbra-owner', auto: true, git: false, withLayers: [], ...opts });
+      const allFiles = listFilesRecursive(targetDir);
+      for (const rel of allFiles) {
+        expect({ rel, unresolved: fs.readFileSync(path.join(targetDir, rel), 'utf8').match(/\{\{[A-Z][A-Z0-9_]*\}\}/g) }).toEqual({ rel, unresolved: null });
+      }
+      if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
+        // Strict knip on top of the (report-only) health:dead script: layers must ship dead-code-clean.
+        runVerifyCommands(targetDir, [...new Set([...tmpl.verifyCommands, ...extra, 'npx knip'])]);
+      }
     } finally {
       cleanup(targetDir);
     }

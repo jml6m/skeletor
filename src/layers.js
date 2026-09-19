@@ -261,6 +261,34 @@ export function filterFilesByLanguage(fileEntries, ctx) {
 }
 
 /**
+ * Registers a layer's public-API or harness files as knip entry points, so their exports and the
+ * dependencies they import aren't reported as dead code before the project starts using them.
+ * @param {string} projectDir
+ * @param {string[]} entries
+ */
+function addKnipEntries(projectDir, entries) {
+  const knipPath = path.join(projectDir, 'knip.json');
+  if (!fs.existsSync(knipPath)) return;
+  const knip = JSON.parse(fs.readFileSync(knipPath, 'utf8'));
+  knip.entry = [...new Set([...(knip.entry || []), ...entries])];
+  fs.writeFileSync(knipPath, `${JSON.stringify(knip, null, 2)}\n`, 'utf8');
+}
+
+/**
+ * `patch.packageJson` is either one patch file for every language, or a map of language → file
+ * for layers whose dependencies differ (e.g. a CommonJS-compatible major for the javascript template).
+ * @param {{ patch?: { packageJson?: string | Record<string, string> } }} layer
+ * @param {string} language
+ * @returns {string | null}
+ */
+function resolvePackageJsonPatch(layer, language) {
+  const spec = layer.patch?.packageJson;
+  if (!spec) return null;
+  if (typeof spec === 'string') return spec;
+  return spec[language] || null;
+}
+
+/**
  * @param {string} agentsPath
  * @param {string} section
  * @param {string} snippet
@@ -353,8 +381,9 @@ export function planLayerApply(options) {
       layerPlan.files.push({ relPath: outRel, action, srcPath });
     }
 
-    if (layer.patch?.packageJson) {
-      const patchPath = path.join(layer.dir, layer.patch.packageJson);
+    const patchRel = resolvePackageJsonPatch(layer, ctx.language);
+    if (patchRel) {
+      const patchPath = path.join(layer.dir, patchRel);
       if (fs.existsSync(patchPath)) {
         const patchRaw = renderLayerContent(fs.readFileSync(patchPath, 'utf8'), vars);
         layerPlan.packageJsonPatch = JSON.parse(patchRaw);
@@ -429,6 +458,8 @@ export function applyLayers(options) {
       fs.writeFileSync(agentsPath, updated, 'utf8');
     }
 
+    if (Array.isArray(layer.knip?.entry)) addKnipEntries(projectDir, layer.knip.entry);
+
     if (Array.isArray(layer.labels)) labels.push(...layer.labels);
 
     applied.push(layerPlan.id);
@@ -493,9 +524,9 @@ export function validateLayerManifests() {
       errors.push(`${layer.id}: files dir missing: ${filesDir}`);
     }
 
-    if (layer.patch?.packageJson) {
-      const p = path.join(layer.dir, layer.patch.packageJson);
-      if (!fs.existsSync(p)) errors.push(`${layer.id}: patch missing: ${layer.patch.packageJson}`);
+    const patchSpec = layer.patch?.packageJson;
+    for (const rel of typeof patchSpec === 'object' && patchSpec ? Object.values(patchSpec) : patchSpec ? [patchSpec] : []) {
+      if (!fs.existsSync(path.join(layer.dir, rel))) errors.push(`${layer.id}: patch missing: ${rel}`);
     }
 
     for (const label of layer.labels || []) {
