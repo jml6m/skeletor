@@ -65,7 +65,7 @@ new options:
   --bundle <name>       Named layer preset (see bundles.json)
   --owner <user>        GitHub owner/org (skips auto-detection)
   --description <text>  Project description (optional)
-  --auto                Non-interactive; requires --template
+  --auto                Non-interactive; requires --template (or a --bundle, which names one)
   --no-git              Skip git init
   --github              Create GitHub remote via gh CLI (after git init)
   --private             Use --private with --github (default: public)
@@ -419,6 +419,14 @@ async function runNew(opts) {
   }
 
   let chosenTemplateId = opts.template;
+  if (!chosenTemplateId && opts.bundle) {
+    const bundle = loadBundles()[opts.bundle];
+    if (!bundle) {
+      logError(`❌ Unknown bundle "${opts.bundle}". Available: ${Object.keys(loadBundles()).join(', ')}`);
+      process.exit(1);
+    }
+    chosenTemplateId = bundle.template;
+  }
   const isInteractive = !auto && process.stdout.isTTY;
   let finalOwner = await resolveOwnerForNew(opts, isInteractive);
   const finalDesc = opts.description || DEFAULT_DESCRIPTION;
