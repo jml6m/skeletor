@@ -30,7 +30,7 @@
 
 .PARAMETER SandboxRoot
     Base directory where sub-sandboxes will be created.
-    Defaults to C:\Users\brzt3\workspaces\skeletor-alpha-sandbox
+    Defaults to a skeletor-alpha-sandbox directory next to this repository
 
 .PARAMETER UseAlpha
     If true (default after publish), uses npx @jml6m/skeletor@alpha.
@@ -63,7 +63,7 @@ param(
     [switch]$Automated,
     [switch]$Headless,
 
-    [string]$SandboxRoot = "C:\Users\brzt3\workspaces\skeletor-alpha-sandbox",
+    [string]$SandboxRoot = (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "skeletor-alpha-sandbox"),
 
     [bool]$UseAlpha = $true,
 
