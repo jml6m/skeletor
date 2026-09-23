@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Verify npm Trusted Publishing auth via dry-run before a real publish.
- * Prints actionable setup steps when OIDC is not linked on npmjs.com.
+ * Prints a short hint when OIDC is not linked on npmjs.com.
  */
 
 import { execSync } from 'child_process';

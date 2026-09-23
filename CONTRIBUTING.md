@@ -21,9 +21,10 @@ npm ci
 npm test               # generation + manifest contract checks
 npm run test:verify    # full: runs each template's verifyCommands (needs the toolchains)
 npm run lint:encoding
+npm run audit:ci       # dependency security audit (mirrors the Audit CI workflow)
 ```
 
-CI runs the same across Node versions, plus a Markdown link and format check.
+CI runs the same across Node versions, plus a dependency security audit and a Markdown link and format check.
 
 ## PR conventions
 
