@@ -3,10 +3,10 @@
 
 ## Related Issues
 <!--
-  Use keywords to automatically close issues (e.g. "Closes #1").
-  For multiple issues, use the keyword before each issue (e.g. "Closes #1, Fixes #2").
+  A line starting with "Relates to #N" for the issue this PR serves (one line per issue).
+  The issue must be open and in a milestone; the issue-link check enforces it.
 -->
-<!-- Closes # -->
+Relates to #
 
 ## Why
 <!-- Explain the motivation or context for these changes -->
