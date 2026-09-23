@@ -26,7 +26,7 @@
 #>
 
 param(
-    [string]$SandboxRoot = "C:\Users\brzt3\workspaces\skeletor-alpha-sandbox",
+    [string]$SandboxRoot = (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "skeletor-alpha-sandbox"),
 
     [string]$TestRun = ""
 )

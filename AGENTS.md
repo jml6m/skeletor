@@ -1,7 +1,9 @@
-# 🤖 Skeletor Development — Agent Guidelines
+# Skeletor — agent guidance
 
 **Project:** skeletor
-**Purpose:** Multi-language project scaffolding CLI. Users pick a template (javascript, typescript, python, go, rust, java, csharp, ...) to generate a new project pre-configured with good defaults + (where applicable) personal conventions.
+**Purpose:** Multi-language project scaffolding CLI. Users pick a template (javascript, typescript, python, go, rust, java, csharp, ...) to generate a new project pre-configured with good defaults and, where applicable, opinionated conventions.
+
+Project-facing guidance for coding agents and reviewers. Contribution flow is in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Core Rules
 
@@ -37,18 +39,7 @@
   - Template `.gitignore` files must be named `.gitignore.tmpl` so npm publish includes them (npm strips bare `.gitignore` from packages).
   - Keep the generator itself (copyAndRender + render) dependency-free and simple.
 
-- **After any implementation work (templates, CLI, tests, docs, etc.)**
-  1. Run `npm test` and ensure it passes.
-  2. Review changes with `git status` / `git diff`.
-  3. `git add -A`
-  4. `git commit -m "descriptive message (e.g. feat(templates): add go, rust, java, csharp + clack interactive UI)"`
-  5. `git push -u origin HEAD`
-  - Pushing is **not automatic**. You must explicitly perform the git commands every time.
-  - This rule exists because the user wants the GitHub repo to stay in sync after every request.
-
-- **Git / Worktrees**
-  - This is often developed in a worktree. Normal `git push` still works against the shared remote.
-  - Avoid committing test artifacts (gen-* directories from previous runs) or node_modules.
+- **Don't commit** test artifacts (`gen-*` directories from previous runs) or `node_modules`.
 
 - **Testing the full flow**
   - `node src/index.js new my-test --template <id>` (or omit for interactive).
@@ -57,48 +48,12 @@
   - The integration tests do a programmatic version of generation + contract validation.
 
 ## Adding a brand new language/stack later
-The user will provide specific guidance/flavors. Until then, use clean "standard library + modern defaults" (as done for go/rust/java/csharp).
+Start from clean "standard library + modern defaults" (as done for go/rust/java/csharp); the maintainer decides a stack's specific conventions.
 
 Update this file when the development process or conventions for skeletor itself change.
 
-## Branch & ref hygiene
-
-- **Auto-delete on merge** is enabled — merged PR branches are removed automatically; don't rely on them persisting.
-- **Branch naming**: short-lived topic branches off `main`, prefixed by intent — `feat/`, `fix/`, `chore/`, `docs/`. Open a PR into `main`; **squash-merge** keeps `main` linear (the repo ruleset enforces no force-push / no deletion on `main`).
-- **Tag/ref retention**: release tags `v*` are **permanent and immutable** — never delete or move a published tag (it backs the `@jml6m/skeletor` npm release); fix a mistake with a new `vX.Y.Z`. Non-release refs are disposable.
-- **Periodic stale-branch sweep** (manual, report-only — never auto-delete beyond the merge cleanup):
-  - List remote branches by last commit, newest last:
-    `git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/remotes/origin`
-  - Cross-reference against open PRs (`gh pr list --state open`) and delete only stale, merged, PR-less branches deliberately.
-
 ## Documentation conventions
 
-- **Linkable paths must be clickable links.** Any in-repo path mentioned in a Markdown file must be written as a clickable link to the target (e.g. `[src/index.js](./src/index.js)`), not as bare inline code. Command examples and illustrative / non-existent paths are exempt.
-- Docs are gated by [`.github/workflows/docs-lint.yml`](./.github/workflows/docs-lint.yml): [lychee](https://lychee.cli.rs/) validates that links and `#anchors` resolve, and [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) enforces formatting per [`.markdownlint-cli2.yaml`](./.markdownlint-cli2.yaml). Emitted `templates/` and `layers/` fixtures are excluded (covered by the verify-templates job). Run `markdownlint-cli2 --fix '**/*.md'` before pushing.
-- **Markdown files are locked to an exact allowlist** — this is a public repo, and `.md` sprawl (agents documenting every decision in a new file) risks leaking internal notes/patterns and drowning the docs that matter. [`.github/docs-policy.yml`](./.github/docs-policy.yml) lists every path allowed to exist (plus `templates/**`/`layers/**`, exempt as emitted fixtures); [`.github/scripts/check-docs-policy.sh`](./.github/scripts/check-docs-policy.sh) enforces it as the `docs-policy` CI job. **Do not create a new top-level `.md` file** (design notes, decision logs, etc.) — put that content in the PR description or an issue instead. If a new doc file is genuinely warranted, add it to `docs-policy.yml`'s `allowed` list in the same PR; that file is CODEOWNERS-gated, so @jml6m reviews every addition.
-
-## Opening PRs — author as the app, not the admin
-
-### GitHub credentials — never commit values
-
-Do **not** commit GitHub App IDs, installation IDs, client IDs/secrets, private keys,
-PATs, tokens, webhook secrets, or any other Actions secret/variable **values**. Refer
-to apps by slug/name (`jml6m-bot`), never by numeric ID. Workflows may reference
-secret *names* (e.g. `${{ secrets.APP_ID }}`) — never hardcode values into source,
-docs, comments, or agent instruction files. Local App credentials live only under
-`~/workspaces/.tooling/` (outside any git repo); repository secrets live only in
-GitHub Settings → Secrets and variables.
-
-Command-line agents must not open PRs on this repo using the default `jml6m`
-credentials. GitHub forbids approving your own PR, so an admin-authored PR leaves the
-owner able only to "Comment" — and it blocks merge wherever an approving review is
-required. Author PRs as the **`jml6m-bot` GitHub App** instead, so the
-admin can review and Approve them:
-
-```bash
-git push -u origin <branch>
-GH_TOKEN="$(~/workspaces/.tooling/gh-app-token.sh jml6m/skeletor)" gh pr create --fill
-```
-
-CI and Actions mint the same identity via `actions/create-github-app-token` using App credentials stored only as GitHub Actions secrets (never in source). The GitHub App is the standard automation
-identity for this repo — personal access tokens are not used.
+- **Linkable paths must be clickable links** (e.g. `[src/index.js](./src/index.js)`). Command examples and illustrative paths are exempt.
+- [`docs-lint`](./.github/workflows/docs-lint.yml) checks links and `#anchors` (lychee) and formatting (markdownlint-cli2, per [`.markdownlint-cli2.yaml`](./.markdownlint-cli2.yaml)). Emitted `templates/` and `layers/` fixtures are excluded; the verify-templates job covers them. Run `markdownlint-cli2 --fix '**/*.md'` before pushing.
+- **Markdown files are limited to an allowlist**, [`.github/docs-policy.yml`](./.github/docs-policy.yml) (plus `templates/**` and `layers/**`, exempt as emitted fixtures), enforced by the `docs-policy` check. Don't add a new top-level `.md` file; put design notes in the PR or an issue.

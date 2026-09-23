@@ -96,9 +96,9 @@ npm run test:verify       # full — runs each template's verifyCommands (needs 
 npm run lint:encoding
 ```
 
-## Releasing
+## Contributing
 
-Tag-driven CI publish uses npm **Trusted Publishing**. See **[docs/RELEASE.md](./docs/RELEASE.md)**.
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Links
 

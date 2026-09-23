@@ -8,9 +8,9 @@
 
 allowed:
   - README.md                              # Public project overview, usage, install instructions
-  - AGENTS.md                               # Agent operating instructions (source of truth)
+  - AGENTS.md                               # Project guidance for agents and reviewers
+  - CONTRIBUTING.md                          # How to contribute
   - CLAUDE.md                                # Thin @AGENTS.md import pointer only
-  - docs/RELEASE.md                          # Release process reference
   - .github/ISSUE_TEMPLATE/bug_report.md
   - .github/ISSUE_TEMPLATE/feature_request.md
   - .github/pull_request_template.md
