@@ -154,6 +154,15 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
+
+        // Agents work through branches and PRs; what's protected is the default branch, not `git push`.
+        const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+        expect(agents).not.toMatch(/git push[^\n]*prohibited/i);
+        expect(agents).toContain('push the branch and open a pull request');
+        const never = (agents.match(/\*\*Never\*\*:(?:.+\n)+/)?.[0] ?? '').replace(/\s+/g, ' ');
+        for (const rule of ['force-push the default branch', 'delete a protected branch', 'skip a required check', 'move a published tag']) {
+          expect(never).toContain(rule);
+        }
         // Stale-issue bots are deliberately never emitted (2026-06 repo-hygiene convention).
         expect(allFiles.some((f) => /(^|[\\/])stale\.ya?ml$/.test(f))).toBe(false);
 
