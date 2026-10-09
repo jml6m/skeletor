@@ -25,9 +25,58 @@ function withDefaults(system) {
   return { ...defaultSystem, ...system };
 }
 
+/** No port-lookup command is installed. The CLI skips instead of failing `npm start`. */
+class LookupToolMissing extends Error {
+  /** @param {string[]} tools */
+  constructor(tools) {
+    super(`${tools.join(' and ')} not found`);
+    this.name = 'LookupToolMissing';
+  }
+}
+
+/** @param {unknown} error */
+function isCommandMissing(error) {
+  const { status, code } = /** @type {{ status?: number, code?: string }} */ (error);
+  return status === 127 || code === 'ENOENT';
+}
+
 /**
- * PIDs listening on a TCP port. Throws when the lookup itself fails (command missing,
- * permission denied), so a failed check is never mistaken for a free port.
+ * @param {System} sys
+ * @param {string} command
+ * @param {string[]} tools named in the error when the command is missing
+ */
+function run(sys, command, tools) {
+  try {
+    return sys.exec(command);
+  } catch (error) {
+    if (isCommandMissing(error)) throw new LookupToolMissing(tools);
+    throw error;
+  }
+}
+
+/**
+ * PIDs listening on `port` in `ss -ltnp` output. Throws when a listener's PID is hidden
+ * (another user's process), since the port is then known to be busy but can't be freed.
+ * @param {string} output
+ * @param {number} port
+ * @returns {number[]}
+ */
+function parseSsOutput(output, port) {
+  const pids = new Set();
+  for (const line of output.split(/\r?\n/)) {
+    const cols = line.trim().split(/\s+/);
+    if (cols[0] !== 'LISTEN' || !cols[3]?.endsWith(`:${port}`)) continue;
+    const found = [...line.matchAll(/pid=(\d+)/g)].map((m) => Number(m[1]));
+    if (found.length === 0) throw new Error(`port ${port} is in use by a process ss can't identify`);
+    for (const pid of found) pids.add(pid);
+  }
+  return [...pids];
+}
+
+/**
+ * PIDs listening on a TCP port: `netstat` on Windows, `lsof` elsewhere, falling back to `ss` on
+ * Linux. Throws `LookupToolMissing` when no tool is installed and rethrows any other failure, so
+ * a failed check is never mistaken for a free port.
  * @param {number} port
  * @param {Partial<System>} [system]
  * @returns {number[]}
@@ -38,7 +87,7 @@ function findPidsOnPort(port, system) {
 
   if (sys.platform === 'win32') {
     const portPattern = new RegExp(`:${port}\\s`);
-    for (const line of sys.exec('netstat -ano -p tcp').split(/\r?\n/)) {
+    for (const line of run(sys, 'netstat -ano -p tcp', ['netstat']).split(/\r?\n/)) {
       if (!line.includes('LISTENING') || !portPattern.test(line)) continue;
       const pid = Number(line.trim().split(/\s+/).pop());
       if (Number.isInteger(pid) && pid > 0) pids.add(pid);
@@ -52,7 +101,9 @@ function findPidsOnPort(port, system) {
   } catch (error) {
     // lsof exits 1 when nothing matches; any other failure is a real error.
     if (/** @type {{ status?: number }} */ (error).status === 1) return [];
-    throw error;
+    if (!isCommandMissing(error)) throw error;
+    if (sys.platform !== 'linux') throw new LookupToolMissing(['lsof']);
+    return parseSsOutput(run(sys, 'ss -ltnp', ['lsof', 'ss']), port);
   }
   for (const line of output.split(/\r?\n/)) {
     const pid = Number(line.trim());
@@ -142,6 +193,11 @@ if (require.main === module) {
   try {
     result = freePort(port);
   } catch (error) {
+    if (error instanceof LookupToolMissing) {
+      // Port-freeing is a convenience: don't block `npm start` on machines without the tools.
+      console.warn(`free-port: can't check port ${port} (${error.message}); skipping`);
+      process.exit(0);
+    }
     const message = error instanceof Error ? error.message.trim() : String(error);
     console.error(`Could not check port ${port}: ${message}`);
     process.exit(1);
@@ -159,4 +215,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { freePort, findPidsOnPort, killPid };
+module.exports = { freePort, findPidsOnPort, killPid, parseSsOutput, LookupToolMissing };
