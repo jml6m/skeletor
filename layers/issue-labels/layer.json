@@ -11,6 +11,6 @@
     "agents": { "section": "Issue labels", "append": "docs/AGENTS.snippet.md" }
   },
   "labels": [
-    { "name": "chore", "color": "EDEDED", "description": "Maintenance that is neither a feature nor a bug" }
+    { "name": "chore", "color": "fef2c0", "description": "Maintenance / process work" }
   ]
 }
