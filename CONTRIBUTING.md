@@ -27,7 +27,7 @@ npm run audit:ci       # dependency security audit (mirrors the Audit CI workflo
 
 CI runs the same across Node versions, plus a dependency security audit and a Markdown link and format check.
 
-In a clone, `npm install` enables a pre-push hook ([`.githooks/pre-push`](./.githooks/pre-push)) that
+In a clone, `npm install` enables a pre-push hook ([`.husky/pre-push`](./.husky/pre-push)) that
 runs `npm run lint` and `npm test`. `git push --no-verify` skips it; that's a deliberate choice, and
 CI still runs everything.
 
