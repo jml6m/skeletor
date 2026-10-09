@@ -637,7 +637,7 @@ async function runNew(opts) {
 
   if (git) {
     try {
-      execSync('git init -q', { cwd: targetDir, stdio: 'ignore' });
+      execSync('git init -q -b main', { cwd: targetDir, stdio: 'ignore' });
       execSync('git add -A', { cwd: targetDir, stdio: 'ignore' });
       execSync('git commit -q -m "chore: initial commit from skeletor"', { cwd: targetDir, stdio: 'ignore' });
       p.log.success('Git repository initialized');
