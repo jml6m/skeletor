@@ -20,11 +20,16 @@ Open an issue first for anything beyond a typo. Use the templates under
 npm ci
 npm test               # generation + manifest contract checks
 npm run test:verify    # full: runs each template's verifyCommands (needs the toolchains)
+SKELETOR_VERIFY_SHARD=go npm run test:verify   # one shard: a template id, or <javascript|typescript>-<layers|bundles>
 npm run lint:encoding
 npm run audit:ci       # dependency security audit (mirrors the Audit CI workflow)
 ```
 
 CI runs the same across Node versions, plus a dependency security audit and a Markdown link and format check.
+
+In a clone, `npm install` enables a pre-push hook ([`.husky/pre-push`](./.husky/pre-push)) that
+runs `npm run lint` and `npm test`. `git push --no-verify` skips it; that's a deliberate choice, and
+CI still runs everything.
 
 ## PR conventions
 

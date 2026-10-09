@@ -30,9 +30,52 @@ jobs:
       - run: npm run lint:encoding
       - run: npm test
 
-  verify-templates:
+  # Picks the verify shards a change needs (scripts/verify-shards.mjs). Decided inside the run,
+  # not with a `paths:` filter, so `verify-templates` below reports a result on every PR.
+  verify-shards:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.pick.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history so the diff below can compare against the PR's base commit.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Pick shards from changed files
+        id: pick
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DIFF_RANGE: ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            shards="$(node scripts/verify-shards.mjs --all)"
+          elif changed_files="$(git diff --name-only "$DIFF_RANGE" --)"; then
+            shards="$(printf '%s\n' "$changed_files" | node scripts/verify-shards.mjs)"
+          else
+            echo "Failed to compute diff for $DIFF_RANGE; running every shard"
+            shards="$(node scripts/verify-shards.mjs --all)"
+          fi
+
+          echo "Shards: $shards"
+          echo "shards=$shards" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: verify (${{ matrix.shard }})
+    needs: verify-shards
+    if: needs.verify-shards.outputs.shards != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.verify-shards.outputs.shards) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -42,23 +85,28 @@ jobs:
           cache: npm
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: matrix.shard == 'python'
         with:
           python-version: '3.12'
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: matrix.shard == 'go'
         with:
           go-version: '1.22'
 
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1 (2026-10-09)
+        if: matrix.shard == 'rust'
         with:
           toolchain: stable
 
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        if: matrix.shard == 'java'
         with:
           distribution: temurin
           java-version: '21'
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: matrix.shard == 'csharp'
         with:
           dotnet-version: '8.0.x'
 
@@ -66,3 +114,18 @@ jobs:
 
       - name: Run template verifyCommands integration
         run: npm run test:verify
+        env:
+          SKELETOR_VERIFY_SHARD: ${{ matrix.shard }}
+
+  # Passes when every shard that ran passed; skipped shards count as passing.
+  verify-templates:
+    needs: [verify-shards, verify]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check shard results
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result != "failure" and .result != "cancelled")' > /dev/null
