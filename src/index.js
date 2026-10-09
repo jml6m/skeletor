@@ -637,11 +637,7 @@ async function runNew(opts) {
 
   if (git) {
     try {
-      execSync('git init -q', { cwd: targetDir, stdio: 'ignore' });
-      // git falls back to "master" when init.defaultBranch is unset; GitHub's default is "main".
-      if (!readGitConfig(targetDir, 'init.defaultBranch')) {
-        execSync('git symbolic-ref HEAD refs/heads/main', { cwd: targetDir, stdio: 'ignore' });
-      }
+      execSync('git init -q -b main', { cwd: targetDir, stdio: 'ignore' });
       execSync('git add -A', { cwd: targetDir, stdio: 'ignore' });
       execSync('git commit -q -m "chore: initial commit from skeletor"', { cwd: targetDir, stdio: 'ignore' });
       p.log.success('Git repository initialized');
@@ -707,15 +703,6 @@ function seedGithubLabels(targetDir, repo, labels) {
     } catch {
       p.log.warn(`Could not create label "${label.name}" — run: gh label create ${label.name} --color ${label.color}`);
     }
-  }
-}
-
-/** @returns {string} the value, or '' when the key is unset */
-function readGitConfig(cwd, key) {
-  try {
-    return execFileSync('git', ['config', '--get', key], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch {
-    return '';
   }
 }
 

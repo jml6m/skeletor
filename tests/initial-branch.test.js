@@ -38,7 +38,7 @@ describe('initial branch', () => {
     expect(scaffoldBranch('')).toEqual({ branch: 'main', commits: '1' });
   });
 
-  test("honors the user's init.defaultBranch", () => {
-    expect(scaffoldBranch('[init]\n\tdefaultBranch = trunk\n')).toEqual({ branch: 'trunk', commits: '1' });
+  test("is main even when the user's init.defaultBranch says otherwise", () => {
+    expect(scaffoldBranch('[init]\n\tdefaultBranch = trunk\n')).toEqual({ branch: 'main', commits: '1' });
   });
 });
