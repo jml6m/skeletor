@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 process.env.SKELETOR_CLI_TEST = '1';
 import { getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
 import { loadBundles, loadLayerById } from '../src/layers.js';
-import { layerShard, listShards, selectedShard, shardsForChanges } from '../scripts/verify-shards.mjs';
+import { bundleShard, layerShard, listShards, selectedShard, shardsForChanges } from '../scripts/verify-shards.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -104,7 +104,7 @@ const optionalCases = [
   ),
   ...Object.entries(loadBundles()).map(([bundle, def]) => ({
     label: `bundle ${bundle}`,
-    shard: layerShard(def.template),
+    shard: bundleShard(def.template),
     tmpl: jsTsTemplates.find((t) => t.id === def.template),
     opts: { bundle },
     extra: [],
@@ -136,7 +136,8 @@ describe('verify shards', () => {
     }
     expect(shardsForChanges(['templates/go/go.mod.tmpl'])).toEqual(['go']);
     expect(shardsForChanges(['templates/rust/layouts/lib/Cargo.toml.tmpl', 'templates/java/pom.xml.tmpl'])).toEqual(['java', 'rust']);
-    expect(shardsForChanges(['templates/typescript/package.json.tmpl'])).toEqual(['typescript', 'typescript-layers']);
+    expect(shardsForChanges(['templates/typescript/package.json.tmpl'])).toEqual(['typescript', 'typescript-layers', 'typescript-bundles']);
+    expect(shardsForChanges(['templates/javascript/package.json.tmpl'])).toEqual(['javascript', 'javascript-layers', 'javascript-bundles']);
   });
 
   test('an unknown shard name is an error', () => {

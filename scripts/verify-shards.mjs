@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Shards of the template verify suite (tests/generate.test.js), and which shards a set of changed
- * files needs. One shard per template (its layouts included), plus one per JS/TS template for the
- * optional-layer and bundle cases.
+ * files needs. One shard per template (its layouts included), plus two per JS/TS template: its
+ * optional-layer cases (`<id>-layers`) and its bundle cases (`<id>-bundles`).
  *
  * CLI: changed file paths on stdin, one per line; prints the shards to run as a JSON array.
  * `--all` prints every shard.
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export const LAYER_SHARD_TEMPLATES = ['javascript', 'typescript'];
+export const EXTRA_SHARD_TEMPLATES = ['javascript', 'typescript'];
 
 // A change under any of these can affect every generated project or the suite itself.
 const SHARED_INPUTS = [
@@ -33,6 +33,10 @@ export function layerShard(templateId) {
   return `${templateId}-layers`;
 }
 
+export function bundleShard(templateId) {
+  return `${templateId}-bundles`;
+}
+
 export function listTemplateIds(root = ROOT) {
   const dir = path.join(root, 'templates');
   return fs
@@ -44,7 +48,7 @@ export function listTemplateIds(root = ROOT) {
 
 export function listShards(root = ROOT) {
   const ids = listTemplateIds(root);
-  return [...ids, ...LAYER_SHARD_TEMPLATES.filter((id) => ids.includes(id)).map(layerShard)];
+  return [...ids, ...EXTRA_SHARD_TEMPLATES.filter((id) => ids.includes(id)).flatMap((id) => [layerShard(id), bundleShard(id)])];
 }
 
 /** Shards to run for a list of changed repo-relative paths, in listShards() order. */
@@ -56,6 +60,7 @@ export function shardsForChanges(files, shards = listShards()) {
     if (m) {
       wanted.add(m[1]);
       wanted.add(layerShard(m[1]));
+      wanted.add(bundleShard(m[1]));
     }
   }
   return shards.filter((s) => wanted.has(s));
