@@ -25,5 +25,5 @@ export function escaperForFile(filePath) {
 /** One line, no control characters, and no lone surrogates (invalid in JSON, TOML and XML files). */
 export function normalizeDescription(value) {
   const text = String(value ?? '');
-  return (text.toWellFormed?.() ?? text).replace(/[\s\u0000-\u001f\u007f￾￿]+/g, ' ').trim();
+  return (text.toWellFormed?.() ?? text).replace(/[\s\u0000-\u001f\u007f\ufffe\uffff]+/g, ' ').trim();
 }
