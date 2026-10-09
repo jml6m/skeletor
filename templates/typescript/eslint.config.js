@@ -7,7 +7,19 @@ import globals from 'globals';
 
 export default defineConfig([
   {
-    ignores: ['dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'eslint.config.js', 'scripts/**/*.js'],
+    // Generated output (keep in step with the build/output entries in .gitignore), then JS tooling files.
+    ignores: [
+      'dist/**',
+      'build/**',
+      'coverage/**',
+      'report/**',
+      'reports/**',
+      '.jscpd/**',
+      'playwright-report/**',
+      'test-results/**',
+      'eslint.config.js',
+      'scripts/**/*.js',
+    ],
   },
   {
     files: ['src/config/env.config.ts'],

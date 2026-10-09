@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "status": "active",
   "statusMessage": null,
-  "lastReviewed": "2026-09-19",
+  "lastReviewed": "2026-10-09",
   "runtime": {
     "node": {
       "version": "24",
@@ -16,19 +16,31 @@
       "policy": "major"
     },
     "eslint": {
-      "version": "8.57.0",
+      "version": "10.0.0",
       "policy": "major"
     },
-    "eslint-import-resolver-jsconfig": {
-      "version": "1.1.0",
+    "@eslint/js": {
+      "version": "10.0.1",
       "policy": "major"
     },
-    "eslint-plugin-import": {
-      "version": "2.32.0",
+    "eslint-import-resolver-typescript": {
+      "version": "4.4.0",
+      "policy": "major"
+    },
+    "eslint-plugin-import-x": {
+      "version": "4.17.0",
+      "policy": "major"
+    },
+    "eslint-plugin-n": {
+      "version": "18.2.0",
       "policy": "major"
     },
     "eslint-plugin-unused-imports": {
       "version": "4.4.1",
+      "policy": "major"
+    },
+    "globals": {
+      "version": "17.0.0",
       "policy": "major"
     },
     "husky": {

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "status": "active",
   "statusMessage": null,
-  "lastReviewed": "2026-09-19",
+  "lastReviewed": "2026-10-09",
   "runtime": {
     "node": {
       "version": "24",
@@ -20,19 +20,19 @@
       "policy": "major"
     },
     "eslint": {
-      "version": "9.0.0",
+      "version": "10.0.0",
       "policy": "major"
     },
     "@eslint/js": {
-      "version": "9.9.0",
+      "version": "10.0.1",
       "policy": "major"
     },
     "eslint-plugin-unused-imports": {
-      "version": "4.1.4",
+      "version": "4.4.1",
       "policy": "major"
     },
     "globals": {
-      "version": "15.14.0",
+      "version": "17.0.0",
       "policy": "major"
     },
     "husky": {
@@ -88,7 +88,7 @@
       "policy": "minor"
     },
     "typescript-eslint": {
-      "version": "8.0.0",
+      "version": "8.56.0",
       "policy": "major"
     }
   }
