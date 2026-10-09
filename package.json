@@ -24,7 +24,8 @@
     "publish:dry": "npm publish --dry-run",
     "release:preflight": "node scripts/publish-preflight.mjs",
     "pin:check": "node scripts/check-pin-updates.mjs",
-    "prepublishOnly": "npm run lint && npm run audit:ci && npm test"
+    "prepublishOnly": "npm run lint && npm run audit:ci && npm test",
+    "prepare": "node -e \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('.githooks/pre-push'))try{const top=cp.execFileSync('git',['rev-parse','--show-toplevel'],{stdio:['ignore','pipe','ignore']}).toString().trim();if(fs.realpathSync(top)===fs.realpathSync('.'))cp.execFileSync('git',['config','core.hooksPath','.githooks'],{stdio:'ignore'})}catch{}\""
   },
   "publishConfig": {
     "access": "public"

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Fast local gates before a push; CI runs these plus the full template verification.
+# `npm install` points core.hooksPath here. Skip once with `git push --no-verify`.
+
+# Git exports GIT_DIR and friends to hooks. Tests that `git init` a generated project
+# would otherwise commit into this repository, so clear them first.
+unset $(git rev-parse --local-env-vars)
+
+run() {
+  echo "pre-push: npm run $1"
+  if ! npm run --silent "$1"; then
+    echo "pre-push: 'npm run $1' failed, push aborted (git push --no-verify skips this hook)" >&2
+    exit 1
+  fi
+}
+
+run lint
+run test
