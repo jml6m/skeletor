@@ -651,7 +651,7 @@ async function runNew(opts) {
 
   if (!opts.github && repoLabels.length) {
     const names = repoLabels.map((l) => l.name).join(', ');
-    p.log.info(`Layers expect these labels on GitHub: ${names} — created automatically with --github, otherwise see AGENTS.md / .github/ISSUE_TEMPLATE.`);
+    p.log.info(`Layers expect these labels on GitHub: ${names} — created automatically with --github, otherwise run the commands under "Issue labels" in AGENTS.md.`);
   }
 
   p.outro('✅ Done!');
