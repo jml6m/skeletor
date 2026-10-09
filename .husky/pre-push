@@ -1,0 +1,6 @@
+# Fast checks before a push; CI also runs the full template verification.
+# Git exports GIT_DIR and friends to hooks, and the tests `git init` generated projects,
+# which would otherwise commit into this repository. Clear them first.
+unset $(git rev-parse --local-env-vars)
+npm run --silent lint
+npm test
