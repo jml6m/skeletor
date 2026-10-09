@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Run template verifyCommands integration tests (requires language toolchains).
- * Used by CI verify-templates job and optionally locally.
+ * Used by the CI verify jobs and optionally locally. SKELETOR_VERIFY_SHARD=<shard> runs one shard
+ * (see scripts/verify-shards.mjs); unset runs every case.
  */
 
 import { spawnSync } from 'child_process';
