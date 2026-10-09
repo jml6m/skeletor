@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 process.env.SKELETOR_CLI_TEST = '1';
 import { getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
 import { loadBundles, loadLayerById } from '../src/layers.js';
+import { layerShard, listShards, selectedShard, shardsForChanges } from '../scripts/verify-shards.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,26 +77,92 @@ const expectedManifest = {
   go: 'go.mod',
 };
 
-describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () => {
-  const templates = getTemplatesWithManifests();
+// Every generate-and-verify case, tagged with the CI shard that runs it. SKELETOR_VERIFY_SHARD
+// limits a run to one shard; unset runs them all.
+const allTemplates = getTemplatesWithManifests();
 
+const templateCases = allTemplates.map((tmpl) => ({ label: `${tmpl.id} template`, shard: tmpl.id, tmpl }));
+
+const layoutCases = allTemplates.flatMap((tmpl) =>
+  Object.entries(tmpl.layouts || {})
+    .filter(([id]) => id !== (tmpl.defaultLayout || Object.keys(tmpl.layouts)[0]))
+    .map(([id, layout]) => ({ label: `${tmpl.id} --layout ${id}`, shard: tmpl.id, tmpl, id, layout })),
+);
+
+const OPTIONAL_LAYERS = ['free-port', 'log-table', 'logger-winston', 'test-harness:mongo-memory', 'test-harness:playwright', 'library-publishing', 'docs-policy', 'issue-labels'];
+const jsTsTemplates = allTemplates.filter((t) => ['javascript', 'typescript'].includes(t.id));
+
+const optionalCases = [
+  ...jsTsTemplates.flatMap((tmpl) =>
+    OPTIONAL_LAYERS.filter((id) => loadLayerById(id).appliesTo.languages.some((l) => l === '*' || l === tmpl.language)).map((id) => ({
+      label: `${tmpl.id} + ${id}`,
+      shard: layerShard(tmpl.id),
+      tmpl,
+      opts: { withRecommended: true, withLayers: [id] },
+      extra: loadLayerById(id).verifyCommands || [],
+    })),
+  ),
+  ...Object.entries(loadBundles()).map(([bundle, def]) => ({
+    label: `bundle ${bundle}`,
+    shard: layerShard(def.template),
+    tmpl: jsTsTemplates.find((t) => t.id === def.template),
+    opts: { bundle },
+    extra: [],
+  })),
+];
+
+const verifyCases = [...templateCases, ...layoutCases, ...optionalCases];
+const SHARD = selectedShard();
+const inShard = (c) => SHARD === null || c.shard === SHARD;
+
+describe('verify shards', () => {
+  const shards = listShards();
+
+  test('every verify case belongs to exactly one known shard', () => {
+    expect(verifyCases.filter((c) => !shards.includes(c.shard)).map((c) => c.label)).toEqual([]);
+    const perShard = shards.flatMap((s) => verifyCases.filter((c) => c.shard === s).map((c) => c.label));
+    expect(perShard.sort()).toEqual(verifyCases.map((c) => c.label).sort());
+    expect(new Set(perShard).size).toBe(perShard.length);
+  });
+
+  test('every shard has at least one case', () => {
+    expect(shards.filter((s) => !verifyCases.some((c) => c.shard === s))).toEqual([]);
+  });
+
+  test('changed files map to the shards they affect', () => {
+    expect(shardsForChanges(['README.md', 'docs/x.md', '.github/workflows/docs-lint.yml'])).toEqual([]);
+    for (const shared of ['src/index.js', 'layers/free-port/layer.json', 'templates/_shared/AGENTS.md', 'bundles.json', 'package-lock.json', 'scripts/run-verify-tests.mjs', 'tests/generate.test.js', '.github/workflows/ci.yml']) {
+      expect(shardsForChanges(['README.md', shared])).toEqual(shards);
+    }
+    expect(shardsForChanges(['templates/go/go.mod.tmpl'])).toEqual(['go']);
+    expect(shardsForChanges(['templates/rust/layouts/lib/Cargo.toml.tmpl', 'templates/java/pom.xml.tmpl'])).toEqual(['java', 'rust']);
+    expect(shardsForChanges(['templates/typescript/package.json.tmpl'])).toEqual(['typescript', 'typescript-layers']);
+  });
+
+  test('an unknown shard name is an error', () => {
+    expect(() => selectedShard({ SKELETOR_VERIFY_SHARD: 'cobol' })).toThrow(/Unknown SKELETOR_VERIFY_SHARD "cobol"/);
+    expect(selectedShard({})).toBeNull();
+  });
+});
+
+describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () => {
   test('discovers multiple templates via manifests', () => {
-    expect(templates.length).toBeGreaterThan(0);
-    const ids = templates.map((t) => t.id);
+    expect(allTemplates.length).toBeGreaterThan(0);
+    const ids = allTemplates.map((t) => t.id);
     // We expect at least the ones we maintain
     expect(ids).toContain('javascript');
   });
 
   test('template features cover verifyCommands', async () => {
     const { validateTemplateFeatures } = await import('../src/features.js');
-    const errors = templates.flatMap((t) => validateTemplateFeatures(t));
+    const errors = allTemplates.flatMap((t) => validateTemplateFeatures(t));
     expect(errors).toEqual([]);
   });
 
   // For every discovered template, generate + run its declared verify steps.
   // This directly tests (3) generation and (4) the post-scaffold quality gates
   // the user listed (install, lint/format, test, health, build, etc.).
-  templates.forEach((tmpl) => {
+  templateCases.filter(inShard).forEach(({ tmpl }) => {
     test(`generates and verifies "${tmpl.id}" template (${tmpl.name})`, async () => {
       const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-multi-'));
       const name = makeTempProjectName(`gen-${tmpl.id}`);
@@ -241,13 +308,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 });
 
 describe('non-default template layouts', () => {
-  const layoutCases = getTemplatesWithManifests().flatMap((tmpl) =>
-    Object.entries(tmpl.layouts || {})
-      .filter(([id]) => id !== (tmpl.defaultLayout || Object.keys(tmpl.layouts)[0]))
-      .map(([id, layout]) => ({ tmpl, id, layout })),
-  );
-
-  test.each(layoutCases.map((c) => [c.tmpl.id, c.id, c]))('generates and verifies %s --layout %s', async (_t, _l, { tmpl, id, layout }) => {
+  layoutCases.filter(inShard).forEach(({ tmpl, id, layout }) => test(`generates and verifies ${tmpl.id} --layout ${id}`, async () => {
     const name = makeTempProjectName(`gen-${tmpl.id}-${id}`);
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -263,7 +324,7 @@ describe('non-default template layouts', () => {
     } finally {
       cleanup(targetDir);
     }
-  });
+  }));
 
   test('python defaults to the flat layout (scripts at the repo root, no packaging)', async () => {
     const name = makeTempProjectName('gen-python-flat');
@@ -282,27 +343,7 @@ describe('non-default template layouts', () => {
 });
 
 describe('optional layers and bundles', () => {
-  const OPTIONAL_LAYERS = ['free-port', 'log-table', 'logger-winston', 'test-harness:mongo-memory', 'test-harness:playwright', 'library-publishing', 'docs-policy', 'issue-labels'];
-  const templates = getTemplatesWithManifests().filter((t) => ['javascript', 'typescript'].includes(t.id));
-
-  const cases = [
-    ...templates.flatMap((tmpl) =>
-      OPTIONAL_LAYERS.filter((id) => loadLayerById(id).appliesTo.languages.some((l) => l === '*' || l === tmpl.language)).map((id) => ({
-        label: `${tmpl.id} + ${id}`,
-        tmpl,
-        opts: { withRecommended: true, withLayers: [id] },
-        extra: loadLayerById(id).verifyCommands || [],
-      })),
-    ),
-    ...Object.entries(loadBundles()).map(([bundle, def]) => ({
-      label: `bundle ${bundle}`,
-      tmpl: templates.find((t) => t.id === def.template),
-      opts: { bundle },
-      extra: [],
-    })),
-  ];
-
-  test.each(cases.map((c) => [c.label, c]))('%s scaffolds and verifies', async (_label, { tmpl, opts, extra }) => {
+  optionalCases.filter(inShard).forEach(({ label, tmpl, opts, extra }) => test(`${label} scaffolds and verifies`, async () => {
     const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -318,5 +359,5 @@ describe('optional layers and bundles', () => {
     } finally {
       cleanup(targetDir);
     }
-  });
+  }));
 });

@@ -20,6 +20,7 @@ Open an issue first for anything beyond a typo. Use the templates under
 npm ci
 npm test               # generation + manifest contract checks
 npm run test:verify    # full: runs each template's verifyCommands (needs the toolchains)
+SKELETOR_VERIFY_SHARD=go npm run test:verify   # one shard: a template id, or javascript-layers / typescript-layers
 npm run lint:encoding
 npm run audit:ci       # dependency security audit (mirrors the Audit CI workflow)
 ```
