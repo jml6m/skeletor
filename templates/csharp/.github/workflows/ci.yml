@@ -23,7 +23,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '{{PIN_RUNTIME_DOTNET}}.x'
 
       - name: Build
         run: dotnet build

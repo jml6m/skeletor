@@ -55,8 +55,9 @@ const TEMPLATE_PROMPTS = {
       id: 'pythonVersion',
       token: 'PYTHON_VERSION',
       message: 'Python version',
-      options: ['3.11', '3.12', '3.13'],
-      default: '3.11',
+      options: ['3.12', '3.13', '3.14'],
+      default: '3.13',
+      defaultFrom: 'PIN_RUNTIME_PYTHON',
     },
     {
       id: 'pythonPackageManager',
@@ -98,8 +99,9 @@ const TEMPLATE_PROMPTS = {
       id: 'targetFramework',
       token: 'TARGET_FRAMEWORK',
       message: 'Target framework',
-      options: ['net8.0', 'net9.0'],
-      default: 'net8.0',
+      options: ['net10.0'],
+      default: 'net10.0',
+      defaultFrom: 'PIN_TARGET_FRAMEWORK',
     },
   ],
 };

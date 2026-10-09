@@ -1,4 +1,4 @@
-import { adjustVerifyCommandsForAnswers } from '../src/template-prompts.js';
+import { adjustVerifyCommandsForAnswers, gatherTemplatePrompts } from '../src/template-prompts.js';
 
 describe('adjustVerifyCommandsForAnswers', () => {
   const flat = [
@@ -18,5 +18,18 @@ describe('adjustVerifyCommandsForAnswers', () => {
       'uv run python -m ruff check .',
       'uv run python -m mypy .',
     ]);
+  });
+});
+
+describe('gatherTemplatePrompts', () => {
+  test('python offers 3.12-3.14 and defaults to the pinned runtime', () => {
+    const prompt = gatherTemplatePrompts('python', { PIN_RUNTIME_PYTHON: '3.13' }).find((pr) => pr.id === 'pythonVersion');
+    expect(prompt.options).toEqual(['3.12', '3.13', '3.14']);
+    expect(prompt.default).toBe('3.13');
+  });
+
+  test('csharp target framework defaults to the pinned .NET runtime', () => {
+    const prompt = gatherTemplatePrompts('csharp', { PIN_TARGET_FRAMEWORK: 'net10.0' }).find((pr) => pr.id === 'targetFramework');
+    expect(prompt.default).toBe('net10.0');
   });
 });
