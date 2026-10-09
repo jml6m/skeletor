@@ -244,3 +244,104 @@ describe('rust layouts', () => {
     }
   });
 });
+
+describe('generated ignore rules', () => {
+  /** Exit 0 means ignored, 1 means not ignored; anything else is a real failure. */
+  function isIgnored(dir, rel) {
+    try {
+      execSync(`git check-ignore -q --no-index "${rel}"`, { cwd: dir, stdio: 'pipe' });
+      return true;
+    } catch (e) {
+      if (e.status === 1) return false;
+      throw e;
+    }
+  }
+
+  async function scaffold(template, opts = {}) {
+    const name = makeName(`ignore-${template}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    await runNew({ command: 'new', name, template, owner: 'acme', auto: true, git: false, ...opts });
+    execSync('git init -q', { cwd: targetDir, stdio: 'pipe' });
+    return { name, targetDir };
+  }
+
+  test.each(['javascript', 'typescript', 'python', 'go', 'rust', 'java', 'csharp'])('%s ignores .env files but not .env.example', async (template) => {
+    const { targetDir } = await scaffold(template);
+    try {
+      expect(isIgnored(targetDir, '.env')).toBe(true);
+      expect(isIgnored(targetDir, '.env.local')).toBe(true);
+      expect(isIgnored(targetDir, '.env.example')).toBe(false);
+      expect(isIgnored(targetDir, 'README.md')).toBe(false);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('javascript --with-recommended leaves the env-example file trackable', async () => {
+    const { targetDir } = await scaffold('javascript', { withRecommended: true });
+    try {
+      expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
+      expect(isIgnored(targetDir, '.env.example')).toBe(false);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('go ignores the binary go build writes, and bin/', async () => {
+    const { name, targetDir } = await scaffold('go');
+    try {
+      expect(isIgnored(targetDir, name)).toBe(true);
+      expect(isIgnored(targetDir, `${name}.exe`)).toBe(true);
+      expect(isIgnored(targetDir, 'bin/tool')).toBe(true);
+      expect(isIgnored(targetDir, 'main.go')).toBe(false);
+      expect(isIgnored(targetDir, `cmd/${name}/main.go`)).toBe(false);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('test-harness:playwright ignores its report and result directories', async () => {
+    const { targetDir } = await scaffold('typescript', { withLayers: ['test-harness:playwright'] });
+    try {
+      for (const rel of ['playwright-report/index.html', 'test-results/run/trace.zip', 'blob-report/report.zip']) {
+        expect({ rel, ignored: isIgnored(targetDir, rel) }).toEqual({ rel, ignored: true });
+      }
+      expect(isIgnored(targetDir, 'tests/e2e/example.spec.ts')).toBe(false);
+      expect(isIgnored(targetDir, 'playwright.config.ts')).toBe(false);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('library-publishing ignores its lib/ build output', async () => {
+    const { targetDir } = await scaffold('typescript', { withLayers: ['library-publishing'] });
+    try {
+      expect(isIgnored(targetDir, 'lib/index.js')).toBe(true);
+      expect(isIgnored(targetDir, 'src/index.ts')).toBe(false);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('layer entries render tokens and are not duplicated', async () => {
+    const { targetDir } = await scaffold('javascript', { withLayers: ['test-harness:playwright'] });
+    try {
+      for (let i = 0; i < 2; i++) {
+        const result = applyLayers({
+          projectDir: targetDir,
+          layerIds: ['logger-winston', 'test-harness:playwright'],
+          template: 'javascript',
+          vars: { LOG_DIR: 'var/log' },
+          noInstall: true,
+        });
+        expect(result.ok).toBe(true);
+      }
+      const ignoreFile = fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8');
+      expect(ignoreFile.match(/^\/test-results\/$/gm)).toHaveLength(1);
+      expect(ignoreFile.match(/^var\/log\/$/gm)).toHaveLength(1);
+      expect(isIgnored(targetDir, 'var/log/app.log')).toBe(true);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+});

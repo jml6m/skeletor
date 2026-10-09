@@ -25,7 +25,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
 - **Layers live in `layers/<id>/`** (`layer.json` plus `files/`), are applied only at `skeletor new` time, and are recorded nowhere in the generated project.
   - A layer applied to both `javascript` (CommonJS) and `typescript` (ESM) must emit a correct module format for each. Ship `.js` (CommonJS) plus `.ts` twins, since the twin for the other language is dropped. Use `.cjs` for one script that must run in both.
   - `patch.packageJson` is one file, or a `{ "javascript": …, "typescript": … }` map when dependencies differ (for example, `string-width` v4 is the last CommonJS major).
-  - `knip.entry` registers the layer's public API or harness files as knip entry points. `labels` declares GitHub labels that `--github` creates.
+  - `knip.entry` registers the layer's public API or harness files as knip entry points. `labels` declares GitHub labels that `--github` creates. `gitignore` lists the output paths the layer's tools create (reports, build output); they are appended to the generated `.gitignore` and may use `{{TOKEN}}` values.
   - Every optional layer and bundle is generated and verified in CI (`tests/generate.test.js`, "optional layers and bundles"), including a strict `npx knip`.
 
 - **CLI / src/index.js**

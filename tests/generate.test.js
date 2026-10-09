@@ -32,7 +32,28 @@ function cleanup(dir) {
   }
 }
 
+// Lockfiles a first install writes and a real project commits. Anything else a verify run
+// creates (build output, caches, reports) must be covered by the generated .gitignore.
+const EXPECTED_AFTER_VERIFY = new Set(['package-lock.json', 'Cargo.lock', 'go.sum']);
+
+function untrackedFiles(projectDir) {
+  return execSync('git status --porcelain --untracked-files=all', { cwd: projectDir, stdio: 'pipe' })
+    .toString()
+    .split('\n')
+    .filter((l) => l.startsWith('?? '))
+    .map((l) => l.slice(3).replace(/^"|"$/g, ''));
+}
+
 function runVerifyCommands(projectDir, commands) {
+  // Stage the scaffold so only files the verify commands create show up as untracked afterwards.
+  execSync('git init -q', { cwd: projectDir, stdio: 'pipe' });
+  execSync('git add -A', { cwd: projectDir, stdio: 'pipe' });
+  runCommands(projectDir, commands);
+  const unexpected = untrackedFiles(projectDir).filter((f) => !EXPECTED_AFTER_VERIFY.has(f));
+  expect({ projectDir, unexpected }).toEqual({ projectDir, unexpected: [] });
+}
+
+function runCommands(projectDir, commands) {
   for (const cmd of commands || []) {
     // Run in the generated project. We tolerate some "health" style commands that use || true internally.
     // The goal per user request is to exercise the post-generation verification steps.
