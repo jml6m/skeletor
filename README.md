@@ -39,6 +39,8 @@ npx @jml6m/skeletor new my-api --template typescript --with-recommended
 npx @jml6m/skeletor new my-service --auto --template go --owner acme-corp
 ```
 
+The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`), at most 64 characters. It becomes the directory, package and repository name, so it is valid for every template. Other names are rejected with a suggestion: interactive runs ask again, `--auto` exits 1.
+
 ### Common flags
 
 - `--template <id>` — stack to scaffold

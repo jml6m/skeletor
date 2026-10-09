@@ -43,7 +43,7 @@ import {
   writeDocsPolicyAllowlist,
 } from './layers.js';
 import { escaperForFile, normalizeDescription } from './escape.js';
-import { JAVA_KEYWORDS, validateGithubOwner, validateProjectName } from './validate-input.js';
+import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +58,8 @@ const USAGE = `
 Usage:
   skeletor new <name> [options]
   skeletor --help
+
+  <name> is lowercase kebab-case, starting with a letter (e.g. my-api), at most 64 characters.
 
 new options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
@@ -149,17 +151,10 @@ function render(content, vars) {
   return content.replace(/\{\{(\w+)\}\}/g, (match, key) => (Object.hasOwn(vars, key) ? String(vars[key]) : match));
 }
 
-// Free-text tokens escaped for the file they land in (JSON, TOML, XML, Markdown, ...).
-const FREE_TEXT_TOKENS = ['DESCRIPTION'];
-
 function varsForFile(filePath, vars) {
   const escape = escaperForFile(filePath);
-  if (!escape) return vars;
-  const out = { ...vars };
-  for (const token of FREE_TEXT_TOKENS) {
-    if (Object.hasOwn(out, token)) out[token] = escape(String(out[token]));
-  }
-  return out;
+  if (!escape || !Object.hasOwn(vars, 'DESCRIPTION')) return vars;
+  return { ...vars, DESCRIPTION: escape(String(vars.DESCRIPTION)) };
 }
 
 function renderPathSegment(segment, vars) {
@@ -167,7 +162,14 @@ function renderPathSegment(segment, vars) {
   return render(out, vars);
 }
 
-// A Java package segment: keyword gets a trailing "_", a leading digit a leading "_" (JLS 6.1).
+const JAVA_KEYWORDS = new Set(
+  ('abstract assert boolean break byte case catch char class const continue default do double else enum ' +
+    'extends false final finally float for goto if implements import instanceof int interface long native new ' +
+    'null package private protected public return short static strictfp super switch synchronized this throw ' +
+    'throws transient true try void volatile while').split(' '),
+);
+
+// A Java package segment from the owner: a keyword gets a trailing "_", a leading digit a leading "_" (JLS 6.1).
 function sanitizeIdentifierSegment(value) {
   const segment = String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
   if (JAVA_KEYWORDS.has(segment)) return `${segment}_`;
@@ -207,7 +209,9 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
   }
   const repoOwner = owner;
   const ownerSegment = sanitizeIdentifierSegment(repoOwner);
+  // NAMESPACE is the Rust crate identifier; C# namespaces are PascalCase (my-app → MyApp).
   const namespace = String(name).replace(/-/g, '_');
+  const csharpNamespace = String(name).replace(/(?:^|-)([a-z0-9])/g, (_, c) => c.toUpperCase());
   const javaPackage = `io.github.${ownerSegment}`;
   return {
     PROJECT_NAME: name,
@@ -216,6 +220,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     DESCRIPTION: normalizeDescription(description) || DEFAULT_DESCRIPTION,
     YEAR: new Date().getFullYear(),
     NAMESPACE: namespace,
+    CSHARP_NAMESPACE: csharpNamespace,
     GROUP_ID: javaPackage,
     JAVA_PACKAGE: javaPackage,
     JAVA_PACKAGE_PATH: javaPackage.replace(/\./g, '/'),
@@ -412,11 +417,10 @@ async function resolveOwnerForNew(opts, isInteractive) {
 }
 
 /**
- * Checks the shared name rules, or the template's own rules once `language` is known. Interactive runs
- * re-prompt until the name passes; other runs exit with the rule that failed.
+ * Interactive runs re-prompt for an invalid name, prefilled with a suggestion; other runs exit 1.
  */
-async function resolveProjectName(name, language, isInteractive) {
-  const error = validateProjectName(name, language);
+async function resolveProjectName(name, isInteractive) {
+  const error = validateProjectName(name);
   if (!error) return name;
   if (!isInteractive) {
     logError(`❌ ${error}`);
@@ -426,8 +430,8 @@ async function resolveProjectName(name, language, isInteractive) {
   const answer = await p.text({
     message: 'Project name',
     placeholder: 'my-app',
-    initialValue: name || undefined,
-    validate: (value) => validateProjectName(value, language) ?? undefined,
+    initialValue: name ? suggestProjectName(name) : undefined,
+    validate: (value) => validateProjectName(value) ?? undefined,
   });
   if (p.isCancel(answer)) {
     p.cancel('Cancelled.');
@@ -452,7 +456,7 @@ async function promptForLayerVars(prompts) {
 async function runNew(opts) {
   const { git, auto } = opts;
   const isInteractive = !auto && process.stdout.isTTY;
-  let name = await resolveProjectName(opts.name, null, isInteractive);
+  const name = await resolveProjectName(opts.name, isInteractive);
 
   const allTemplates = getTemplatesWithManifests();
   if (allTemplates.length === 0) {
@@ -492,7 +496,6 @@ async function runNew(opts) {
     logError(`❌ Unknown template "${chosenTemplateId}".`);
     process.exit(1);
   }
-  name = await resolveProjectName(name, templateInfo.language || chosenTemplateId, isInteractive);
 
   const pinned = loadPinnedVersions(templateInfo.dir);
   const pinManifestErrors = validatePinnedVersionsManifest(pinned, chosenTemplateId);

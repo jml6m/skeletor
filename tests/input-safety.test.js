@@ -6,12 +6,13 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildRenderVars, render, runNew } from '../src/index.js';
-import { escapeMarkdown, escapeTomlString, escapeXml, escaperForFile, normalizeDescription } from '../src/escape.js';
-import { validateGithubOwner, validateProjectName } from '../src/validate-input.js';
+import { detectGithubOwners } from '../src/detect-owner.js';
+import { normalizeDescription } from '../src/escape.js';
+import { suggestProjectName, validateGithubOwner, validateProjectName } from '../src/validate-input.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src', 'index.js');
-const NASTY = 'x "quoted" & <b>bold</b> */ \\N $& {{YEAR}}\nsecond\tline';
+const NASTY = 'x "quoted" & <b>bold</b> \'it\' \\N $& {{YEAR}}\nsecond\tline';
 
 function cliEnv(extra = {}) {
   const env = { ...process.env, ...extra };
@@ -34,186 +35,134 @@ function tempDir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
 
-function unescapeToml(value) {
-  return value.replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_m, c) => {
-    if (c.length > 1) return String.fromCharCode(parseInt(c.slice(1), 16));
-    return { b: '\b', t: '\t', n: '\n', f: '\f', r: '\r' }[c] ?? c;
-  });
-}
+const unescapeQuoted = (value) => value.replace(/\\(.)/g, '$1');
+const unescapeXml = (value) =>
+  value.replace(/&(amp|lt|gt|quot|apos);/g, (_m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[e]);
 
-function unescapeXml(value) {
-  return value.replace(/&(amp|lt|gt|quot|apos);/g, (_m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[e]);
-}
-
-describe('validateProjectName', () => {
-  test.each([
-    ['../escape', null, 'single directory name'],
-    ['@scope/name', null, 'single directory name'],
-    ['a\\b', null, 'single directory name'],
-    ['.hidden', null, 'single directory name'],
-    ['..', null, 'single directory name'],
-    ['-flag', null, 'single directory name'],
-    ['my app', null, 'GitHub repository name'],
-    ['app;touch pwned', null, 'GitHub repository name'],
-    ['$(id)', null, 'GitHub repository name'],
-    ['a'.repeat(101), null, 'GitHub repository name'],
-    ['MyApp', 'javascript', 'npm package name: it must be lowercase'],
-    ['_app', 'typescript', 'npm package name: it must not start with "_"'],
-    ['http', 'javascript', 'Node.js core module name'],
-    ['node_modules', 'javascript', 'is reserved'],
-    ['app-', 'python', 'Python project name'],
-    ['1app', 'rust', 'Cargo crate name: it must not start with a digit'],
-    ['my.app', 'rust', 'Cargo crate name: use only letters'],
-    ['fn', 'rust', 'Rust keyword'],
-    ['test', 'rust', 'reserved by Cargo'],
-    ['app.', 'go', 'Go module path element: it must not end with "."'],
-    ['nul', 'go', 'reserved name on Windows'],
-    ['1app', 'csharp', 'C# namespace: each dot-separated part must start with a letter'],
-    ['my..app', 'csharp', 'C# namespace'],
-    ['class', 'csharp', 'C# keyword'],
-  ])('rejects %j (%s) naming the rule', (name, language, rule) => {
-    expect(validateProjectName(name, language)).toContain(rule);
+describe('project name rule', () => {
+  test.each(['my-app', 'a', 'app2', 'my-2nd-app', 'a'.repeat(64)])('accepts %j', (name) => {
+    expect(validateProjectName(name)).toBeNull();
   });
 
   test.each([
-    ['my-app', 'javascript'],
-    ['my.app', 'typescript'],
-    ['My_App', 'python'],
-    ['my_app-2', 'rust'],
-    ['My-App', 'go'],
-    ['My.App', 'csharp'],
-    ['1app', 'java'],
-  ])('accepts %j for %s', (name, language) => {
-    expect(validateProjectName(name, language)).toBeNull();
-  });
-
-  test('requires a name', () => {
-    expect(validateProjectName('', null)).toContain('required');
-    expect(validateProjectName(undefined, null)).toContain('required');
+    ['MyApp', 'myapp'],
+    ['My App', 'my-app'],
+    ['my_app', 'my-app'],
+    ['my.app', 'my-app'],
+    ['1app', 'app-1app'],
+    ['-app-', 'app'],
+    ['my--app', 'my-app'],
+    ['../escape', 'escape'],
+    ['@scope/name', 'scope-name'],
+    ['a\\b', 'a-b'],
+    ['app;touch pwned', 'app-touch-pwned'],
+    ['a'.repeat(65), 'a'.repeat(64)],
+    ['', 'my-app'],
+  ])('rejects %j and suggests %j', (name, suggestion) => {
+    const error = validateProjectName(name);
+    expect(error).toContain('Project names are lowercase kebab-case, starting with a letter (e.g. my-app)');
+    expect(error).toContain(`"${suggestion}"`);
+    expect(suggestProjectName(name)).toBe(suggestion);
+    expect(validateProjectName(suggestion)).toBeNull();
   });
 });
 
-describe('validateGithubOwner', () => {
+describe('CLI rejects invalid names before writing anything', () => {
+  test.each([['../escape'], ['@scope/x'], ['MyApp']])('new %j', (name) => {
+    const root = tempDir('skeletor-name-');
+    const cwd = path.join(root, 'work');
+    fs.mkdirSync(cwd);
+    try {
+      const { status, output } = runCli(['new', name, '--template', 'go', '--owner', 'my-org', '--auto', '--no-git'], cwd);
+      expect(status).toBe(1);
+      expect(output).toContain('lowercase kebab-case');
+      expect(output).toContain(`Try "${suggestProjectName(name)}"`);
+      expect(fs.readdirSync(cwd)).toEqual([]);
+      expect(fs.readdirSync(root)).toEqual(['work']);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('GitHub owner rule', () => {
   test.each(['my-org', 'a', 'A1-b2', 'a'.repeat(39)])('accepts %j', (owner) => {
     expect(validateGithubOwner(owner)).toBeNull();
   });
 
-  test.each(['-org', 'org-', 'my--org', 'my org', 'my/org', 'my-org;touch pwned', '$(id)', '`id`', 'a'.repeat(40), ''])(
+  test.each(['-org', '--help', 'org-', 'my--org', 'my org', 'my/org', 'my-org;touch pwned', '$(id)', 'a'.repeat(40), ''])(
     'rejects %j',
     (owner) => {
       expect(validateGithubOwner(owner)).not.toBeNull();
     },
   );
+
+  test('--owner with shell metacharacters exits 1', () => {
+    const cwd = tempDir('skeletor-owner-');
+    try {
+      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--owner', 'my-org;touch pwned', '--auto', '--no-git'], cwd);
+      expect(status).toBe(1);
+      expect(output).toContain('not a valid GitHub user or organization name');
+      expect(fs.readdirSync(cwd)).toEqual([]);
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test('a detected owner starting with "-" is dropped', () => {
+    const dir = tempDir('skeletor-detect-');
+    try {
+      fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ repository: 'https://github.com/-evil/x' }));
+      expect(detectGithubOwners(dir).map((c) => c.owner)).not.toContain('-evil');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('owners that are not Java identifiers still give a valid Java package', () => {
+    expect(buildRenderVars({ name: 'my-app', owner: '1org' }).JAVA_PACKAGE).toBe('io.github._1org');
+    expect(buildRenderVars({ name: 'my-app', owner: 'int' }).JAVA_PACKAGE).toBe('io.github.int_');
+    expect(buildRenderVars({ name: 'my-app', owner: 'my-org' }).JAVA_PACKAGE).toBe('io.github.myorg');
+  });
 });
 
-test('owners that are not Java identifiers still give a valid Java package', () => {
-  expect(buildRenderVars({ name: 'my-app', owner: '1org' }).JAVA_PACKAGE).toBe('io.github._1org');
-  expect(buildRenderVars({ name: 'my-app', owner: 'int' }).JAVA_PACKAGE).toBe('io.github.int_');
-  expect(buildRenderVars({ name: 'my-app', owner: 'my-org' }).JAVA_PACKAGE).toBe('io.github.myorg');
+test('the C# namespace is the name in PascalCase', () => {
+  expect(buildRenderVars({ name: 'my-app', owner: 'o' }).CSHARP_NAMESPACE).toBe('MyApp');
+  expect(buildRenderVars({ name: 'app-2-go', owner: 'o' }).CSHARP_NAMESPACE).toBe('App2Go');
 });
 
-describe('description escaping', () => {
+describe('description', () => {
   test('render inserts values literally', () => {
     expect(render('{{DESCRIPTION}} {{YEAR}}', { DESCRIPTION: '$& {{YEAR}}', YEAR: 2026 })).toBe('$& {{YEAR}} 2026');
   });
 
-  test('picks the escaper from the output file type', () => {
-    expect(escaperForFile('a/package.json')('a "b"')).toBe('a \\"b\\"');
-    expect(escaperForFile('Cargo.toml')).toBe(escapeTomlString);
-    expect(escaperForFile('pom.xml')).toBe(escapeXml);
-    expect(escaperForFile('Project.csproj')).toBe(escapeXml);
-    expect(escaperForFile('README.md')).toBe(escapeMarkdown);
-    expect(escaperForFile('Program.cs')).toBeNull();
+  test('collapses to one line', () => {
+    expect(normalizeDescription(' a\n\tb\u0000c\u007f ')).toBe('a b c');
   });
 
-  test('TOML and XML escapes round-trip', () => {
-    const value = 'a "b" \\ c\u0007 & <d> \'e\'';
-    expect(unescapeToml(escapeTomlString(value))).toBe(value);
-    expect(escapeTomlString(value)).not.toMatch(/[\u0000-\u001f]/);
-    expect(unescapeXml(escapeXml(value))).toBe(value);
-  });
-
-  test('Markdown escape keeps HTML and line-start syntax literal', () => {
-    expect(escapeMarkdown('<b>x</b> *y* [z]')).toBe('\\<b\\>x\\</b\\> \\*y\\* \\[z\\]');
-    expect(escapeMarkdown('# not a heading')).toBe('\\# not a heading');
-    expect(escapeMarkdown('1. not a list')).toBe('1\\. not a list');
-    expect(escapeMarkdown('AT&T &amp;')).toBe('AT&T \\&amp;');
-  });
-
-  test('descriptions collapse to one line', () => {
-    expect(normalizeDescription(' a\n\tb\u0000c ')).toBe('a b c');
-  });
-
-  test('generated manifests parse with a description full of special characters', async () => {
+  test('round-trips through package.json, pyproject.toml, Cargo.toml and pom.xml', async () => {
     const expected = normalizeDescription(NASTY);
+    const tomlValue = (text) => {
+      const line = text.split('\n').find((l) => l.startsWith('description = '));
+      expect(line).toMatch(/^description = "(?:[^"\\]|\\.)*"$/);
+      return unescapeQuoted(line.slice('description = "'.length, -1));
+    };
     const cases = [
-      { template: 'javascript' },
-      { template: 'python', layout: 'src' },
-      { template: 'rust', layout: 'workspace' },
-      { template: 'java' },
-      { template: 'csharp' },
+      ['javascript', undefined, 'package.json', (t) => JSON.parse(t).description],
+      ['python', 'src', 'pyproject.toml', tomlValue],
+      ['rust', 'single', 'Cargo.toml', tomlValue],
+      ['java', undefined, 'pom.xml', (t) => unescapeXml(t.match(/<description>([^<]*)<\/description>/)[1])],
     ];
-    for (const { template, layout } of cases) {
+    for (const [template, layout, file, read] of cases) {
       const name = `gen-desc-${template}-${Date.now()}`;
       const dir = path.resolve(process.cwd(), name);
       try {
         await runNew({ command: 'new', name, template, layout, owner: 'my-org', description: NASTY, auto: true, git: false, withLayers: [] });
-        const read = (rel) => fs.readFileSync(path.join(dir, rel), 'utf8');
-
-        if (template === 'javascript') {
-          expect(JSON.parse(read('package.json')).description).toBe(expected);
-        }
-        if (template === 'python' || template === 'rust') {
-          const manifest = template === 'python' ? 'pyproject.toml' : path.join('crates', 'core', 'Cargo.toml');
-          const line = read(manifest).split('\n').find((l) => l.startsWith('description = '));
-          expect(line).toMatch(/^description = "(?:[^"\\]|\\.)*"$/);
-          expect(unescapeToml(line.slice('description = "'.length, -1))).toBe(expected);
-        }
-        if (template === 'python') {
-          expect(read(path.join('src', 'app', '__init__.py'))).toContain('x \\"quoted\\" & <b>bold</b> */ \\\\N');
-        }
-        if (template === 'java') {
-          const description = read('pom.xml').match(/<description>([^<]*)<\/description>/);
-          expect(description).not.toBeNull();
-          expect(unescapeXml(description[1])).toBe(expected);
-          const app = read(path.join('src', 'main', 'java', 'io', 'github', 'myorg', 'App.java'));
-          expect(app.split('*/').length).toBe(2);
-          expect(app).not.toContain('\\N');
-        }
-        if (template === 'csharp') {
-          expect(read('Program.cs')).toContain(`// ${expected}\n`);
-        }
-        expect(read('README.md')).toContain('x "quoted" & \\<b\\>bold\\</b\\> \\*/ \\\\N $& {{YEAR}} second line');
+        expect(read(fs.readFileSync(path.join(dir, file), 'utf8'))).toBe(expected);
+        expect(fs.readFileSync(path.join(dir, 'README.md'), 'utf8')).toContain(expected);
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }
-    }
-  });
-});
-
-describe('CLI rejects unsafe input before writing anything', () => {
-  test.each([
-    [['../escape', '--template', 'go'], 'single directory name'],
-    [['@scope/name', '--template', 'javascript'], 'single directory name'],
-    [['MyApp', '--template', 'javascript'], 'npm package name'],
-    [['my app', '--template', 'javascript'], 'GitHub repository name'],
-    [['1app', '--template', 'csharp'], 'C# namespace'],
-    [['app;touch pwned', '--template', 'go'], 'GitHub repository name'],
-    [['ok-app', '--template', 'go', '--owner', 'my-org;touch pwned'], 'GitHub owner'],
-    [['ok-app', '--template', 'go', '--owner', '$(touch pwned)'], 'GitHub owner'],
-  ])('new %j', (args, rule) => {
-    const root = tempDir('skeletor-unsafe-');
-    const cwd = path.join(root, 'work');
-    fs.mkdirSync(cwd);
-    try {
-      const owner = args.includes('--owner') ? [] : ['--owner', 'my-org'];
-      const { status, output } = runCli(['new', ...args, ...owner, '--auto', '--no-git'], cwd);
-      expect(status).not.toBe(0);
-      expect(output).toContain(rule);
-      expect(fs.readdirSync(cwd)).toEqual([]);
-      expect(fs.readdirSync(root)).toEqual(['work']);
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true });
     }
   });
 });

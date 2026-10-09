@@ -23,7 +23,7 @@ function runCli(args, cwd = ROOT) {
   return execSync(`node "${SRC}" ${args}`, { cwd, stdio: 'pipe', env });
 }
 
-// Special characters for every format a description lands in; verify runs each toolchain on the result.
+// Special characters for the JSON, TOML and XML files a description lands in; verify runs each toolchain on them.
 const DESCRIPTION = 'Tetrahedral "barycentric" coords & <b>tags</b> */ \\ $&';
 
 function makeTempProjectName(prefix = 'skeletor-test') {
@@ -207,7 +207,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 
         if (tmpl.id === 'csharp') {
           const program = fs.readFileSync(path.join(targetDir, 'Program.cs'), 'utf8');
-          expect(program).toContain(`namespace ${name.replace(/-/g, '_')};`);
+          expect(program).toContain(`namespace ${name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase())};`);
           expect(program).not.toContain('{{');
         }
 
