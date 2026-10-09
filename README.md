@@ -2,7 +2,7 @@
 
 **Multi-language project scaffolding with composable enhancement layers and AGENTS.md built in.**
 
-Generates projects pre-configured with lint/format/health/release defaults (JS/TS encode real workspace conventions; other stacks ship clean baselines).
+Generates projects preconfigured with lint/format/health/release defaults (JS/TS encode real workspace conventions; other stacks ship clean baselines).
 
 ```bash
 npx @jml6m/skeletor new my-api --template typescript --with-recommended
