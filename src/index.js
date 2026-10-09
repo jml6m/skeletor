@@ -42,6 +42,8 @@ import {
   validateLayerManifests,
   writeDocsPolicyAllowlist,
 } from './layers.js';
+import { escaperForFile, normalizeDescription } from './escape.js';
+import { JAVA_KEYWORDS, validateGithubOwner, validateProjectName } from './validate-input.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -142,10 +144,20 @@ function parseArgs(argv) {
   return result;
 }
 
+// One pass, so a value containing "{{TOKEN}}" or "$&" is inserted literally.
 function render(content, vars) {
-  let out = content;
-  for (const [k, v] of Object.entries(vars)) {
-    out = out.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
+  return content.replace(/\{\{(\w+)\}\}/g, (match, key) => (Object.hasOwn(vars, key) ? String(vars[key]) : match));
+}
+
+// Free-text tokens escaped for the file they land in (JSON, TOML, XML, Markdown, ...).
+const FREE_TEXT_TOKENS = ['DESCRIPTION'];
+
+function varsForFile(filePath, vars) {
+  const escape = escaperForFile(filePath);
+  if (!escape) return vars;
+  const out = { ...vars };
+  for (const token of FREE_TEXT_TOKENS) {
+    if (Object.hasOwn(out, token)) out[token] = escape(String(out[token]));
   }
   return out;
 }
@@ -155,8 +167,11 @@ function renderPathSegment(segment, vars) {
   return render(out, vars);
 }
 
+// A Java package segment: keyword gets a trailing "_", a leading digit a leading "_" (JLS 6.1).
 function sanitizeIdentifierSegment(value) {
-  return String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
+  const segment = String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
+  if (JAVA_KEYWORDS.has(segment)) return `${segment}_`;
+  return /^[0-9]/.test(segment) ? `_${segment}` : segment;
 }
 
 const DEPENDABOT_ECOSYSTEM_BY_LANGUAGE = {
@@ -198,7 +213,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     PROJECT_NAME: name,
     REPO_OWNER: repoOwner,
     REPO_NAME: name,
-    DESCRIPTION: description || DEFAULT_DESCRIPTION,
+    DESCRIPTION: normalizeDescription(description) || DEFAULT_DESCRIPTION,
     YEAR: new Date().getFullYear(),
     NAMESPACE: namespace,
     GROUP_ID: javaPackage,
@@ -237,7 +252,7 @@ function copyAndRender(src, dest, vars) {
     return;
   }
   let content = fs.readFileSync(src, 'utf8');
-  content = render(content, vars);
+  content = render(content, varsForFile(dest, vars));
   ensureDir(path.dirname(dest));
   fs.writeFileSync(dest, content, 'utf8');
 }
@@ -365,6 +380,11 @@ const DEFAULT_DESCRIPTION = 'A skeletor project.';
 
 async function resolveOwnerForNew(opts, isInteractive) {
   if (opts.owner?.trim()) {
+    const ownerError = validateGithubOwner(opts.owner);
+    if (ownerError) {
+      logError(`❌ ${ownerError}`);
+      process.exit(1);
+    }
     return opts.owner.trim();
   }
 
@@ -391,6 +411,31 @@ async function resolveOwnerForNew(opts, isInteractive) {
   return candidates[0].owner;
 }
 
+/**
+ * Checks the shared name rules, or the template's own rules once `language` is known. Interactive runs
+ * re-prompt until the name passes; other runs exit with the rule that failed.
+ */
+async function resolveProjectName(name, language, isInteractive) {
+  const error = validateProjectName(name, language);
+  if (!error) return name;
+  if (!isInteractive) {
+    logError(`❌ ${error}`);
+    process.exit(1);
+  }
+  if (name) p.log.error(error);
+  const answer = await p.text({
+    message: 'Project name',
+    placeholder: 'my-app',
+    initialValue: name || undefined,
+    validate: (value) => validateProjectName(value, language) ?? undefined,
+  });
+  if (p.isCancel(answer)) {
+    p.cancel('Cancelled.');
+    process.exit(0);
+  }
+  return answer;
+}
+
 async function promptForLayerVars(prompts) {
   const vars = {};
   for (const pr of prompts) {
@@ -405,12 +450,9 @@ async function promptForLayerVars(prompts) {
 }
 
 async function runNew(opts) {
-  const { name, git, auto } = opts;
-
-  if (!name || name === '.' || name === '..') {
-    logError('❌ Please provide a valid project name (e.g. "my-api").');
-    process.exit(1);
-  }
+  const { git, auto } = opts;
+  const isInteractive = !auto && process.stdout.isTTY;
+  let name = await resolveProjectName(opts.name, null, isInteractive);
 
   const allTemplates = getTemplatesWithManifests();
   if (allTemplates.length === 0) {
@@ -427,7 +469,6 @@ async function runNew(opts) {
     }
     chosenTemplateId = bundle.template;
   }
-  const isInteractive = !auto && process.stdout.isTTY;
   let finalOwner = await resolveOwnerForNew(opts, isInteractive);
   const finalDesc = opts.description || DEFAULT_DESCRIPTION;
 
@@ -451,6 +492,7 @@ async function runNew(opts) {
     logError(`❌ Unknown template "${chosenTemplateId}".`);
     process.exit(1);
   }
+  name = await resolveProjectName(name, templateInfo.language || chosenTemplateId, isInteractive);
 
   const pinned = loadPinnedVersions(templateInfo.dir);
   const pinManifestErrors = validatePinnedVersionsManifest(pinned, chosenTemplateId);
@@ -660,14 +702,14 @@ async function runNew(opts) {
 
 function createGithubRemote(targetDir, name, owner, isPrivate, labels = []) {
   try {
-    execSync('gh --version', { stdio: 'ignore' });
+    execFileSync('gh', ['--version'], { stdio: 'ignore' });
   } catch {
     p.log.warn('gh CLI not available — skipping --github remote creation');
     return;
   }
   const visibility = isPrivate ? '--private' : '--public';
   try {
-    execSync(`gh repo create ${owner}/${name} ${visibility} --source=. --remote=origin`, {
+    execFileSync('gh', ['repo', 'create', `${owner}/${name}`, visibility, '--source=.', '--remote=origin'], {
       cwd: targetDir,
       stdio: 'pipe',
     });
