@@ -24,7 +24,8 @@
     "publish:dry": "npm publish --dry-run",
     "release:preflight": "node scripts/publish-preflight.mjs",
     "pin:check": "node scripts/check-pin-updates.mjs",
-    "prepublishOnly": "npm run lint && npm run audit:ci && npm test"
+    "prepublishOnly": "npm run lint && npm run audit:ci && npm test",
+    "prepare": "husky"
   },
   "publishConfig": {
     "access": "public"
@@ -53,7 +54,8 @@
     "@clack/prompts": "^1.8.1"
   },
   "devDependencies": {
-    "jest": "^30.5.2"
+    "jest": "^30.5.2",
+    "husky": "^9.1.7"
   },
   "author": "Joseph Lewkovich",
   "license": "MIT",
