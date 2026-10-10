@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "status": "active",
   "statusMessage": null,
-  "lastReviewed": "2026-06-14",
+  "lastReviewed": "2026-10-09",
   "runtime": {
-    "rust": { "edition": "2021", "channel": "stable", "policy": "major" }
+    "rust": { "edition": "2024", "channel": "stable", "policy": "major" }
   },
   "packages": {}
 }
