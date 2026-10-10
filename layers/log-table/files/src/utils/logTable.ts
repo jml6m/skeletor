@@ -19,6 +19,8 @@ export function resolveTerminalWidth(settings: Partial<LogTableSettings> = {}) {
     return clampTerminalWidth(cfg.terminalWidth, cfg);
   }
 
+  // COLUMNS is terminal state set by the shell, not app config, so it is read directly.
+  // eslint-disable-next-line no-restricted-properties
   const envColumns = Number.parseInt(process.env.COLUMNS || '', 10);
   const stdoutColumns = process.stdout.isTTY ? process.stdout.columns : null;
   const detected = stdoutColumns || (Number.isFinite(envColumns) ? envColumns : null) || cfg.defaultTerminalWidth;

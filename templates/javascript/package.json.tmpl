@@ -26,17 +26,20 @@
     "module-alias": "{{PIN_MODULE_ALIAS}}"
   },
   "devDependencies": {
+    "@eslint/js": "{{PIN_ESLINT_JS}}",
     "eslint": "{{PIN_ESLINT}}",
-    "eslint-import-resolver-jsconfig": "{{PIN_ESLINT_IMPORT_RESOLVER_JSCONFIG}}",
-    "eslint-plugin-import": "{{PIN_ESLINT_PLUGIN_IMPORT}}",
+    "eslint-import-resolver-typescript": "{{PIN_ESLINT_IMPORT_RESOLVER_TYPESCRIPT}}",
+    "eslint-plugin-import-x": "{{PIN_ESLINT_PLUGIN_IMPORT_X}}",
+    "eslint-plugin-n": "{{PIN_ESLINT_PLUGIN_N}}",
     "eslint-plugin-unused-imports": "{{PIN_ESLINT_PLUGIN_UNUSED_IMPORTS}}",
+    "globals": "{{PIN_GLOBALS}}",
     "husky": "{{PIN_HUSKY}}",
     "jest": "{{PIN_JEST}}",
     "jscpd": "{{PIN_JSCPD}}",
     "knip": "{{PIN_KNIP}}",
     "lint-staged": "{{PIN_LINT_STAGED}}",
     "madge": "{{PIN_MADGE}}",
-    "npm-run-all": "{{PIN_NPM_RUN_ALL}}",
+    "npm-run-all2": "{{PIN_NPM_RUN_ALL2}}",
     "prettier": "{{PIN_PRETTIER}}",
     "prettier-plugin-organize-imports": "{{PIN_PRETTIER_PLUGIN_ORGANIZE_IMPORTS}}",
     "prettier-plugin-pkg": "{{PIN_PRETTIER_PLUGIN_PKG}}"
@@ -55,5 +58,12 @@
   },
   "engines": {
     "node": "{{PIN_RUNTIME_NODE_ENGINES}}"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "{{PIN_RUNTIME_NODE_ENGINES}}",
+      "onFail": "error"
+    }
   }
 }

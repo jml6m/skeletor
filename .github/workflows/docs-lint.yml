@@ -38,7 +38,7 @@ jobs:
             exit 0
           fi
 
-          if echo "$changed_files" | grep -qE '\.md$|^\.lychee\.toml$|^\.markdownlint-cli2\.yaml$|^\.github/workflows/.*\.ya?ml$'; then
+          if echo "$changed_files" | grep -qE '\.md$|^\.cursorrules$|^\.lychee\.toml$|^\.markdownlint-cli2\.yaml$|^scripts/check-agent-file-length\.mjs$|^\.github/workflows/.*\.ya?ml$'; then
             echo "relevant=true" >> "$GITHUB_OUTPUT"
           else
             echo "relevant=false" >> "$GITHUB_OUTPUT"
@@ -67,6 +67,10 @@ jobs:
       - name: Run markdownlint
         if: steps.changed.outputs.relevant == 'true'
         run: markdownlint-cli2 '**/*.md'
+
+      - name: Agent-instruction file length
+        if: steps.changed.outputs.relevant == 'true'
+        run: node scripts/check-agent-file-length.mjs
 
   docs-policy:
     runs-on: ubuntu-latest

@@ -7,7 +7,11 @@
 This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) and follows personal conventions extracted from active workspaces:
 
 - Prettier + organize-imports + pkg plugin (printWidth 165, 2 spaces, single quotes)
-- ESLint + unused-imports (strict), no parent relative imports (`../*`)
+- ESLint + typescript-eslint + unused-imports (strict), plus:
+  - no parent relative imports (`../*`): use subpath imports (`#utils/...`) or siblings (`./`)
+  - no `process.env` outside [src/config/env.config.ts](./src/config/env.config.ts), `tests/support/` and root `*.config.ts` files: read config from `#config`
+  - no `console.log`: use the logger
+  - no template literals in logger messages (warning): pass dynamic values as metadata, `logger.info('Event', { key: value })`
 - Knip (dead code), jscpd (dupes), madge (circular) via `npm run health:full`
 - Custom `release.js` (one bump per PR, major gates via GitHub issue labels `vN-required`)
 - AGENTS.md as the Single Source of Truth for coding standards + AI agent protocols
