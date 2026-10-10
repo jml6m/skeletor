@@ -87,7 +87,22 @@ describe('pinned-versions', () => {
     const pinned = JSON.parse(fs.readFileSync(path.join(tmpl.dir, 'pinned-versions.json'), 'utf8'));
     const tokens = buildPinTokens(pinned, tmpl);
     expect(tokens.PIN_JEST).toBe('^30.0.0');
-    expect(tokens.PIN_RUNTIME_NODE_ENGINES).toBe('^22.22.2 || >=24.15.0');
+    expect(tokens.PIN_RUNTIME_NODE_ENGINES).toBe('>=24.15.0');
+  });
+
+  test.each(['javascript', 'typescript'])('%s scaffolds hold dev, CI and installs to one Node version', async (template) => {
+    const name = `node-policy-${template}-${Date.now()}`;
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template, owner: 'pin-owner', auto: true, git: false });
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.engines.node).toBe('>=24.15.0');
+      expect(pkg.devEngines.runtime).toEqual({ name: 'node', version: '>=24.15.0', onFail: 'error' });
+      expect(fs.readFileSync(path.join(targetDir, '.nvmrc'), 'utf8')).toBe('24\n');
+      expect(fs.readFileSync(path.join(targetDir, '.github/workflows/ci.yml'), 'utf8')).toContain("node-version-file: '.nvmrc'");
+    } finally {
+      if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true });
+    }
   });
 
   test('runtime pin tokens follow the python version picked at the prompt', () => {
