@@ -275,6 +275,23 @@ function addKnipEntries(projectDir, entries) {
 }
 
 /**
+ * Appends the output paths a layer's tools create (reports, build dirs) to .gitignore under a
+ * comment naming the layer, skipping patterns the file already has.
+ * @param {string} projectDir
+ * @param {string} layerName
+ * @param {string[]} entries
+ */
+function addGitignoreEntries(projectDir, layerName, entries) {
+  const ignorePath = path.join(projectDir, '.gitignore');
+  const existing = fs.existsSync(ignorePath) ? fs.readFileSync(ignorePath, 'utf8') : '';
+  const have = new Set(existing.split(/\r?\n/).map((l) => l.trim()));
+  const missing = [...new Set(entries)].filter((e) => !have.has(e));
+  if (!missing.length) return;
+  const prefix = existing ? `${existing.trimEnd()}\n\n` : '';
+  fs.writeFileSync(ignorePath, `${prefix}# ${layerName}\n${missing.join('\n')}\n`, 'utf8');
+}
+
+/**
  * `patch.packageJson` is either one patch file for every language, or a map of language → file
  * for layers whose dependencies differ (e.g. a CommonJS-compatible major for the javascript template).
  * @param {{ patch?: { packageJson?: string | Record<string, string> } }} layer
@@ -460,6 +477,10 @@ export function applyLayers(options) {
 
     if (Array.isArray(layer.knip?.entry)) addKnipEntries(projectDir, layer.knip.entry);
 
+    if (Array.isArray(layer.gitignore)) {
+      addGitignoreEntries(projectDir, layer.name || layer.id, layer.gitignore.map((e) => renderLayerContent(e, vars)));
+    }
+
     if (Array.isArray(layer.labels)) labels.push(...layer.labels);
 
     applied.push(layerPlan.id);
@@ -533,6 +554,11 @@ export function validateLayerManifests() {
       if (!label?.name || !/^[0-9A-Fa-f]{6}$/.test(label.color || '')) {
         errors.push(`${layer.id}: labels need a name and a 6-digit hex color`);
       }
+    }
+
+    const ignores = layer.gitignore;
+    if (ignores !== undefined && (!Array.isArray(ignores) || !ignores.every((e) => typeof e === 'string' && e.trim() && !/[\r\n]/.test(e)))) {
+      errors.push(`${layer.id}: gitignore must be an array of single-line patterns`);
     }
 
     if (layer.docs?.agents?.append) {

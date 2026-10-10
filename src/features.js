@@ -15,6 +15,11 @@ const BASE_GITIGNORE = [
   '.idea/',
   '.vscode/',
   '*.swp',
+  '',
+  '# Env & secrets (.env.example is committed)',
+  '.env',
+  '.env.*',
+  '!.env.example',
 ];
 
 export const FEATURE_REGISTRY = {
@@ -27,9 +32,7 @@ export const FEATURE_REGISTRY = {
       'dist/',
       'build/',
       '',
-      '# Env & secrets',
-      '.env',
-      '.env.*',
+      '# Local overrides',
       '*.local',
       '',
       '# Logs',
@@ -63,7 +66,7 @@ export const FEATURE_REGISTRY = {
     ],
   },
   'python-uv': { gitignore: [] },
-  go: { gitignore: ['bin/', 'vendor/'] },
+  go: { gitignore: ['/{{PROJECT_NAME}}', '/{{PROJECT_NAME}}.exe', 'bin/', 'vendor/'] },
   rust: { gitignore: ['/target/'] },
   java: { gitignore: ['target/'] },
   dotnet: { gitignore: ['bin/', 'obj/'] },
@@ -95,14 +98,16 @@ export const VERIFY_COMMAND_RULES = [
 
 /**
  * @param {string[]} features
+ * @param {Record<string, string|number>} [vars] values for `{{TOKEN}}` placeholders in fragments
  * @returns {string}
  */
-export function buildGitignore(features) {
+export function buildGitignore(features, vars = {}) {
   const lines = [...BASE_GITIGNORE];
   const seen = new Set(lines);
   for (const feature of features) {
     const fragment = FEATURE_REGISTRY[feature]?.gitignore || [];
-    for (const line of fragment) {
+    for (const raw of fragment) {
+      const line = raw.replace(/\{\{([A-Z][A-Z0-9_]*)\}\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
       if (!seen.has(line)) {
         seen.add(line);
         lines.push(line);
@@ -199,12 +204,13 @@ function readJsconfigPaths(targetDir) {
  * Write manifest-driven config files into a generated project.
  * @param {string} targetDir
  * @param {{ features?: string[], language?: string }} templateInfo
+ * @param {Record<string, string|number>} [vars]
  */
-export function applyFeatureConfigs(targetDir, templateInfo) {
+export function applyFeatureConfigs(targetDir, templateInfo, vars = {}) {
   const features = templateInfo.features;
   if (!Array.isArray(features) || features.length === 0) return;
 
-  fs.writeFileSync(path.join(targetDir, '.gitignore'), buildGitignore(features), 'utf8');
+  fs.writeFileSync(path.join(targetDir, '.gitignore'), buildGitignore(features, vars), 'utf8');
 
   const knip = buildKnipConfig(features, templateInfo);
   if (knip) {
