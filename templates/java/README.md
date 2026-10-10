@@ -9,4 +9,4 @@ mvn clean compile
 mvn test
 ```
 
-Standard Maven Java 17+ project.
+Standard Maven Java {{PIN_RUNTIME_JAVA}}+ project.
