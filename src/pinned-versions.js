@@ -127,8 +127,7 @@ export function buildPinTokens(pinned, templateInfo = {}) {
     if (runtime.node.engines) tokens.PIN_RUNTIME_NODE_ENGINES = runtime.node.engines;
   }
   if (runtime.python) {
-    tokens.PIN_RUNTIME_PYTHON = runtime.python.version;
-    tokens.PIN_RUNTIME_PYTHON_RUFF = `py${String(runtime.python.version).replace(/\./g, '')}`;
+    Object.assign(tokens, pythonRuntimeTokens(runtime.python.version));
   }
   if (runtime.go) {
     tokens.PIN_RUNTIME_GO = runtime.go.version.split('.').slice(0, 2).join('.');
@@ -139,12 +138,40 @@ export function buildPinTokens(pinned, templateInfo = {}) {
   }
   if (runtime.dotnet) {
     tokens.PIN_RUNTIME_DOTNET = runtime.dotnet.version;
+    tokens.PIN_TARGET_FRAMEWORK = `net${runtime.dotnet.version}`;
   }
   if (runtime.rust) {
     if (runtime.rust.edition) tokens.PIN_RUNTIME_RUST_EDITION = runtime.rust.edition;
     if (runtime.rust.channel) tokens.PIN_RUNTIME_RUST_CHANNEL = runtime.rust.channel;
   }
 
+  return tokens;
+}
+
+/** @param {string} version e.g. "3.13"; a patch part is dropped, ruff and mypy take major.minor */
+function pythonRuntimeTokens(version) {
+  const [major, minor = '0'] = String(version).trim().split('.');
+  return {
+    PIN_RUNTIME_PYTHON: `${major}.${minor}`,
+    PIN_RUNTIME_PYTHON_RUFF: `py${major}${minor}`,
+  };
+}
+
+/**
+ * Point runtime pin tokens at the version the user picked at the prompt, so pyproject.toml and
+ * the emitted CI agree with `.python-version` / `<TargetFramework>`.
+ * @param {Record<string, string>} pinTokens
+ * @param {{ PYTHON_VERSION?: string, TARGET_FRAMEWORK?: string }} choices
+ */
+export function applyRuntimeChoices(pinTokens, choices = {}) {
+  const tokens = { ...pinTokens };
+  if (tokens.PIN_RUNTIME_PYTHON && choices.PYTHON_VERSION) {
+    Object.assign(tokens, pythonRuntimeTokens(choices.PYTHON_VERSION));
+  }
+  const tfm = /^net(\d+\.\d+)(?:-|$)/.exec(String(choices.TARGET_FRAMEWORK ?? ''));
+  if (tokens.PIN_RUNTIME_DOTNET && tfm) {
+    tokens.PIN_RUNTIME_DOTNET = tfm[1];
+  }
   return tokens;
 }
 

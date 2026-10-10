@@ -21,8 +21,8 @@ Run `skeletor new my-project` for an interactive selector, or pass `--template <
 | `python` | pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
 | `go` | Standard module + tests |
 | `rust` | Cargo — `--layout single\|lib\|workspace` |
-| `java` | Maven + JUnit 5 |
-| `csharp` | .NET 8 + xUnit |
+| `java` | Maven + JUnit 6 |
+| `csharp` | .NET 10 + xUnit |
 
 Each template declares `verifyCommands` in `template.json` — the post-scaffold steps to run locally. CI runs them in the `verify-templates` job.
 
@@ -38,6 +38,8 @@ npx @jml6m/skeletor new my-api --template typescript --with-recommended
 # Non-interactive — pass --owner when auto-detection cannot run
 npx @jml6m/skeletor new my-service --auto --template go --owner acme-corp
 ```
+
+The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`), at most 64 characters. It becomes the directory, package and repository name, so it is valid for every template. Other names are rejected with a suggestion: interactive runs ask again, `--auto` exits 1.
 
 ### Common flags
 
