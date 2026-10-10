@@ -22,6 +22,7 @@ import {
   layerPromptDefaults,
   loadLayerById,
   appendAgentsSection,
+  buildLabelSeed,
 } from '../src/layers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -288,6 +289,61 @@ describe('AGENTS.md layer snippets', () => {
     } finally {
       cleanup(dir);
     }
+  });
+});
+
+describe('label seed', () => {
+  const seedLine = (l) => `gh label create "${l.name}" --color ${l.color} --description "${l.description}" --force`;
+  const chore = loadLayerById('issue-labels').labels.find((l) => l.name === 'chore');
+  const epic = loadLayerById('issue-templates').labels.find((l) => l.name === 'epic');
+
+  test('chore is seeded as fef2c0 "Maintenance / process work"', () => {
+    expect(chore).toEqual({ name: 'chore', color: 'fef2c0', description: 'Maintenance / process work' });
+  });
+
+  test('--with-recommended --with issue-labels seeds chore and epic under Issue labels', async () => {
+    const name = makeName('label-seed-js');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withRecommended: true, withLayers: ['issue-labels'] });
+      const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+      const body = sectionBody(agents, 'Issue labels');
+      expect(body).toContain(seedLine(chore));
+      expect(body).toContain(seedLine(epic));
+      expect(body).toContain('`area:` prefix');
+      expect(agents.match(/gh label create/g)).toHaveLength(2);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('issue-templates alone still documents how to create epic', async () => {
+    const name = makeName('label-seed-py');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'python', owner: 'acme', auto: true, git: false, withRecommended: true });
+      const body = sectionBody(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8'), 'Issue labels');
+      expect(body).toContain(seedLine(epic));
+      expect(body).not.toContain('"chore"');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('no labels, no section', async () => {
+    const name = makeName('label-seed-none');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'go', owner: 'acme', auto: true, git: false, withLayers: ['governance'] });
+      expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).not.toContain('## Issue labels');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('buildLabelSeed quotes names and descriptions for the shell', () => {
+    const seed = buildLabelSeed([{ name: 'needs review', color: 'abcdef', description: 'Say "hi" for $5 `now`' }]);
+    expect(seed).toContain('gh label create "needs review" --color abcdef --description "Say \\"hi\\" for \\$5 \\`now\\`" --force');
   });
 });
 
