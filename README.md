@@ -21,8 +21,8 @@ Run `skeletor new my-project` for an interactive selector, or pass `--template <
 | `python` | pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
 | `go` | Standard module + tests |
 | `rust` | Cargo — `--layout single\|lib\|workspace` |
-| `java` | Maven + JUnit 5 |
-| `csharp` | .NET 8 + xUnit |
+| `java` | Maven + JUnit 6 |
+| `csharp` | .NET 10 + xUnit |
 
 Each template declares `verifyCommands` in `template.json` — the post-scaffold steps to run locally. CI runs them in the `verify-templates` job.
 

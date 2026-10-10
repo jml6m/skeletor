@@ -28,6 +28,7 @@ import {
 import {
   loadPinnedVersions,
   validatePinnedVersionsManifest,
+  applyRuntimeChoices,
   buildPinTokens,
   checkTemplateGenerationAllowed,
 } from './pinned-versions.js';
@@ -231,9 +232,9 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     AUTHOR: '',
     AUTHOR_EMAIL: '',
     PACKAGE_MANAGER: 'npm',
-    PYTHON_VERSION: '3.11',
+    PYTHON_VERSION: '3.13',
     PYTHON_PACKAGE_MANAGER: 'pip',
-    TARGET_FRAMEWORK: 'net8.0',
+    TARGET_FRAMEWORK: 'net10.0',
     APP_PORT: '3000',
     ...extra,
   };
@@ -336,7 +337,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   if (templateInfo.language === 'python') {
     const pyVersionPath = path.join(targetDir, '.python-version');
     if (!fs.existsSync(pyVersionPath)) {
-      fs.writeFileSync(pyVersionPath, `${vars.PYTHON_VERSION || '3.11'}\n`, 'utf8');
+      fs.writeFileSync(pyVersionPath, `${vars.PYTHON_VERSION || '3.13'}\n`, 'utf8');
     }
   }
 
@@ -541,8 +542,9 @@ async function runNew(opts) {
     layerVars = await promptForLayerVars(layerPrompts);
   }
 
+  const basePinTokens = buildPinTokens(pinned, templateInfo);
   const baseVars = buildRenderVars({ name, owner: finalOwner, description: finalDesc, extra: layerVars });
-  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId, baseVars);
+  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId, { ...baseVars, ...basePinTokens });
   let templateVars = templatePromptDefaults(templatePromptDefs);
   if (opts.uv && chosenTemplateId === 'python') {
     templateVars.PYTHON_PACKAGE_MANAGER = 'uv';
@@ -610,10 +612,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const pinTokens = buildPinTokens(pinned, templateInfo);
-  if (pinned?.runtime?.python?.version && !templateVars.PYTHON_VERSION) {
-    templateVars.PYTHON_VERSION = pinned.runtime.python.version;
-  }
+  const pinTokens = applyRuntimeChoices(basePinTokens, templateVars);
 
   const dependabotEcosystem = dependabotEcosystemFor(
     templateInfo.language || chosenTemplateId,

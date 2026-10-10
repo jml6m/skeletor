@@ -6,6 +6,7 @@ process.env.SKELETOR_CLI_TEST = '1';
 
 import { getTemplatesWithManifests, runNew } from '../src/index.js';
 import {
+  applyRuntimeChoices,
   buildPinTokens,
   formatPinnedSpec,
   packageNameToToken,
@@ -74,7 +75,7 @@ describe('pinned-versions', () => {
       });
       expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
       const goMod = fs.readFileSync(path.join(targetDir, 'go.mod'), 'utf8');
-      expect(goMod).toContain('go 1.22');
+      expect(goMod).toContain('go 1.27');
       expect(goMod).not.toContain('{{PIN');
     } finally {
       if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true });
@@ -87,5 +88,31 @@ describe('pinned-versions', () => {
     const tokens = buildPinTokens(pinned, tmpl);
     expect(tokens.PIN_JEST).toBe('^30.0.0');
     expect(tokens.PIN_RUNTIME_NODE_ENGINES).toBe('>=22');
+  });
+
+  test('runtime pin tokens follow the python version picked at the prompt', () => {
+    const tokens = buildPinTokens({ runtime: { python: { version: '3.13' } }, packages: {} });
+    expect(applyRuntimeChoices(tokens, { PYTHON_VERSION: '3.12' })).toMatchObject({
+      PIN_RUNTIME_PYTHON: '3.12',
+      PIN_RUNTIME_PYTHON_RUFF: 'py312',
+    });
+    expect(applyRuntimeChoices(tokens, { PYTHON_VERSION: '3.14.1' })).toMatchObject({
+      PIN_RUNTIME_PYTHON: '3.14',
+      PIN_RUNTIME_PYTHON_RUFF: 'py314',
+    });
+    expect(applyRuntimeChoices(tokens, {})).toMatchObject({ PIN_RUNTIME_PYTHON: '3.13', PIN_RUNTIME_PYTHON_RUFF: 'py313' });
+  });
+
+  test('dotnet SDK token follows the chosen target framework', () => {
+    const tokens = buildPinTokens({ runtime: { dotnet: { version: '10.0' } }, packages: {} });
+    expect(tokens.PIN_TARGET_FRAMEWORK).toBe('net10.0');
+    expect(applyRuntimeChoices(tokens, { TARGET_FRAMEWORK: 'net9.0' }).PIN_RUNTIME_DOTNET).toBe('9.0');
+    expect(applyRuntimeChoices(tokens, { TARGET_FRAMEWORK: 'net9.0-windows' }).PIN_RUNTIME_DOTNET).toBe('9.0');
+    expect(applyRuntimeChoices(tokens, { TARGET_FRAMEWORK: 'netstandard2.0' }).PIN_RUNTIME_DOTNET).toBe('10.0');
+  });
+
+  test('runtime choices leave templates without that runtime alone', () => {
+    const tokens = buildPinTokens({ runtime: { go: { version: '1.27.0' } }, packages: {} });
+    expect(applyRuntimeChoices(tokens, { PYTHON_VERSION: '3.13', TARGET_FRAMEWORK: 'net10.0' })).toEqual(tokens);
   });
 });
