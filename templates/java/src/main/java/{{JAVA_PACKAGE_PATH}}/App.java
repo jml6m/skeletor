@@ -2,8 +2,6 @@ package {{JAVA_PACKAGE}};
 
 /**
  * {{PROJECT_NAME}}
- *
- * {{DESCRIPTION}}
  */
 public class App {
     public static void main(String[] args) {
