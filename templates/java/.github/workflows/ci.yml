@@ -24,10 +24,10 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '{{PIN_RUNTIME_JAVA}}'
 
       - name: Maven compile
-        run: mvn clean compile
+        run: mvn -B clean compile
 
       - name: Maven test
-        run: mvn test
+        run: mvn -B test

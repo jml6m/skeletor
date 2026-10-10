@@ -9,4 +9,4 @@ dotnet build
 dotnet test
 ```
 
-Standard .NET 8 console + xUnit project.
+Standard .NET console + xUnit project targeting `{{TARGET_FRAMEWORK}}`.

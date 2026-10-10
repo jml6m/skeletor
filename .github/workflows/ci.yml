@@ -87,12 +87,12 @@ jobs:
       - uses: actions/setup-python@v7
         if: matrix.shard == 'python'
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
       - uses: actions/setup-go@v7
         if: matrix.shard == 'go'
         with:
-          go-version: '1.22'
+          go-version: '1.27'
 
       - uses: dtolnay/rust-toolchain@stable
         if: matrix.shard == 'rust'
@@ -101,12 +101,12 @@ jobs:
         if: matrix.shard == 'java'
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
 
       - uses: actions/setup-dotnet@v6
         if: matrix.shard == 'csharp'
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - run: npm ci
 

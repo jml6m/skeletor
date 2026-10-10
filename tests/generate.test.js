@@ -337,6 +337,15 @@ describe('non-default template layouts', () => {
       const pyproject = fs.readFileSync(path.join(targetDir, 'pyproject.toml'), 'utf8');
       expect(pyproject).toContain('[dependency-groups]');
       expect(pyproject).not.toContain('[build-system]');
+
+      const pinnedPython = JSON.parse(
+        fs.readFileSync(path.join(ROOT, 'templates', 'python', 'pinned-versions.json'), 'utf8'),
+      ).runtime.python.version;
+      expect(fs.readFileSync(path.join(targetDir, '.python-version'), 'utf8').trim()).toBe(pinnedPython);
+      expect(pyproject).toContain(`requires-python = ">=${pinnedPython}"`);
+      expect(pyproject).toContain(`target-version = "py${pinnedPython.replace('.', '')}"`);
+      const ci = fs.readFileSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'), 'utf8');
+      expect(ci).toContain(`python-version: '${pinnedPython}'`);
     } finally {
       cleanup(targetDir);
     }
