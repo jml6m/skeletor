@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "status": "active",
   "statusMessage": null,
-  "lastReviewed": "2026-06-14",
+  "lastReviewed": "2026-10-09",
   "runtime": {
-    "python": { "version": "3.11", "policy": "minor" }
+    "python": { "version": "3.13", "policy": "minor" }
   },
   "packages": {
     "ruff": { "version": "0.6.9", "policy": "minor", "ecosystem": "pypi", "spec": "ruff>=0.6.9,<0.7.0" },

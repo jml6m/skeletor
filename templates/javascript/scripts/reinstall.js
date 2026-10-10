@@ -19,6 +19,6 @@ console.log('✨ Clean complete. Installing fresh dependencies...');
 
 try {
   execSync('npm install', { stdio: 'inherit', cwd: rootDir });
-} catch (error) {
+} catch {
   process.exit(1);
 }
