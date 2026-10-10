@@ -23,6 +23,9 @@ function runCli(args, cwd = ROOT) {
   return execSync(`node "${SRC}" ${args}`, { cwd, stdio: 'pipe', env });
 }
 
+// Special characters for the JSON, TOML and XML files a description lands in; verify runs each toolchain on them.
+const DESCRIPTION = 'Tetrahedral "barycentric" coords & <b>tags</b> */ \\ $&';
+
 function makeTempProjectName(prefix = 'skeletor-test') {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
@@ -179,7 +182,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           name,
           template: tmpl.id,
           owner: 'tbra-owner',
-          description: 'Tetrahedral barycentric coords',
+          description: DESCRIPTION,
           auto: true,
           git: false,
           withRecommended: true,
@@ -204,7 +207,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 
         if (tmpl.id === 'csharp') {
           const program = fs.readFileSync(path.join(targetDir, 'Program.cs'), 'utf8');
-          expect(program).toContain(`namespace ${name.replace(/-/g, '_')};`);
+          expect(program).toContain(`namespace ${name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase())};`);
           expect(program).not.toContain('{{');
         }
 
@@ -265,7 +268,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         if (tmpl.id === 'rust') {
           expect(fs.existsSync(path.join(targetDir, '.gitignore'))).toBe(true);
           const cargo = fs.readFileSync(path.join(targetDir, 'Cargo.toml'), 'utf8');
-          expect(cargo).toContain('description = "Tetrahedral barycentric coords"');
+          expect(cargo).toContain('description = "Tetrahedral \\"barycentric\\" coords & <b>tags</b> */ \\\\ $&"');
           expect(cargo).toContain('repository = "https://github.com/tbra-owner/');
           const gitignore = fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8');
           expect(gitignore).toContain('/target/');
@@ -313,7 +316,7 @@ describe('non-default template layouts', () => {
     const name = makeTempProjectName(`gen-${tmpl.id}-${id}`);
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', auto: true, git: false, withRecommended: true });
+      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', description: DESCRIPTION, auto: true, git: false, withRecommended: true });
       expect(fs.existsSync(path.join(targetDir, 'AGENTS.md'))).toBe(true);
       if (tmpl.id === 'python' && id === 'src') {
         expect(fs.existsSync(path.join(targetDir, 'src', 'app', 'main.py'))).toBe(true);

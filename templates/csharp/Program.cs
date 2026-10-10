@@ -1,7 +1,6 @@
 // {{PROJECT_NAME}}
-// {{DESCRIPTION}}
 
-namespace {{NAMESPACE}};
+namespace {{CSHARP_NAMESPACE}};
 
 class Program
 {
