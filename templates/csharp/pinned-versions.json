@@ -9,6 +9,6 @@
   "packages": {
     "Microsoft.NET.Test.Sdk": { "version": "18.10.1", "policy": "exact", "ecosystem": "nuget" },
     "xunit": { "version": "2.9.3", "policy": "exact", "ecosystem": "nuget" },
-    "xunit.runner.visualstudio": { "version": "4.0.1", "policy": "exact", "ecosystem": "nuget" }
+    "xunit.runner.visualstudio": { "version": "4.0.0", "policy": "exact", "ecosystem": "nuget" }
   }
 }
