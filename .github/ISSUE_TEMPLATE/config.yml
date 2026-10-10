@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage and documentation
+    url: https://github.com/jml6m/skeletor#readme
+    about: Templates, layers and CLI flags are documented in the README.
