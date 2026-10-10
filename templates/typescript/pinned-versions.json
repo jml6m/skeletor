@@ -7,7 +7,7 @@
     "node": {
       "version": "24",
       "policy": "major",
-      "engines": ">=22"
+      "engines": ">=22.13.0"
     }
   },
   "packages": {
