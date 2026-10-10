@@ -1,6 +1,4 @@
 //! {{PROJECT_NAME}} library crate
-//!
-//! {{DESCRIPTION}}
 
 const PROJECT: &str = "{{PROJECT_NAME}}";
 

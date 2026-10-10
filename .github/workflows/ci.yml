@@ -30,6 +30,14 @@ jobs:
       - run: npm run lint:encoding
       - run: npm test
 
+  # One result for the whole Node matrix, so its legs can change without renaming a check.
+  tests-passed:
+    needs: [test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.test.result }}" = "success" ]'
+
   # Picks the verify shards a change needs (scripts/verify-shards.mjs). Decided inside the run,
   # not with a `paths:` filter, so `verify-templates` below reports a result on every PR.
   verify-shards:
@@ -87,12 +95,12 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         if: matrix.shard == 'python'
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         if: matrix.shard == 'go'
         with:
-          go-version: '1.22'
+          go-version: '1.27'
 
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1 (2026-10-09)
         if: matrix.shard == 'rust'
@@ -103,12 +111,12 @@ jobs:
         if: matrix.shard == 'java'
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         if: matrix.shard == 'csharp'
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - run: npm ci
 

@@ -1,6 +1,4 @@
 //! {{PROJECT_NAME}}
-//!
-//! {{DESCRIPTION}}
 
 const PROJECT: &str = "{{PROJECT_NAME}}";
 
