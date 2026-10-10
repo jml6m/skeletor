@@ -121,7 +121,7 @@ export function buildKnipConfig(features, templateInfo) {
   const isTs = templateInfo.language === 'typescript';
   const ext = isTs ? 'ts' : 'js';
   return {
-    $schema: 'https://unpkg.com/knip@5/schema.json',
+    $schema: 'https://unpkg.com/knip@6/schema.json',
     entry: [`src/index.${ext}`],
     project: [`src/**/*.${ext}`, `tests/**/*.${ext}`],
     ignoreExportsUsedInFile: true,

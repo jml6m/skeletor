@@ -9,7 +9,7 @@ const envSchema = z.object({
 // The one sanctioned process.env read (eslint.config.js exempts this file); everything else goes through @config.
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
-  console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
+  console.error('Invalid environment configuration:', z.flattenError(parsed.error).fieldErrors);
   process.exit(1);
 }
 
