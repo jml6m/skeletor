@@ -6,8 +6,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).optional(),
 });
 
-// The one sanctioned process.env read; everything else goes through @config.
-// eslint-disable-next-line no-restricted-properties
+// The one sanctioned process.env read (eslint.config.js exempts this file); everything else goes through @config.
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
