@@ -3,6 +3,7 @@
  */
 
 import * as p from '@clack/prompts';
+import { validateGithubOwner } from './validate-input.js';
 
 export const RECOMMENDED_TAG = '(recommended)';
 export const CUSTOM_SELECT_VALUE = '__custom__';
@@ -88,9 +89,7 @@ export async function promptOwnerSelect(opts) {
   if (candidates.length === 0) {
     return p.text({
       message: opts.message,
-      validate(value) {
-        if (!value || !String(value).trim()) return 'GitHub owner / org is required.';
-      },
+      validate: (value) => validateGithubOwner(value) ?? undefined,
     });
   }
 
@@ -110,9 +109,7 @@ export async function promptOwnerSelect(opts) {
   if (answer === CUSTOM_SELECT_VALUE) {
     return p.text({
       message: 'GitHub owner / org',
-      validate(value) {
-        if (!value || !String(value).trim()) return 'GitHub owner / org is required.';
-      },
+      validate: (value) => validateGithubOwner(value) ?? undefined,
     });
   }
   return answer;
