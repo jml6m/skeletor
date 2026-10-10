@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { validateGithubOwner } from './validate-input.js';
 
 const GITHUB_OWNER_RE = /github\.com[/:]([^/]+?)(?:\.git)?(?:\/|$)/i;
 
@@ -98,7 +99,7 @@ export function detectGithubOwners(startDir = process.cwd()) {
 
   function add(owner, source) {
     const normalized = String(owner || '').trim();
-    if (!normalized || seen.has(normalized.toLowerCase())) return;
+    if (validateGithubOwner(normalized) || seen.has(normalized.toLowerCase())) return;
     seen.add(normalized.toLowerCase());
     found.push({ owner: normalized, source });
   }

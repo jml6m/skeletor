@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   buildGitignore,
   buildKnipConfig,
@@ -43,5 +45,19 @@ describe('features registry', () => {
     const templates = getTemplatesWithManifests();
     const errors = templates.flatMap((t) => validateTemplateFeatures(t));
     expect(errors).toEqual([]);
+  });
+
+  // ESLint does not read .gitignore, so every output directory it lists must be in the eslint ignores too.
+  test.each(['javascript', 'typescript'])('%s eslint.config.js ignores the generated-output directories', (id) => {
+    const tmpl = getTemplatesWithManifests().find((t) => t.id === id);
+    const notOutput = new Set(['node_modules/', '.idea/', '.vscode/', 'logs/']);
+    const outputDirs = buildGitignore(tmpl.features)
+      .split('\n')
+      .filter((line) => line.endsWith('/') && !notOutput.has(line));
+    const eslintConfig = fs.readFileSync(path.join('templates', id, 'eslint.config.js'), 'utf8');
+    expect(outputDirs).toEqual(expect.arrayContaining(['dist/', 'coverage/', 'report/', 'reports/', '.jscpd/']));
+    for (const dir of outputDirs) {
+      expect({ dir, ignored: eslintConfig.includes(`'${dir}**'`) }).toEqual({ dir, ignored: true });
+    }
   });
 });
