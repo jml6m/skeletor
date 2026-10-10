@@ -30,6 +30,14 @@ jobs:
       - run: npm run lint:encoding
       - run: npm test
 
+  # One result for the whole Node matrix, so its legs can change without renaming a check.
+  tests-passed:
+    needs: [test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.test.result }}" = "success" ]'
+
   # Picks the verify shards a change needs (scripts/verify-shards.mjs). Decided inside the run,
   # not with a `paths:` filter, so `verify-templates` below reports a result on every PR.
   verify-shards:
