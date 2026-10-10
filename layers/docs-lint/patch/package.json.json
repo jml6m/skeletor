@@ -1,5 +1,5 @@
 {
   "scripts": {
-    "lint:docs": "npx --yes markdownlint-cli2@0.23.3 \"**/*.md\""
+    "lint:docs": "npx --yes markdownlint-cli2@0.14.0 \"**/*.md\""
   }
 }
