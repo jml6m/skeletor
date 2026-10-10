@@ -55,7 +55,8 @@ const TEMPLATE_PROMPTS = {
       id: 'pythonVersion',
       token: 'PYTHON_VERSION',
       message: 'Python version',
-      options: ['3.12', '3.13', '3.14'],
+      // Nothing newer than the pinned runtime: the pinned ruff/mypy are validated against it.
+      options: ['3.12', '3.13'],
       default: '3.13',
       defaultFrom: 'PIN_RUNTIME_PYTHON',
     },

@@ -1,4 +1,9 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { adjustVerifyCommandsForAnswers, gatherTemplatePrompts } from '../src/template-prompts.js';
+
+const TEMPLATES_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates');
 
 describe('adjustVerifyCommandsForAnswers', () => {
   const flat = [
@@ -22,10 +27,17 @@ describe('adjustVerifyCommandsForAnswers', () => {
 });
 
 describe('gatherTemplatePrompts', () => {
-  test('python offers 3.12-3.14 and defaults to the pinned runtime', () => {
+  test('python offers 3.12-3.13 and defaults to the pinned runtime', () => {
     const prompt = gatherTemplatePrompts('python', { PIN_RUNTIME_PYTHON: '3.13' }).find((pr) => pr.id === 'pythonVersion');
-    expect(prompt.options).toEqual(['3.12', '3.13', '3.14']);
+    expect(prompt.options).toEqual(['3.12', '3.13']);
     expect(prompt.default).toBe('3.13');
+  });
+
+  test('python never offers a version newer than the pinned runtime', () => {
+    const pinned = JSON.parse(fs.readFileSync(path.join(TEMPLATES_DIR, 'python', 'pinned-versions.json'), 'utf8')).runtime.python.version;
+    const prompt = gatherTemplatePrompts('python', { PIN_RUNTIME_PYTHON: pinned }).find((pr) => pr.id === 'pythonVersion');
+    const minor = (v) => Number(String(v).split('.')[1]);
+    for (const option of prompt.options) expect(minor(option)).toBeLessThanOrEqual(minor(pinned));
   });
 
   test('csharp target framework defaults to the pinned .NET runtime', () => {
