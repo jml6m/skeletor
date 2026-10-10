@@ -69,14 +69,14 @@ function listFilesRecursive(dir) {
   return results;
 }
 
-// Maps template id to the expected unsuffixed manifest file in the generated project.
+// Maps template id to the expected unsuffixed manifest file in the generated project
+// (csharp names its projects after the project, so its block below checks them).
 const expectedManifest = {
   javascript: 'package.json',
   typescript: 'package.json',
   python: 'pyproject.toml',
   rust: 'Cargo.toml',
   java: 'pom.xml',
-  csharp: 'Project.csproj',
   go: 'go.mod',
 };
 
@@ -206,9 +206,17 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         if (tmpl.id === 'csharp') {
-          const program = fs.readFileSync(path.join(targetDir, 'Program.cs'), 'utf8');
-          expect(program).toContain(`namespace ${name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase())};`);
-          expect(program).not.toContain('{{');
+          const ns = name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase());
+          expect(fs.existsSync(path.join(targetDir, `${ns}.slnx`))).toBe(true);
+          const program = fs.readFileSync(path.join(targetDir, 'src', ns, 'Program.cs'), 'utf8');
+          expect(program).toContain(`namespace ${ns};`);
+          // Test packages belong to the test project only, so they never ship with the app.
+          const appProject = fs.readFileSync(path.join(targetDir, 'src', ns, `${ns}.csproj`), 'utf8');
+          expect(appProject).not.toContain('PackageReference');
+          const testProject = fs.readFileSync(path.join(targetDir, 'tests', `${ns}.Tests`, `${ns}.Tests.csproj`), 'utf8');
+          expect(testProject).toContain('Include="xunit"');
+          expect(testProject).toContain(`<ProjectReference Include="..\\..\\src\\${ns}\\${ns}.csproj" />`);
+          expect(fs.readFileSync(path.join(targetDir, 'tests', `${ns}.Tests`, 'ProgramTests.cs'), 'utf8')).toContain(`namespace ${ns}.Tests;`);
         }
 
         if (tmpl.id === 'go') {
