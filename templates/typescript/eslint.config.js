@@ -5,6 +5,8 @@ import tseslint from 'typescript-eslint';
 import unusedImports from 'eslint-plugin-unused-imports';
 import globals from 'globals';
 
+const PARENT_IMPORT_MESSAGE = 'Do not use parent imports. Use subpath imports (e.g. #utils/logger.js, #config/index.js) or sibling imports (./).';
+
 export default defineConfig([
   {
     // Generated output (keep in step with the build/output entries in .gitignore), then JS tooling files.
@@ -20,12 +22,6 @@ export default defineConfig([
       'eslint.config.js',
       'scripts/**/*.js',
     ],
-  },
-  {
-    files: ['src/config/env.config.ts'],
-    rules: {
-      'no-restricted-properties': 'off',
-    },
   },
   {
     files: ['**/*.ts'],
@@ -55,6 +51,15 @@ export default defineConfig([
       '@typescript-eslint/no-empty-function': 'error',
 
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: "CallExpression[callee.object.name='logger'][callee.property.name=/^(info|warn|error|debug|http|log)$/] > TemplateLiteral:first-child",
+          message:
+            "Avoid template literals in logger messages. Use a static string and pass variables as metadata: logger.info('Event description', { key: value })",
+        },
+      ],
+      'no-restricted-imports': ['error', { patterns: [{ group: ['../*'], message: PARENT_IMPORT_MESSAGE }] }],
       'no-restricted-properties': [
         'error',
         {
@@ -62,12 +67,24 @@ export default defineConfig([
           property: 'log',
           message: 'Use structured logger instead of console.log.',
         },
+        {
+          object: 'process',
+          property: 'env',
+          message: 'Use #config (or equivalent) instead of process.env directly.',
+        },
       ],
 
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': ['warn', { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // Where process.env is legitimately read or set: the config module, test harness setup, and root tool configs (e.g. CI flags).
+    files: ['src/config/env.config.ts', 'tests/support/**', '*.config.ts'],
+    rules: {
+      'no-restricted-properties': 'off',
     },
   },
 ]);
