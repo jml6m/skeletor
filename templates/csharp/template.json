@@ -1,7 +1,7 @@
 {
   "id": "csharp",
   "name": "C# (.NET)",
-  "description": "Standard .NET console project with .csproj, Program.cs, and xUnit tests.",
+  "description": "Standard .NET console app in src/ with an xUnit test project in tests/, tied together by a solution file.",
   "language": "csharp",
   "recommendedLayers": [
     "governance",
