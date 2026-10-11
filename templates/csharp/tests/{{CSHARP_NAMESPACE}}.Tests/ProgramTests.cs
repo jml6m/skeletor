@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace {{CSHARP_NAMESPACE}};
+namespace {{CSHARP_NAMESPACE}}.Tests;
 
 public class ProgramTests
 {
