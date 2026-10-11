@@ -82,14 +82,14 @@ function listFilesRecursive(dir) {
   return results;
 }
 
-// Maps template id to the expected unsuffixed manifest file in the generated project.
+// Maps template id to the expected unsuffixed manifest file in the generated project
+// (csharp names its projects after the project, so its block below checks them).
 const expectedManifest = {
   javascript: 'package.json',
   typescript: 'package.json',
   python: 'pyproject.toml',
   rust: 'Cargo.toml',
   java: 'pom.xml',
-  csharp: 'Project.csproj',
   go: 'go.mod',
 };
 
@@ -221,9 +221,17 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         if (tmpl.id === 'csharp') {
-          const program = fs.readFileSync(path.join(targetDir, 'Program.cs'), 'utf8');
-          expect(program).toContain(`namespace ${name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase())};`);
-          expect(program).not.toContain('{{');
+          const ns = name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase());
+          expect(fs.existsSync(path.join(targetDir, `${ns}.slnx`))).toBe(true);
+          const program = fs.readFileSync(path.join(targetDir, 'src', ns, 'Program.cs'), 'utf8');
+          expect(program).toContain(`namespace ${ns};`);
+          // Test packages belong to the test project only, so they never ship with the app.
+          const appProject = fs.readFileSync(path.join(targetDir, 'src', ns, `${ns}.csproj`), 'utf8');
+          expect(appProject).not.toContain('PackageReference');
+          const testProject = fs.readFileSync(path.join(targetDir, 'tests', `${ns}.Tests`, `${ns}.Tests.csproj`), 'utf8');
+          expect(testProject).toContain('Include="xunit"');
+          expect(testProject).toContain(`<ProjectReference Include="..\\..\\src\\${ns}\\${ns}.csproj" />`);
+          expect(fs.readFileSync(path.join(targetDir, 'tests', `${ns}.Tests`, 'ProgramTests.cs'), 'utf8')).toContain(`namespace ${ns}.Tests;`);
         }
 
         if (tmpl.id === 'go') {
@@ -240,6 +248,15 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
+
+        // Agents work through branches and PRs; what's protected is the default branch, not `git push`.
+        const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+        expect(agents).not.toMatch(/git push[^\n]*prohibited/i);
+        expect(agents).toContain('push the branch and open a pull request');
+        const never = (agents.match(/\*\*Never\*\*:(?:.+\n)+/)?.[0] ?? '').replace(/\s+/g, ' ');
+        for (const rule of ['force-push the default branch', 'delete a protected branch', 'skip a required check', 'move a published tag']) {
+          expect(never).toContain(rule);
+        }
         // Stale-issue bots are deliberately never emitted (2026-06 repo-hygiene convention).
         expect(allFiles.some((f) => /(^|[\\/])stale\.ya?ml$/.test(f))).toBe(false);
 

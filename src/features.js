@@ -46,7 +46,6 @@ export const FEATURE_REGISTRY = {
   knip: { gitignore: [] },
   jscpd: { gitignore: ['report/', 'reports/', '.jscpd/'] },
   madge: { gitignore: [] },
-  'prompt-gen': { gitignore: ['prompt.md'] },
   python: {
     gitignore: [
       '__pycache__/',
