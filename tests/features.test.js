@@ -22,7 +22,8 @@ describe('features registry', () => {
   test('buildKnipConfig respects language', () => {
     const js = buildKnipConfig(['knip'], { language: 'javascript' });
     const ts = buildKnipConfig(['knip'], { language: 'typescript' });
-    expect(js.entry[0]).toContain('.js');
+    expect(js.entry).toBeUndefined();
+    expect(js.project[0]).toContain('.js');
     expect(ts.entry[0]).toContain('.ts');
   });
 

@@ -14,6 +14,6 @@ const logger = require('@utils/logger');
 // Demonstrate alias + structured logging (no console.log in prod paths)
 logger.info('Application starting', { nodeVersion: process.version });
 
-console.log('👋 Hello from {{PROJECT_NAME}} (replace me)');
+logger.info('Hello from {{PROJECT_NAME}} (replace me)');
 
 logger.info('Bootstrap complete');
