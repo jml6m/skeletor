@@ -41,6 +41,7 @@ import {
   gatherLayerPrompts,
   layerPromptDefaults,
   layerTokenDefaults,
+  labelCreateCommand,
   validateLayerManifests,
   writeDocsPolicyAllowlist,
 } from './layers.js';
@@ -738,8 +739,7 @@ async function runNew(opts) {
 /** The labels applied layers expect, with the commands that create them when --github didn't. */
 function labelHint(labels) {
   const unique = [...new Map(labels.map((l) => [l.name, l])).values()];
-  const quote = (value) => `"${String(value).replace(/(["\\$`])/g, '\\$1')}"`;
-  const commands = unique.map((l) => `  gh label create ${quote(l.name)} --color ${l.color} --description ${quote(l.description || '')} --force`);
+  const commands = unique.map((l) => `  ${labelCreateCommand(l)}`);
   const names = unique.map((l) => l.name).join(', ');
   return [`Layers expect these labels on GitHub: ${names}. --github creates them; otherwise run:`, ...commands].join('\n');
 }

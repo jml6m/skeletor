@@ -383,15 +383,22 @@ export function appendAgentsSection(agentsPath, section, snippet) {
 const LABELS_SECTION = 'Issue labels';
 
 /**
+ * The `gh label create` command for one label, double-quoted for the shell; `--force` keeps it idempotent.
+ * Both the AGENTS.md seed and the post-scaffold hint print it.
+ * @param {{ name: string, color: string, description?: string }} label
+ */
+export function labelCreateCommand(label) {
+  const quote = (s) => `"${String(s).replace(/(["\\$`])/g, '\\$1')}"`;
+  return `gh label create ${quote(label.name)} --color ${label.color} --description ${quote(label.description || '')} --force`;
+}
+
+/**
  * AGENTS.md text listing every label the applied layers declare, with the commands that create them.
  * @param {{ name: string, color: string, description?: string }[]} labels
  */
 export function buildLabelSeed(labels) {
-  const quote = (s) => `"${String(s).replace(/(["\\$`])/g, '\\$1')}"`;
   const names = labels.map((l) => `\`${l.name}\``).join(', ');
-  const commands = labels.map(
-    (l) => `gh label create ${quote(l.name)} --color ${l.color} --description ${quote(l.description || '')} --force`,
-  );
+  const commands = labels.map(labelCreateCommand);
   return [
     `This repo's issue forms and conventions use these labels: ${names}. \`skeletor new --github\` creates them;`,
     'otherwise run:',

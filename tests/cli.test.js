@@ -10,6 +10,7 @@ import {
   printPostScaffoldSteps,
   labelHint,
 } from '../src/index.js';
+import { buildLabelSeed } from '../src/layers.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -119,6 +120,16 @@ describe('skeletor CLI pure functions', () => {
       '  gh label create "epic" --color 3E4B9E --description "Tracks a set of child issues" --force',
       '  gh label create "chore" --color EDEDED --description "Say \\"hi\\" for \\$5" --force',
     ]);
+  });
+
+  test('labelHint prints the same commands as the AGENTS.md "Issue labels" seed', () => {
+    const labels = [
+      { name: 'epic', color: '3E4B9E', description: 'Tracks a set of child issues' },
+      { name: 'chore', color: 'fef2c0', description: 'Maintenance / process work' },
+    ];
+    const hintCommands = labelHint(labels).split('\n').slice(1).map((line) => line.trim());
+    const seedCommands = buildLabelSeed(labels).split('\n').filter((line) => line.startsWith('gh label create'));
+    expect(hintCommands).toEqual(seedCommands);
   });
 
   test('parseArgs falls back to help for unknown', () => {
