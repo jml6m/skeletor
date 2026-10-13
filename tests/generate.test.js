@@ -55,6 +55,19 @@ function runVerifyCommands(projectDir, commands) {
   }
 }
 
+// JS/TS scaffolds must be warning-clean: lint fails on any warning, and knip on unused code and configuration hints.
+const STRICT_LINT = 'npm run lint -- --max-warnings 0';
+
+function strictVerifyCommands(tmpl, commands, { knipHints = true } = {}) {
+  if (!['javascript', 'typescript'].includes(tmpl.language)) return commands;
+  const knip = knipHints ? 'npx knip --treat-config-hints-as-errors' : 'npx knip';
+  return [...new Set([...commands.map((cmd) => (cmd === 'npm run lint' ? STRICT_LINT : cmd)), knip])];
+}
+
+// library-publishing's package.json entries point at lib/, which isn't ignored or built yet, and knip's
+// tsup plugin repeats the src/index.ts entry, so knip prints configuration hints for it.
+const KNIP_HINT_EXEMPT_LAYERS = ['library-publishing'];
+
 function listFilesRecursive(dir) {
   const results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -102,6 +115,7 @@ const optionalCases = [
       shard: layerShard(tmpl.id),
       tmpl,
       opts: { withRecommended: true, withLayers: [id] },
+      layers: [id],
       extra: loadLayerById(id).verifyCommands || [],
     })),
   ),
@@ -110,6 +124,7 @@ const optionalCases = [
     shard: bundleShard(def.template),
     tmpl: jsTsTemplates.find((t) => t.id === def.template),
     opts: { bundle },
+    layers: def.layers,
     extra: [],
   })),
 ];
@@ -292,7 +307,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
-          runVerifyCommands(targetDir, tmpl.verifyCommands);
+          runVerifyCommands(targetDir, strictVerifyCommands(tmpl, tmpl.verifyCommands));
         }
       } finally {
         cleanup(tempRoot);
@@ -373,7 +388,7 @@ describe('non-default template layouts', () => {
 });
 
 describe('optional layers and bundles', () => {
-  optionalCases.filter(inShard).forEach(({ label, tmpl, opts, extra }) => test(`${label} scaffolds and verifies`, async () => {
+  optionalCases.filter(inShard).forEach(({ label, tmpl, opts, layers, extra }) => test(`${label} scaffolds and verifies`, async () => {
     const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -384,7 +399,8 @@ describe('optional layers and bundles', () => {
       }
       if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
         // Strict knip on top of the (report-only) health:dead script: layers must ship dead-code-clean.
-        runVerifyCommands(targetDir, [...new Set([...tmpl.verifyCommands, ...extra, 'npx knip'])]);
+        const knipHints = !layers.some((id) => KNIP_HINT_EXEMPT_LAYERS.includes(id));
+        runVerifyCommands(targetDir, strictVerifyCommands(tmpl, [...tmpl.verifyCommands, ...extra], { knipHints }));
       }
     } finally {
       cleanup(targetDir);

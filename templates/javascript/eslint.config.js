@@ -45,7 +45,7 @@ module.exports = defineConfig([
             "Avoid template literals in logger messages. Use a static string and pass variables as metadata: logger.info('Event description', { key: value })",
         },
       ],
-      'no-console': 'warn',
+      'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
       'no-empty': ['error', { allowEmptyCatch: false }],
       'no-undef': 'error',
       // no-restricted-imports covers `import`; n/no-restricted-require covers `require()`.
