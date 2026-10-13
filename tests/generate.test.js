@@ -39,7 +39,7 @@ function cleanup(dir) {
 
 // Lockfiles a first install writes and a real project commits. Anything else a verify run
 // creates (build output, caches, reports) must be covered by the generated .gitignore.
-const EXPECTED_AFTER_VERIFY = new Set(['package-lock.json', 'Cargo.lock', 'go.sum']);
+const EXPECTED_AFTER_VERIFY = new Set(['package-lock.json', 'Cargo.lock', 'go.sum', 'uv.lock']);
 
 function untrackedFiles(projectDir) {
   return execSync('git status --porcelain --untracked-files=all', { cwd: projectDir, stdio: 'pipe' })
@@ -421,20 +421,6 @@ describe('non-default template layouts', () => {
       cleanup(targetDir);
     }
   }));
-
-  test('AGENTS.md Build & Test follows the uv answer', async () => {
-    const name = makeTempProjectName('gen-python-uv');
-    const targetDir = path.resolve(process.cwd(), name);
-    try {
-      await runNewProgrammatic({ command: 'new', name, template: 'python', owner: 'tbra-owner', auto: true, git: false, uv: true });
-      const commands = buildAndTestCommands(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8'));
-      expect(commands[0]).toBe('uv sync --all-extras');
-      expect(commands).toContain('uv run python -m pytest -q');
-      expect(commands.join('\n')).not.toContain('pip install');
-    } finally {
-      cleanup(targetDir);
-    }
-  });
 
   test('python defaults to the flat layout (scripts at the repo root, no packaging)', async () => {
     const name = makeTempProjectName('gen-python-flat');

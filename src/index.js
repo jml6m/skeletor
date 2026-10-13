@@ -215,7 +215,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     GO_MODULE: `github.com/${repoOwner}/${name}`,
     REPO_URL: `https://github.com/${repoOwner}/${name}`,
     LICENSE: UNLICENSED,
-    AGENTS_BUILD_AND_TEST: DEFAULT_AGENTS_BUILD_AND_TEST,
+    AGENTS_BUILD_AND_TEST: '',
     ...extra,
   };
   return { ...vars, PYPROJECT_LICENSE: pyprojectLicense(vars.LICENSE) };
@@ -404,8 +404,6 @@ async function chooseTemplateInteractively(templates) {
 }
 
 const DEFAULT_DESCRIPTION = 'A skeletor project.';
-const DEFAULT_AGENTS_BUILD_AND_TEST = "Run the project's tests before submitting changes and keep the test suite green.";
-
 async function resolveOwnerForNew(opts, isInteractive) {
   if (opts.owner?.trim()) {
     const ownerError = validateGithubOwner(opts.owner);
@@ -590,7 +588,7 @@ async function runNew(opts) {
     owner: finalOwner,
     description: finalDesc,
     extra: {
-      ...(templateInfo.agentsBuildAndTest ? { AGENTS_BUILD_AND_TEST: templateInfo.agentsBuildAndTest } : {}),
+      ...(templateInfo.agentsBuildAndTest ? { AGENTS_BUILD_AND_TEST: `\n\n${templateInfo.agentsBuildAndTest}` } : {}),
       LICENSE: license,
       ...pinTokens,
       DEPENDABOT_ECOSYSTEM: dependabotEcosystem,

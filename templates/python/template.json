@@ -41,5 +41,5 @@
     "uv run pytest -q",
     "uv run mypy ."
   ],
-  "agentsBuildAndTest": "Run the project's tests before submitting changes and keep the test suite green.\n\nThis project uses uv only: `uv sync` installs the locked environment and every tool runs through `uv run` (`uv run pytest`, `uv run ruff check .`). Add dependencies with `uv add` and commit `uv.lock`. Don't use pip or add `requirements*.txt` files."
+  "agentsBuildAndTest": "This project uses uv only: `uv sync` installs the locked environment and every tool runs through `uv run` (`uv run pytest`, `uv run ruff check .`). Add dependencies with `uv add` and commit `uv.lock`. Don't use pip or add `requirements*.txt` files."
 }
