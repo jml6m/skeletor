@@ -9,7 +9,20 @@ permissions:
   contents: read
 
 jobs:
+  # The same checks as the CI workflow, so nothing is published that CI would reject.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: {{PIN_ACTION_CHECKOUT}}
+      - uses: {{PIN_ACTION_SETUP_NODE}}
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+{{CI_CHECK_STEPS}}
+
   publish:
+    needs: checks
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -24,6 +37,5 @@ jobs:
           cache: npm
       - run: npm install -g npm@^11.5.1
       - run: npm ci
-      # Packs (prepack builds lib/) and checks the exports map; npm publish then runs prepublishOnly.
-      - run: npm run check:package
+      # npm publish builds lib/ (prepack) and runs prepublishOnly first.
       - run: npm publish --provenance --access public

@@ -1,7 +1,7 @@
 {
   "id": "library-publishing",
   "name": "Publishable TS library (tsup + OIDC publish)",
-  "description": "Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow.",
+  "description": "Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw in CI, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow that runs the CI checks first.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["typescript"],
@@ -16,5 +16,5 @@
   "docs": {
     "agents": { "section": "Publishing", "append": "docs/AGENTS.snippet.md" }
   },
-  "verifyCommands": ["npm install", "npm run build:lib", "npx eslint . --max-warnings 0", "npx prettier --check .", "npm run publish:dry", "npm run check:package"]
+  "verifyCommands": ["npm run check:package"]
 }

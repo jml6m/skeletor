@@ -7,5 +7,7 @@
     "languages": ["*"],
     "templates": ["*"]
   },
-  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" }
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "gitVerifyCommands": ["bash .github/scripts/check-docs-policy.sh"],
+  "ciWorkflow": "docs-policy.yml"
 }

@@ -1,7 +1,7 @@
 {
   "id": "test-harness:playwright",
   "name": "Playwright E2E harness",
-  "description": "Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts.",
+  "description": "Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts; CI runs the specs.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["javascript", "typescript"],
@@ -13,5 +13,5 @@
   "docs": {
     "agents": { "section": "End-to-end tests", "append": "docs/AGENTS.snippet.md" }
   },
-  "verifyCommands": ["npm install"]
+  "verifyCommands": ["npm run test:e2e"]
 }

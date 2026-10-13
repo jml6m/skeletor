@@ -57,7 +57,7 @@ Which area(s) of skeletor does this affect?
 
 ### New files
 
-- [ ] <!-- e.g. templates/<lang>/.jscpd.json -->
+- [ ] <!-- e.g. templates/<lang>/eslint.config.js -->
 - [ ] <!-- e.g. src/features.js -->
 
 ## Backward compatibility

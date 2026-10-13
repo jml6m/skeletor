@@ -4,9 +4,15 @@
 
 ## Development
 
+Standard Maven Java {{PIN_RUNTIME_JAVA}}+ project.
+
+## Checks
+
+Every check is a gate: [CI](./.github/workflows/ci.yml) runs them on every pull request and fails when one does.
+AGENTS.md lists the same commands.
+
 ```bash
-mvn clean compile
-mvn test
+{{VERIFY_COMMANDS}}
 ```
 
-Standard Maven Java {{PIN_RUNTIME_JAVA}}+ project.
+There are no report-only checks.

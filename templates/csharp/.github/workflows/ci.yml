@@ -3,8 +3,8 @@ name: CI
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [main, master]
+  # A pull request's checks gate the merge, so nothing re-runs after it; this runs them by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,8 +25,4 @@ jobs:
         with:
           dotnet-version: '{{PIN_RUNTIME_DOTNET}}.x'
 
-      - name: Build
-        run: dotnet build
-
-      - name: Test
-        run: dotnet test
+{{CI_CHECK_STEPS}}

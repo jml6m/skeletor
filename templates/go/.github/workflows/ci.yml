@@ -3,8 +3,8 @@ name: CI
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [main, master]
+  # A pull request's checks gate the merge, so nothing re-runs after it; this runs them by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,11 +25,4 @@ jobs:
         with:
           go-version: '{{PIN_RUNTIME_GO}}'
 
-      - name: Go mod tidy
-        run: go mod tidy
-
-      - name: Build
-        run: go build .
-
-      - name: Test
-        run: go test ./...
+{{CI_CHECK_STEPS}}

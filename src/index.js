@@ -16,6 +16,7 @@ import {
   promptOwnerSelect,
 } from './interactive-prompts.js';
 import { applyFeatureConfigs } from './features.js';
+import { checkTokens, scaffoldChecks } from './checks.js';
 import {
   loadPinnedVersions,
   validatePinnedVersionsManifest,
@@ -28,6 +29,7 @@ import {
   layerAppliesTo,
   getLayersWithManifests,
   loadBundles,
+  loadLayerById,
   resolveLayerOrder,
   labelCreateCommand,
   validateLayerManifests,
@@ -244,11 +246,6 @@ function resolveTemplateLayout(templateInfo, layout) {
   return { layoutId, sourceDir: path.join(templateInfo.dir, layouts[layoutId].dir) };
 }
 
-/** The template's (or layout's) post-scaffold commands, as AGENTS.md and the next steps list them. */
-function templateVerifyCommands(templateInfo, layoutId) {
-  return [...(templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [])];
-}
-
 /** A message when `layout` isn't one of the template's layouts (or the template has none), else null. */
 function checkLayout(templateInfo, layout) {
   if (!layout) return null;
@@ -263,11 +260,12 @@ function checkLayout(templateInfo, layout) {
   return unknownIdMessage('layout', layout, layouts, { label: `Layouts for ${templateInfo.id}` });
 }
 
-function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
+/** `templateVars` carries the scaffold's check tokens (checkTokens); without them, the template's own checks fill them in. */
+function copyTemplateToProject(templateInfo, targetDir, templateVars, layout) {
   const { layoutId, sourceDir } = resolveTemplateLayout(templateInfo, layout);
+  const vars = 'VERIFY_COMMANDS' in templateVars ? templateVars : { ...templateVars, ...checkTokens(scaffoldChecks(templateInfo, layoutId)) };
   copyAndRender(sourceDir, targetDir, vars);
 
-  const sharedVars = { ...vars, VERIFY_COMMANDS: templateVerifyCommands(templateInfo, layoutId).join('\n') };
   const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md'];
   for (const file of shared) {
     const dest = path.join(targetDir, file);
@@ -275,7 +273,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
     const templateSrc = path.join(templateInfo.dir, file);
     const globalSrc = path.join(SHARED_TEMPLATES_DIR, file);
     const src = fs.existsSync(templateSrc) ? templateSrc : fs.existsSync(globalSrc) ? globalSrc : null;
-    if (src) copyAndRender(src, dest, sharedVars);
+    if (src) copyAndRender(src, dest, vars);
   }
 
   insertTemplateAgentsSection(path.join(targetDir, 'AGENTS.md'), path.join(templateInfo.dir, 'AGENTS.snippet.md'), vars);
@@ -585,6 +583,8 @@ async function runNew(opts) {
   const pinTokens = buildPinTokens(pinned, templateInfo);
 
   const dependabotEcosystem = dependabotEcosystemFor(templateInfo.language || chosenTemplateId);
+  // checkTemplateOptions has validated the layout.
+  const checks = scaffoldChecks(templateInfo, resolveTemplateLayout(templateInfo, chosenLayout).layoutId, layerOrder.map(loadLayerById));
   const vars = buildRenderVars({
     name,
     owner: finalOwner,
@@ -595,21 +595,19 @@ async function runNew(opts) {
       ...pinTokens,
       DEPENDABOT_ECOSYSTEM: dependabotEcosystem,
       DEPENDABOT_IGNORE: dependabotIgnoreFor(dependabotEcosystem),
+      ...checkTokens(checks),
     },
   });
   p.log.info(`Creating "${name}" using ${templateInfo.name}...`);
 
-  let layoutId = 'default';
   try {
-    layoutId = copyTemplateToProject(templateInfo, targetDir, vars, chosenLayout);
+    copyTemplateToProject(templateInfo, targetDir, vars, chosenLayout);
   } catch (e) {
     logError(`❌ ${e.message}`);
     process.exit(1);
   }
   applyLicense(targetDir, vars);
 
-  let verifyCommands = templateVerifyCommands(templateInfo, layoutId);
-  let gitVerifyCommands = [];
   let repoLabels = [];
 
   if (layerIds.length) {
@@ -631,8 +629,6 @@ async function runNew(opts) {
     if (result.autoAdded?.length) {
       p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
     }
-    verifyCommands = [...new Set([...verifyCommands, ...result.verifyCommands])];
-    gitVerifyCommands = result.gitVerifyCommands || [];
   }
 
   let hasRepo = false;
@@ -663,8 +659,8 @@ async function runNew(opts) {
   const githubSetup = repoCreated ? githubSetupLines({ repo: `${finalOwner}/${name}`, ...collectPullRequestChecks(targetDir) }) : [];
   printPostScaffoldSteps(
     name,
-    hasRepo ? [...new Set([...verifyCommands, ...gitVerifyCommands])] : verifyCommands,
-    hasRepo ? [] : gitVerifyCommands,
+    hasRepo ? [...checks.commands, ...checks.needRepo] : checks.commands,
+    hasRepo ? [] : checks.needRepo,
     githubSetup,
   );
 }

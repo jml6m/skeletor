@@ -19,4 +19,15 @@ Commit `uv.lock` after the first `uv sync`, so every machine and CI install the 
 
 This is an installable package with a `src/` layout: ruff for lint and format, pytest, and strict mypy.
 
+## Checks
+
+Every check is a gate: [CI](./.github/workflows/ci.yml) runs them on every pull request and fails when one does.
+AGENTS.md lists the same commands.
+
+```bash
+{{VERIFY_COMMANDS}}
+```
+
+`uv run ruff format .` formats the tree; CI only checks it. There are no report-only checks.
+
 See AGENTS.md for AI agent protocols.

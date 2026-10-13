@@ -8,7 +8,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
 ## Core Rules
 
 - **Templates live in `templates/<id>/`**
-  - Every template **must** have a `template.json` with `id`, `name`, `description`, `language` and `verifyCommands` (post-scaffold commands, e.g. `["cargo test"]`, also rendered into the generated AGENTS.md's "Build & Test"). Optional: `layouts`, `defaultLayout`, `baselineLayers`, `features`, `agentsBuildAndTest` (below).
+  - Every template **must** have a `template.json` with `id`, `name`, `description`, `language` and `verifyCommands`, the scaffold's checks; [src/checks.js](./src/checks.js) renders them and layers' into AGENTS.md, README and the CI job. Optional: `layouts`, `defaultLayout`, `baselineLayers`, `features`, `agentsBuildAndTest` (below).
   - Every template **must** have a `pinned-versions.json` beside `template.json`: the source of truth for runtime and dependency pins, which `.tmpl` files use as `{{PIN_*}}` tokens. Bump pins deliberately after validation; set `status` to `needs-review` or `deprecated` when an upstream major lands before the template is patched.
   - GitHub Actions in emitted workflows (templates and layers) are SHA-pinned from one list, [templates/_shared/github-actions.json](./templates/_shared/github-actions.json): write `uses: {{PIN_ACTION_<REPO>}}` (e.g. `{{PIN_ACTION_SETUP_NODE}}`), never a tag or branch. It holds the same SHAs as skeletor's own workflows; a test fails when they drift.
   - Use the standard tokens in file *contents*: `{{PROJECT_NAME}}`, `{{REPO_OWNER}}`, `{{REPO_NAME}}`, `{{DESCRIPTION}}`, `{{YEAR}}`.
@@ -23,6 +23,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
 
 - **When adding or modifying templates**
   - Start with "standard main library" best practices for the language/ecosystem.
+  - A check a scaffold emits is a gate (fails CI: no `|| true` or `--no-exit-code`), comes with an opt-in layer, or is an on-demand `report:*` script kept out of CI.
   - `tests/generate.test.js` discovers templates via `getTemplatesWithManifests()`, generates each and checks the manifest contract. After changes, **always run `npm test`**.
 
 - **Layouts.** A template with `layouts` (rust, python) keeps each layout's files, including its `.github/` and `README.md`, under `layouts/<id>/`; `defaultLayout` is used without `--layout`. A layout can override `verifyCommands`.
@@ -33,9 +34,9 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - `patch.packageJson` is one file, or a `{ "javascript": …, "typescript": … }` map when dependencies differ (`string-width` v4 is the last CommonJS major). The merge keeps a value the template already has; `patch.packageJsonOverride` lists key paths, dotted for nested keys, whose patch value replaces it instead, and a `null` patch value removes the key (env-example: `scripts.start`; library-publishing: `main`, `private`).
   - `requires` lists layers this one can't work without; they are applied automatically. There is no soft dependency: a layer is self-contained or declares `requires`.
   - `knip.entry` registers the layer's public API or harness files as knip entry points. `labels` declares GitHub labels that `--github` creates. `gitignore` lists the output paths the layer's tools create (reports, build output); they are appended to the generated `.gitignore` and may use `{{TOKEN}}` values.
-  - `gitVerifyCommands` lists verify commands that need a git repository (e.g. a check over `git ls-files`). `skeletor new` prints them with the next steps when it created a repository, and separately under `--no-git`.
+  - `verifyCommands` adds the layer's checks, which CI runs too unless `ciWorkflow` names a workflow the layer ships that runs them; `gitVerifyCommands` holds checks that need a git repository.
   - Layers take no prompts. A value a layer needs is a fixed default (e.g. port `3000`, overridable with `PORT`), changed in the generated project when needed.
-  - Every optional layer and bundle is generated and verified in CI (`tests/generate.test.js`, "optional layers and bundles"): the template's and layer's `verifyCommands`, with `npm run lint -- --max-warnings 0` and `npx knip --treat-config-hints-as-errors`.
+  - Every optional layer and bundle is generated and verified in CI (`tests/generate.test.js`, "optional layers and bundles") by running the scaffold's checks.
 
 - **CLI / src/index.js**
   - Use `@clack/prompts` for interactive runs; `new <name>` is the primary command. Without `--template` on a TTY (no `--auto`), show a template select.
@@ -47,7 +48,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
 
 - **Don't commit** test artifacts (`gen-*` directories from previous runs) or `node_modules`.
 
-- **Testing the full flow**: `node src/index.js new my-test --auto --template <id>`, then run that template's `verifyCommands` in `my-test`.
+- **Testing the full flow**: `node src/index.js new my-test --auto --template <id>`, then run the checks its AGENTS.md lists.
 
 ## Adding a brand new language/stack later
 Start from clean "standard library + modern defaults" (as done for go/rust/java/csharp); the maintainer decides a stack's specific conventions.

@@ -80,7 +80,8 @@ export const VERIFY_COMMAND_RULES = [
   { test: (cmd) => cmd.includes('npm run lint'), features: ['eslint'] },
   { test: (cmd) => cmd.startsWith('npm test'), features: ['jest'] },
   { test: (cmd) => cmd.includes('npm run build'), features: ['node'] },
-  { test: (cmd) => cmd.includes('npm run health:full'), features: ['knip', 'jscpd', 'madge'] },
+  { test: (cmd) => cmd.includes('npm run health:dead'), features: ['knip'] },
+  { test: (cmd) => cmd.includes('npm run health:circular'), features: ['madge'] },
   { test: (cmd) => cmd.startsWith('uv '), features: ['python'] },
   { test: (cmd) => cmd.includes('ruff'), features: ['python'] },
   { test: (cmd) => cmd.includes('pytest'), features: ['python'] },
@@ -147,8 +148,8 @@ export function buildJscpdConfig(features, templateInfo) {
   const specGlob = isTs ? '**/*.spec.ts' : '**/*.spec.js';
   const langKey = isTs ? 'typescript' : 'javascript';
   const exts = isTs ? ['ts', 'tsx'] : ['js', 'jsx'];
+  // A report, not a gate: no threshold, so it never fails.
   return {
-    threshold: 5,
     reporters: ['html', 'console'],
     ignore: ['**/node_modules/**', '**/dist/**', '**/build/**', specGlob, testGlob],
     absolute: true,

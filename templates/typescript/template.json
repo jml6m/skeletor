@@ -22,12 +22,11 @@
   ],
   "verifyCommands": [
     "npm install",
-    "npm run format",
     "npm run lint",
     "npm run typecheck",
     "npm run build",
     "npm test",
-    "npm start",
-    "npm run health:full"
+    "npm run health:dead",
+    "npm run health:circular"
   ]
 }
