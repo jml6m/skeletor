@@ -18,11 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: {{PIN_ACTION_CHECKOUT}}
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: {{PIN_ACTION_RUST_TOOLCHAIN}}
         with:
+          toolchain: {{PIN_RUNTIME_RUST_CHANNEL}}
           components: rustfmt, clippy
 
       - name: Cargo fmt check

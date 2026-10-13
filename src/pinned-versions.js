@@ -1,7 +1,16 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 export const PINNED_VERSIONS_FILENAME = 'pinned-versions.json';
+// GitHub Actions every emitted workflow uses, SHA-pinned; one list for all templates and layers.
+export const ACTION_PINS_PATH = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'templates',
+  '_shared',
+  'github-actions.json',
+);
 export const VALID_STATUSES = ['active', 'needs-review', 'deprecated'];
 export const VALID_POLICIES = ['exact', 'major', 'minor', 'range'];
 
@@ -11,6 +20,28 @@ export const VALID_POLICIES = ['exact', 'major', 'minor', 'range'];
 export function packageNameToToken(name) {
   const base = String(name).replace(/^@/, '').replace(/[/\-@.]/g, '_').toUpperCase();
   return `PIN_${base}`;
+}
+
+/** @param {string} action e.g. "actions/setup-node" → "PIN_ACTION_SETUP_NODE" */
+export function actionToToken(action) {
+  const repo = String(action).split('/').pop();
+  return `PIN_ACTION_${repo.replace(/[-.]/g, '_').toUpperCase()}`;
+}
+
+export function loadActionPins(filePath = ACTION_PINS_PATH) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+/**
+ * `uses:` values for each pinned action, e.g. PIN_ACTION_CHECKOUT → "actions/checkout@<sha> # v7.0.1".
+ * @param {{ actions: Record<string, { sha: string, version: string }> }} [pins]
+ */
+export function buildActionTokens(pins = loadActionPins()) {
+  const tokens = {};
+  for (const [action, { sha, version }] of Object.entries(pins.actions)) {
+    tokens[actionToToken(action)] = `${action}@${sha} # ${version}`;
+  }
+  return tokens;
 }
 
 /**
@@ -108,12 +139,12 @@ export function validatePinnedVersionsManifest(pinned, templateId) {
 }
 
 /**
- * Build render tokens from pinned-versions.json.
+ * Build render tokens from pinned-versions.json, plus the shared GitHub Action pins.
  * @param {object} pinned
  * @param {{ language?: string }} [templateInfo]
  */
 export function buildPinTokens(pinned, templateInfo = {}) {
-  const tokens = {};
+  const tokens = buildActionTokens();
   const eco = ecosystemForLanguage(templateInfo.language);
 
   for (const [name, entry] of Object.entries(pinned.packages || {})) {
