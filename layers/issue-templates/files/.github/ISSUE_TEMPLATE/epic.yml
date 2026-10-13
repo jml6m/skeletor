@@ -1,6 +1,6 @@
 name: Epic
 description: A larger initiative tracked through child issues
-labels: ["epic"]
+labels: ['epic']
 body:
   - type: markdown
     attributes:

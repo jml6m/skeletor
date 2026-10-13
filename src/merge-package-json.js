@@ -123,10 +123,69 @@ export function detectJsonIndent(raw) {
   return match[1].length === 4 ? 4 : 2;
 }
 
+const DEPENDENCY_KEYS = [
+  'bundledDependencies',
+  'peerDependencies',
+  'peerDependenciesMeta',
+  'dependencies',
+  'dependenciesMeta',
+  'optionalDependencies',
+  'devDependencies',
+  'overrides',
+  'resolutions',
+];
+
+// The order prettier-plugin-pkg (in the JS/TS scaffolds' Prettier config) gives package.json keys,
+// so a package.json skeletor writes is already formatted: these keys in this order, then any others
+// alphabetically. The plugin also sorts the keys of SORTED_OBJECTS and the `files` list.
+const KEY_ORDER = [
+  '$schema', 'name', 'version', 'type', 'flat', 'displayName', 'description', 'categories', 'repository',
+  'homepage', 'bugs', 'author', 'publisher', 'maintainers', 'contributors', 'donate', 'funding', 'sponsor',
+  'license', 'preview', 'private', 'workspaces', 'languageName', 'packageManager', 'engines', 'cpu', 'os', 'libc',
+  'devEngines', 'man', 'bin', 'main', 'types', 'typings', 'typesVersions', 'module', 'imports', 'exports',
+  'esnext', 'es2020', 'esm2020', 'fesm2020', 'es2015', 'esm2015', 'fesm2015', 'es5', 'esm5', 'fesm5', 'browser',
+  'umd', 'jsdelivr', 'unpkg', 'directories', 'files', 'keywords', 'scripts', 'config', ...DEPENDENCY_KEYS,
+  'publishConfig', 'sideEffects', 'icon', 'badges', 'galleryBanner', 'activationEvents', 'contributes', 'markdown',
+  'qna', 'extensionPack', 'extensionDependencies', 'extensionKind',
+];
+const SORTED_OBJECTS = new Set(['engines', 'devEngines', 'scripts', ...DEPENDENCY_KEYS]);
+
+const byKey = ([a], [b]) => (a > b ? 1 : a < b ? -1 : 0);
+
+/**
+ * @param {Record<string, unknown>} pkg
+ * @returns {Record<string, unknown>} the same fields in prettier-plugin-pkg's order
+ */
+function sortPackageJson(pkg) {
+  const entries = Object.entries(pkg);
+  const known = entries.filter(([k]) => KEY_ORDER.includes(k)).sort(([a], [b]) => KEY_ORDER.indexOf(a) - KEY_ORDER.indexOf(b));
+  const others = entries.filter(([k]) => !KEY_ORDER.includes(k)).sort(byKey);
+  return Object.fromEntries(
+    [...known, ...others].map(([key, value]) => {
+      if (SORTED_OBJECTS.has(key) && value && typeof value === 'object' && !Array.isArray(value)) {
+        return [key, Object.fromEntries(Object.entries(value).sort(byKey))];
+      }
+      if (key === 'files' && Array.isArray(value)) return [key, sortFiles(value)];
+      return [key, value];
+    }),
+  );
+}
+
+/** Plain entries sorted, then README and LICENSE, then `!` negations sorted. */
+function sortFiles(files) {
+  const lower = (f) => String(f).toLowerCase();
+  const special = (f) => ['readme', 'readme.md', 'license'].includes(lower(f));
+  const plain = files.filter((f) => !special(f) && !String(f).startsWith('!')).sort();
+  const negations = files.filter((f) => !special(f) && String(f).startsWith('!')).sort();
+  const readme = files.filter((f) => ['readme', 'readme.md'].includes(lower(f)));
+  const license = files.filter((f) => lower(f) === 'license');
+  return [...plain, ...readme, ...license, ...negations];
+}
+
 /**
  * @param {Record<string, unknown>} obj
  * @param {number} indent
  */
 export function serializePackageJson(obj, indent = 2) {
-  return `${JSON.stringify(obj, null, indent)}\n`;
+  return `${JSON.stringify(sortPackageJson(obj), null, indent)}\n`;
 }

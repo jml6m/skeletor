@@ -7,7 +7,8 @@ module.exports = {
     '^@root/(.*)$': '<rootDir>/$1',
     '^@src/(.*)$': '<rootDir>/src/$1',
     '^@(config|constants|utils|services|mechanics)$': '<rootDir>/src/$1',
-    '^@(config|constants|utils|services|mechanics)/(.*)$': '<rootDir>/src/$1/$2',
+    '^@(config|constants|utils|services|mechanics)/(.*)$':
+      '<rootDir>/src/$1/$2',
   },
   collectCoverageFrom: ['src/**/*.js'],
   coveragePathIgnorePatterns: ['/node_modules/'],

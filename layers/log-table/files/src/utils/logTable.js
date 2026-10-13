@@ -15,7 +15,10 @@ function resolveTerminalWidth(settings = {}) {
   // eslint-disable-next-line no-restricted-properties
   const envColumns = Number.parseInt(process.env.COLUMNS, 10);
   const stdoutColumns = process.stdout?.isTTY ? process.stdout.columns : null;
-  const detected = stdoutColumns || (Number.isFinite(envColumns) ? envColumns : null) || cfg.defaultTerminalWidth;
+  const detected =
+    stdoutColumns ||
+    (Number.isFinite(envColumns) ? envColumns : null) ||
+    cfg.defaultTerminalWidth;
 
   return clampTerminalWidth(detected, cfg);
 }
@@ -59,14 +62,24 @@ function computeColumnWidths(columns, rows, terminalWidth, settings = {}) {
   const colWidthBudget = terminalWidth - tableFrameOverhead(columns.length);
   const budget = Math.max(
     columns.reduce((sum) => sum + globalMin, 0),
-    colWidthBudget - columns.length * CLI_TABLE_HORIZONTAL_PADDING,
+    colWidthBudget - columns.length * CLI_TABLE_HORIZONTAL_PADDING
   );
 
   const specs = columns.map((col) => {
     const headerWidth = cellDisplayWidth(col.header);
-    const contentWidth = rows.reduce((max, row) => Math.max(max, cellDisplayWidth(row[col.key])), headerWidth);
-    const minWidth = Math.max(globalMin, col.minWidth ?? Math.min(contentWidth, headerWidth));
-    const maxWidth = Math.min(globalMax, col.maxWidth ?? globalMax, Math.max(minWidth, contentWidth));
+    const contentWidth = rows.reduce(
+      (max, row) => Math.max(max, cellDisplayWidth(row[col.key])),
+      headerWidth
+    );
+    const minWidth = Math.max(
+      globalMin,
+      col.minWidth ?? Math.min(contentWidth, headerWidth)
+    );
+    const maxWidth = Math.min(
+      globalMax,
+      col.maxWidth ?? globalMax,
+      Math.max(minWidth, contentWidth)
+    );
     const ideal = Math.max(minWidth, Math.min(maxWidth, contentWidth));
 
     return {
@@ -103,7 +116,9 @@ function computeColumnWidths(columns, rows, terminalWidth, settings = {}) {
   }
 
   let remaining = budget - specs.reduce((sum, s) => sum + s.minWidth, 0);
-  const sorted = [...specs.filter((s) => !s.fixed)].sort((a, b) => b.weight - a.weight || b.ideal - a.ideal);
+  const sorted = [...specs.filter((s) => !s.fixed)].sort(
+    (a, b) => b.weight - a.weight || b.ideal - a.ideal
+  );
 
   for (const spec of sorted) {
     const extra = Math.min(spec.ideal - spec.minWidth, remaining);
@@ -118,10 +133,17 @@ function computeColumnWidths(columns, rows, terminalWidth, settings = {}) {
 function buildLogTable(columns, rows, options = {}) {
   const settings = options.settings || {};
   const terminalWidth = resolveTerminalWidth(settings);
-  const contentWidths = computeColumnWidths(columns, rows, terminalWidth, settings);
+  const contentWidths = computeColumnWidths(
+    columns,
+    rows,
+    terminalWidth,
+    settings
+  );
 
   const table = new Table({
-    head: columns.map((col) => truncateCell(col.header, contentWidths[col.key])),
+    head: columns.map((col) =>
+      truncateCell(col.header, contentWidths[col.key])
+    ),
     colWidths: columns.map((col) => toColWidth(contentWidths[col.key])),
     wordWrap: false,
     style: { head: ['cyan'], ...(options.style || {}) },
@@ -129,7 +151,9 @@ function buildLogTable(columns, rows, options = {}) {
   });
 
   rows.forEach((row) => {
-    table.push(columns.map((col) => truncateCell(row[col.key], contentWidths[col.key])));
+    table.push(
+      columns.map((col) => truncateCell(row[col.key], contentWidths[col.key]))
+    );
   });
 
   return table.toString();

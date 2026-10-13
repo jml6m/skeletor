@@ -13,13 +13,60 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const BINARY_EXT = new Set([
-  'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'bmp', 'tif', 'tiff', 'avif',
-  'pdf', 'zip', 'gz', 'tgz', 'bz2', 'xz', '7z', 'rar',
-  'woff', 'woff2', 'ttf', 'otf', 'eot',
-  'mp3', 'mp4', 'wav', 'ogg', 'webm', 'mov', 'avi', 'mkv', 'flac',
-  'node', 'wasm', 'exe', 'dll', 'so', 'dylib', 'bin', 'o', 'a', 'lib',
-  'class', 'jar', 'pyc', 'pdb', 'snap',
-  'ppm', 'pgm', 'pbm', 'dds', 'glb', 'gltf', 'ktx',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'ico',
+  'bmp',
+  'tif',
+  'tiff',
+  'avif',
+  'pdf',
+  'zip',
+  'gz',
+  'tgz',
+  'bz2',
+  'xz',
+  '7z',
+  'rar',
+  'woff',
+  'woff2',
+  'ttf',
+  'otf',
+  'eot',
+  'mp3',
+  'mp4',
+  'wav',
+  'ogg',
+  'webm',
+  'mov',
+  'avi',
+  'mkv',
+  'flac',
+  'node',
+  'wasm',
+  'exe',
+  'dll',
+  'so',
+  'dylib',
+  'bin',
+  'o',
+  'a',
+  'lib',
+  'class',
+  'jar',
+  'pyc',
+  'pdb',
+  'snap',
+  'ppm',
+  'pgm',
+  'pbm',
+  'dds',
+  'glb',
+  'gltf',
+  'ktx',
 ]);
 
 // Windows script types are conventionally CRLF and sometimes carry a UTF-8 BOM;
@@ -35,12 +82,16 @@ const ALLOWED_CTRL = new Set([0x09, 0x0a, 0x0d]);
 // files).
 let repoRoot;
 try {
-  repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+  repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+    encoding: 'utf8',
+  }).trim();
 } catch (err) {
   if (err.code === 'ENOENT') {
     console.error('✖ Encoding check: `git` was not found on PATH.');
   } else {
-    console.error('✖ Encoding check: not inside a git work tree (git rev-parse --show-toplevel failed).');
+    console.error(
+      '✖ Encoding check: not inside a git work tree (git rev-parse --show-toplevel failed).'
+    );
   }
   process.exit(1);
 }
@@ -81,10 +132,20 @@ for (const file of trackedFiles()) {
   const allowCrlf = CRLF_OK.has(ext);
   const issues = [];
 
-  if (!allowCrlf && buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+  if (
+    !allowCrlf &&
+    buf.length >= 3 &&
+    buf[0] === 0xef &&
+    buf[1] === 0xbb &&
+    buf[2] === 0xbf
+  ) {
     issues.push('UTF-8 BOM');
   }
-  if (buf.length >= 2 && ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff))) {
+  if (
+    buf.length >= 2 &&
+    ((buf[0] === 0xff && buf[1] === 0xfe) ||
+      (buf[0] === 0xfe && buf[1] === 0xff))
+  ) {
     issues.push('UTF-16 BOM');
   }
   if (!isValidUtf8(buf)) issues.push('invalid UTF-8 byte sequence');
@@ -97,7 +158,9 @@ for (const file of trackedFiles()) {
       // Record a line-ending problem at most once per file (CRLF files would
       // otherwise push thousands of identical entries).
       if (!allowCrlf && !lineEndingFlagged) {
-        issues.push(buf[i + 1] === 0x0a ? 'CRLF line endings' : 'lone CR (0x0D)');
+        issues.push(
+          buf[i + 1] === 0x0a ? 'CRLF line endings' : 'lone CR (0x0D)'
+        );
         lineEndingFlagged = true;
       }
       continue;

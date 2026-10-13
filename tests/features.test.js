@@ -4,6 +4,7 @@ import {
   buildGitignore,
   buildKnipConfig,
   buildJscpdConfig,
+  formatConfigJson,
   validateTemplateFeatures,
 } from '../src/features.js';
 import { getTemplatesWithManifests } from '../src/index.js';
@@ -114,5 +115,37 @@ describe('generated .gitignore', () => {
       const dropped = DROPPED_TEMPLATE_GITIGNORE_PATTERNS[`${id}:${pattern}`];
       expect({ pattern, kept: lines.includes(pattern) }).toEqual({ pattern, kept: !dropped });
     }
+  });
+});
+
+describe('formatConfigJson', () => {
+  test('prints JSON the way Prettier does at 80 columns', () => {
+    const value = {
+      entry: ['src/index.ts'],
+      ignore: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/*.spec.ts', '**/*.test.ts'],
+      paths: { '@src/*': ['src/*'] },
+      none: [],
+      threshold: 5,
+    };
+    expect(formatConfigJson(value)).toBe(
+      [
+        '{',
+        '  "entry": ["src/index.ts"],',
+        '  "ignore": [',
+        '    "**/node_modules/**",',
+        '    "**/dist/**",',
+        '    "**/build/**",',
+        '    "**/*.spec.ts",',
+        '    "**/*.test.ts"',
+        '  ],',
+        '  "paths": {',
+        '    "@src/*": ["src/*"]',
+        '  },',
+        '  "none": [],',
+        '  "threshold": 5',
+        '}',
+        '',
+      ].join('\n'),
+    );
   });
 });

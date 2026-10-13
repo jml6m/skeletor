@@ -3,8 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const REPO_OWNER = '{{REPO_OWNER}}';
-const REPO_NAME = '{{REPO_NAME}}';
+const REPO = {
+  owner: '{{REPO_OWNER}}',
+  name: '{{REPO_NAME}}',
+};
 const GITHUB_API = 'https://api.github.com';
 
 /**
@@ -22,7 +24,7 @@ function logError(icon, msg) {
  * Fail-open on any error (network, auth, rate limit, parse).
  */
 async function fetchBlockingIssues(label) {
-  const url = `${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=100`;
+  const url = `${GITHUB_API}/repos/${REPO.owner}/${REPO.name}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=100`;
 
   log('🔍', `Querying GitHub API for open issues with label "${label}"...`);
 
@@ -31,20 +33,31 @@ async function fetchBlockingIssues(label) {
     response = await fetch(url, {
       headers: {
         Accept: 'application/vnd.github+json',
-        'User-Agent': `${REPO_NAME}-release-gate`,
-        ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
+        'User-Agent': `${REPO.name}-release-gate`,
+        ...(process.env.GITHUB_TOKEN
+          ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+          : {}),
       },
     });
   } catch (networkError) {
-    logError('⚠️', `Network error reaching GitHub API: ${networkError.message}`);
-    logError('⚠️', 'Unable to verify blocking issues. Proceeding with caution.');
+    logError(
+      '⚠️',
+      `Network error reaching GitHub API: ${networkError.message}`
+    );
+    logError(
+      '⚠️',
+      'Unable to verify blocking issues. Proceeding with caution.'
+    );
     return [];
   }
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     logError('⚠️', `GitHub API returned ${response.status}: ${body}`);
-    logError('⚠️', 'Unable to verify blocking issues. Proceeding with caution — set GITHUB_TOKEN for authenticated requests.');
+    logError(
+      '⚠️',
+      'Unable to verify blocking issues. Proceeding with caution — set GITHUB_TOKEN for authenticated requests.'
+    );
     return [];
   }
 
@@ -52,7 +65,10 @@ async function fetchBlockingIssues(label) {
   try {
     issues = await response.json();
   } catch (parseError) {
-    logError('⚠️', `Failed to parse GitHub API response: ${parseError.message}`);
+    logError(
+      '⚠️',
+      `Failed to parse GitHub API response: ${parseError.message}`
+    );
     return [];
   }
 
@@ -83,14 +99,20 @@ async function majorReleaseGate(releaseType, nextMajor) {
 
   if (blockers.length > 0) {
     logError('🚫', '');
-    logError('🚫', `RELEASE BLOCKED — ${blockers.length} open ${releaseLabel} issue(s) found:`);
+    logError(
+      '🚫',
+      `RELEASE BLOCKED — ${blockers.length} open ${releaseLabel} issue(s) found:`
+    );
     logError('🚫', '─────────────────────────────────────────────────────────');
     for (const issue of blockers) {
       logError('🚫', `  #${issue.number} — ${issue.title}`);
       logError('🚫', `           ${issue.html_url}`);
     }
     logError('🚫', '─────────────────────────────────────────────────────────');
-    logError('🚫', `All issues labeled "${releaseLabel}" must be closed before a v${nextMajor}.0.0 release.`);
+    logError(
+      '🚫',
+      `All issues labeled "${releaseLabel}" must be closed before a v${nextMajor}.0.0 release.`
+    );
     logError('🚫', 'Aborting release.');
     process.exit(1);
   }
@@ -118,14 +140,19 @@ if (!VALID_TYPES.includes(releaseType)) {
       throw new Error('package.json not found');
     }
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    const currentMajor = parseInt(String(packageJson.version || '0').split('.')[0], 10);
+    const currentMajor = parseInt(
+      String(packageJson.version || '0').split('.')[0],
+      10
+    );
     const nextMajor = currentMajor + 1;
 
     await majorReleaseGate(releaseType, nextMajor);
 
     // Bump
     log('📦', 'Bumping version...');
-    execSync(`npm version ${releaseType} --no-git-tag-version`, { stdio: 'inherit' });
+    execSync(`npm version ${releaseType} --no-git-tag-version`, {
+      stdio: 'inherit',
+    });
 
     const updated = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     const newVersion = updated.version;
@@ -133,7 +160,10 @@ if (!VALID_TYPES.includes(releaseType)) {
     log('✅', `Version bumped to ${newVersion}`);
 
     execSync('git add package.json', { stdio: 'inherit' });
-    execSync(`git commit -m "chore: bump version to ${newVersion}" --no-verify`, { stdio: 'inherit' });
+    execSync(
+      `git commit -m "chore: bump version to ${newVersion}" --no-verify`,
+      { stdio: 'inherit' }
+    );
 
     log('✨', `Success! Version ${newVersion} committed.`);
     log('👉', 'Run "git push" to publish changes.');

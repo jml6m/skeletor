@@ -2,9 +2,10 @@
 
 What the tooling enforces. [CI](./.github/workflows/ci.yml) runs every Build & Test check on every PR.
 
-- **Gates**: `npm run lint` (ESLint with typescript-eslint recommended + stylistic, fails on any warning),
-  `npm run typecheck` (`tsc --noEmit`, strict), `npm run build`, `npm test` (Jest via ts-jest, ESM). The
-  pre-commit hook runs Prettier on staged files; `npm run format` formats the whole tree.
+- **Gates**: `npm run format:check` (Prettier), `npm run lint` (ESLint with typescript-eslint recommended +
+  stylistic, fails on any warning), `npm run typecheck` (`tsc --noEmit`, strict), `npm run build`, `npm test`
+  (Jest via ts-jest, ESM). The pre-commit hook runs Prettier on staged files; `npm run format` formats the whole
+  tree.
 - **Imports**: no parent imports (`../`). Use subpath imports (`#utils/logger.js`, `#config/index.js`) or sibling
   imports (`./`), with the `.js` extension. `#*` resolves to `src/` through `paths` in
   [tsconfig.json](./tsconfig.json) (typecheck, Jest) and to `dist/` through `imports` in `package.json`

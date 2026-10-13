@@ -191,6 +191,37 @@ export function validateTemplateFeatures(templateInfo) {
 }
 
 /**
+ * JSON as Prettier formats it at its default 80 columns: an object one key per line, an array of
+ * plain values on one line when that fits. A scaffold's config files are format-clean as written.
+ * @param {unknown} value
+ */
+export function formatConfigJson(value) {
+  return `${formatJsonValue(value, 0, 0, 0)}\n`;
+}
+
+function formatJsonValue(value, indent, lead, trail) {
+  const pad = ' '.repeat(indent + 2);
+  const close = ' '.repeat(indent);
+  if (Array.isArray(value)) {
+    if (!value.length) return '[]';
+    const inline = `[${value.map((v) => JSON.stringify(v)).join(', ')}]`;
+    if (value.every((v) => v === null || typeof v !== 'object') && lead + inline.length + trail <= 80) return inline;
+    const items = value.map((v, i) => pad + formatJsonValue(v, indent + 2, pad.length, i < value.length - 1 ? 1 : 0));
+    return `[\n${items.join(',\n')}\n${close}]`;
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value);
+    if (!entries.length) return '{}';
+    const items = entries.map(([k, v], i) => {
+      const head = `${pad}${JSON.stringify(k)}: `;
+      return head + formatJsonValue(v, indent + 2, head.length, i < entries.length - 1 ? 1 : 0);
+    });
+    return `{\n${items.join(',\n')}\n${close}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
  * @param {string} targetDir
  * @returns {Record<string, string[]> | null}
  */
@@ -221,11 +252,11 @@ export function applyFeatureConfigs(targetDir, templateInfo, vars = {}) {
     // knip can't follow module-alias at runtime, but it does honour the same `paths` map jsconfig declares.
     const aliasPaths = readJsconfigPaths(targetDir);
     if (aliasPaths) knip.paths = aliasPaths;
-    fs.writeFileSync(path.join(targetDir, 'knip.json'), `${JSON.stringify(knip, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(path.join(targetDir, 'knip.json'), formatConfigJson(knip), 'utf8');
   }
 
   const jscpd = buildJscpdConfig(features, templateInfo);
   if (jscpd) {
-    fs.writeFileSync(path.join(targetDir, '.jscpd.json'), `${JSON.stringify(jscpd, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(path.join(targetDir, '.jscpd.json'), formatConfigJson(jscpd), 'utf8');
   }
 }

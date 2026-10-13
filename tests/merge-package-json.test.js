@@ -65,3 +65,25 @@ describe('serialization', () => {
     expect(serializePackageJson({ name: 'x' }, 2)).toBe('{\n  "name": "x"\n}\n');
   });
 });
+describe('package.json key order', () => {
+  // prettier-plugin-pkg, in the JS/TS scaffolds' Prettier config, prints package.json in this order.
+  test('known keys in the plugin order, others alphabetically, and sorted scripts and dependencies', () => {
+    const pkg = {
+      scripts: { test: 'jest', build: 'tsc' },
+      'lint-staged': {},
+      main: 'index.js',
+      _moduleAliases: {},
+      files: ['README.md', 'lib', '!lib/x', 'dist'],
+      private: true,
+      devDependencies: { zod: '1', ajv: '1' },
+      engines: { node: '>=24' },
+      name: 'x',
+      type: 'module',
+    };
+    const sorted = JSON.parse(serializePackageJson(pkg));
+    expect(Object.keys(sorted)).toEqual(['name', 'type', 'private', 'engines', 'main', 'files', 'scripts', 'devDependencies', '_moduleAliases', 'lint-staged']);
+    expect(Object.keys(sorted.scripts)).toEqual(['build', 'test']);
+    expect(Object.keys(sorted.devDependencies)).toEqual(['ajv', 'zod']);
+    expect(sorted.files).toEqual(['dist', 'lib', 'README.md', '!lib/x']);
+  });
+});

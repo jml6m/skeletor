@@ -5,7 +5,10 @@ import { fileURLToPath } from 'url';
 
 console.info('🗑️  Cleaning dependencies...');
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const rootDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..'
+);
 const nodeModules = path.join(rootDir, 'node_modules');
 const lockFile = path.join(rootDir, 'package-lock.json');
 

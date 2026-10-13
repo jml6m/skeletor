@@ -1,7 +1,9 @@
 const { z } = require('zod');
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).optional(),
 });
@@ -9,7 +11,10 @@ const envSchema = z.object({
 // The one sanctioned process.env read (eslint.config.js exempts this file); everything else goes through @config.
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
-  console.error('Invalid environment configuration:', z.flattenError(parsed.error).fieldErrors);
+  console.error(
+    'Invalid environment configuration:',
+    z.flattenError(parsed.error).fieldErrors
+  );
   process.exit(1);
 }
 

@@ -12,8 +12,20 @@ describe('logTable', () => {
   });
 
   test('resolveTerminalWidth clamps to configured bounds', () => {
-    expect(resolveTerminalWidth({ terminalWidth: 10, minTerminalWidth: 60, maxTerminalWidth: 120 })).toBe(60);
-    expect(resolveTerminalWidth({ terminalWidth: 500, minTerminalWidth: 60, maxTerminalWidth: 120 })).toBe(120);
+    expect(
+      resolveTerminalWidth({
+        terminalWidth: 10,
+        minTerminalWidth: 60,
+        maxTerminalWidth: 120,
+      })
+    ).toBe(60);
+    expect(
+      resolveTerminalWidth({
+        terminalWidth: 500,
+        minTerminalWidth: 60,
+        maxTerminalWidth: 120,
+      })
+    ).toBe(120);
   });
 
   test('truncateCell respects display width and adds ellipsis', () => {
@@ -44,8 +56,13 @@ describe('logTable', () => {
         { key: 'status', header: 'Status', weight: 1 },
         { key: 'url', header: 'Link', weight: 2, maxWidth: 30 },
       ],
-      [{ status: 'ineligible_default_profile', url: 'https://example.com/status/12345678901234567890' }],
-      { settings: { terminalWidth: 72, maxCellWidth: 24 } },
+      [
+        {
+          status: 'ineligible_default_profile',
+          url: 'https://example.com/status/12345678901234567890',
+        },
+      ],
+      { settings: { terminalWidth: 72, maxCellWidth: 24 } }
     );
     expect(output).toContain('Status');
   });
