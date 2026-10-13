@@ -55,7 +55,8 @@ ESLint uses the recommended rules with Node and Jest globals, and fails on unuse
 instead). Inline `eslint-disable` comments are turned off; a rule that needs an exception is
 narrowed in [eslint.config.js](./eslint.config.js).
 
-In a clone, `npm ci` enables a pre-push hook ([`.husky/pre-push`](./.husky/pre-push)) that runs
+In a clone, `npm ci` enables two hooks. Pre-commit ([`.husky/pre-commit`](./.husky/pre-commit))
+runs ESLint and Prettier on staged files. Pre-push ([`.husky/pre-push`](./.husky/pre-push)) runs
 lint, typecheck, knip and the unit tests. madge runs in CI only. `--no-verify` skips a hook; that's a
 deliberate choice, and CI still runs everything.
 

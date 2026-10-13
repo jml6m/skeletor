@@ -73,6 +73,7 @@
     "husky": "^9.1.7",
     "jest": "^30.5.2",
     "knip": "^6.41.0",
+    "lint-staged": "^17.6.0",
     "madge": "^8.0.0",
     "prettier": "~3.9.10",
     "prettier-plugin-organize-imports": "^4.3.0",
@@ -81,5 +82,12 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs}": [
+      "eslint --config eslint.config.js --max-warnings 0 --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": "prettier --write"
   }
 }

@@ -1,0 +1,2 @@
+# ESLint and Prettier on staged files ("lint-staged" in package.json).
+npx lint-staged
