@@ -3,8 +3,9 @@ name: CI
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [main]
+  # A PR's checks gate the merge, so nothing re-runs after it. publish.yml runs the full suite
+  # before publishing; this trigger runs it by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read
