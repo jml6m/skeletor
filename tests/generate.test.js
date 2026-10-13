@@ -244,6 +244,8 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         expect(fs.existsSync(path.join(targetDir, 'template.json'))).toBe(false);
         expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
         expect(fs.existsSync(path.join(targetDir, '.github', 'CODEOWNERS'))).toBe(false);
+        // Repository settings are printed by skeletor, not committed where they would drift.
+        expect(allFiles.filter((f) => /GITHUB-SETUP/.test(f) || /GITHUB-SETUP/.test(fs.readFileSync(path.join(targetDir, f), 'utf8')))).toEqual([]);
 
         // Assert the expected unsuffixed manifest exists for this template.
         const manifest = expectedManifest[tmpl.id];
