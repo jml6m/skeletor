@@ -79,7 +79,7 @@ module.exports = defineConfig([
     },
   },
   {
-    files: ['release.js', 'scripts/**', 'tests/support/**', 'src/config/env.config.js'],
+    files: ['release.js', 'scripts/**', 'tests/support/**', 'src/config/env.config.js', '*.config.js'],
     rules: {
       'no-restricted-properties': 'off',
     },

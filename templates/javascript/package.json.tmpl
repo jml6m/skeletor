@@ -9,7 +9,7 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "prepare": "husky",
-    "start": "node src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
     "test": "jest --verbose",
     "test:coverage": "jest --coverage --verbose",
     "release:patch": "node release.js patch",

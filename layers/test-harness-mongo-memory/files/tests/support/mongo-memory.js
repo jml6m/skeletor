@@ -1,3 +1,5 @@
+const os = require('os');
+const { MongoClient } = require('mongodb');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 let mongoServer;
@@ -14,4 +16,12 @@ async function stopMongoMemory() {
   }
 }
 
-module.exports = { startMongoMemory, stopMongoMemory };
+/**
+ * Connects the MongoDB driver to `uri`. The driver loads `os` with a dynamic import(), which Jest
+ * can't run in CommonJS tests, so the module is handed to it directly.
+ */
+function connectMongo(uri) {
+  return MongoClient.connect(uri, { runtimeAdapters: { os } });
+}
+
+module.exports = { startMongoMemory, stopMongoMemory, connectMongo };

@@ -121,7 +121,7 @@ const layoutCases = allTemplates.flatMap((tmpl) =>
     .map(([id, layout]) => ({ label: `${tmpl.id} --layout ${id}`, shard: tmpl.id, tmpl, id, layout })),
 );
 
-const OPTIONAL_LAYERS = ['free-port', 'log-table', 'logger-winston', 'test-harness:mongo-memory', 'test-harness:playwright', 'library-publishing', 'docs-policy', 'issue-labels'];
+const OPTIONAL_LAYERS = ['free-port', 'express-server', 'log-table', 'logger-winston', 'test-harness:mongo-memory', 'test-harness:playwright', 'library-publishing', 'docs-policy', 'issue-labels'];
 const jsTsTemplates = allTemplates.filter((t) => ['javascript', 'typescript'].includes(t.id));
 
 const optionalCases = [

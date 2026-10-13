@@ -102,6 +102,57 @@ describe('layer application', () => {
     }
   });
 
+  test('express-api bundle ships an Express server that npm start runs on PORT', async () => {
+    const name = makeName('layer-express');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, bundle: 'express-api' });
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.dependencies.express).toBeDefined();
+      expect(pkg.scripts.start).toBe('node --env-file-if-exists=.env src/index.js');
+      expect(pkg.scripts['free-port']).toBe('node --env-file-if-exists=.env scripts/free-port.cjs');
+      expect(fs.readFileSync(path.join(targetDir, 'src', 'index.js'), 'utf8')).toContain('createApp().listen(port');
+      expect(fs.existsSync(path.join(targetDir, 'src', 'app.js'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'tests', 'app.test.js'))).toBe(true);
+      expect(fs.readFileSync(path.join(targetDir, '.env.example'), 'utf8')).toContain('PORT=3000');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test.each(['javascript', 'typescript'])('test harnesses emit %s files, an example test, and AGENTS sections', async (template) => {
+    const name = makeName(`layer-harness-${template}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    const ext = template === 'typescript' ? 'ts' : 'js';
+    const other = ext === 'ts' ? 'js' : 'ts';
+    try {
+      await runNew({
+        command: 'new',
+        name,
+        template,
+        owner: 'acme',
+        auto: true,
+        git: false,
+        withLayers: ['test-harness:playwright', 'test-harness:mongo-memory'],
+      });
+      for (const rel of [`playwright.config.${ext}`, `tests/e2e/example.spec.${ext}`, `tests/support/mongo-memory.${ext}`, `tests/example.mongo.test.${ext}`]) {
+        expect({ rel, exists: fs.existsSync(path.join(targetDir, rel)) }).toEqual({ rel, exists: true });
+        const twin = rel.replace(new RegExp(`\\.${ext}$`), `.${other}`);
+        expect({ twin, exists: fs.existsSync(path.join(targetDir, twin)) }).toEqual({ twin, exists: false });
+      }
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.scripts['test:mongo']).toContain('--testPathPatterns=mongo.test');
+      expect(pkg.scripts['test:mongo']).not.toContain('--passWithNoTests');
+      expect(pkg.devDependencies['mongodb-memory-server']).toMatch(/^\^11\./);
+      const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+      expect(agents).toContain('## End-to-end tests');
+      expect(agents).toContain('npm run test:e2e');
+      expect(agents).toContain('## Database tests');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
   test('docs-policy seeds an allowlist of exactly the emitted markdown and its check passes', async () => {
     const name = makeName('layer-docs-policy');
     const targetDir = path.resolve(process.cwd(), name);

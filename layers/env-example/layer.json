@@ -1,7 +1,7 @@
 {
   "id": "env-example",
   "name": "Environment example file",
-  "description": "Ships a comprehensive .env.example with documented variables.",
+  "description": "Ships a .env.example listing the variables the config reads; npm start loads .env when it exists.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["javascript", "typescript"],

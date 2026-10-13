@@ -243,7 +243,7 @@ describe('free-port: freePort', () => {
   });
 });
 
-test('free-port: the npm script passes no port, so $PORT is honoured', () => {
+test('free-port: the npm script passes no port, so $PORT (from the environment or .env) is honoured', () => {
   const patch = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'layers', 'free-port', 'patch', 'package.json.json'), 'utf8'));
-  expect(patch.scripts['free-port']).toBe('node scripts/free-port.cjs');
+  expect(patch.scripts['free-port']).toBe('node --env-file-if-exists=.env scripts/free-port.cjs');
 });

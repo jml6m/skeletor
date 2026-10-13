@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "mongodb": "^7.5.0",
+    "mongodb-memory-server": "^11.3.0"
+  },
+  "scripts": {
+    "test:mongo": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --verbose --testPathPatterns=mongo.test"
+  }
+}
