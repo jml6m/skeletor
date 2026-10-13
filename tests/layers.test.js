@@ -399,12 +399,12 @@ describe('AGENTS.md layer snippets', () => {
     }
   });
 
-  test('javascript --with-recommended puts each snippet under its own heading', async () => {
+  test('javascript baseline plus zod-config puts each snippet under its own heading', async () => {
     const name = makeName('agents-js');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withRecommended: true });
-      expectSnippetsUnderHeadings(targetDir, collectLayerIds({ withRecommended: true }, loadTemplateManifest('javascript')));
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withLayers: ['zod-config'] });
+      expectSnippetsUnderHeadings(targetDir, collectLayerIds({ withLayers: ['zod-config'] }, loadTemplateManifest('javascript')));
     } finally {
       cleanup(targetDir);
     }
@@ -436,11 +436,11 @@ describe('label seed', () => {
     expect(chore).toEqual({ name: 'chore', color: 'fef2c0', description: 'Maintenance / process work' });
   });
 
-  test('--with-recommended --with issue-labels seeds chore and epic under Issue labels', async () => {
+  test('the baseline plus issue-labels seeds chore and epic under Issue labels', async () => {
     const name = makeName('label-seed-js');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withRecommended: true, withLayers: ['issue-labels'] });
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withLayers: ['issue-labels'] });
       const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
       const body = sectionBody(agents, 'Issue labels');
       expect(body).toContain(seedLine(chore));
@@ -452,11 +452,11 @@ describe('label seed', () => {
     }
   });
 
-  test('issue-templates alone still documents how to create epic', async () => {
+  test('the baseline issue-templates alone still documents how to create epic', async () => {
     const name = makeName('label-seed-py');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({ command: 'new', name, template: 'python', owner: 'acme', auto: true, git: false, withRecommended: true });
+      await runNew({ command: 'new', name, template: 'python', owner: 'acme', auto: true, git: false, withLayers: [] });
       const body = sectionBody(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8'), 'Issue labels');
       expect(body).toContain(seedLine(epic));
       expect(body).not.toContain('"chore"');
@@ -465,11 +465,13 @@ describe('label seed', () => {
     }
   });
 
-  test('no labels, no section', async () => {
-    const name = makeName('label-seed-none');
-    const targetDir = path.resolve(process.cwd(), name);
+  // Every scaffold's baseline includes issue-templates (epic), so apply a label-free layer set directly.
+  test('no labels, no section', () => {
+    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-label-seed-'));
     try {
-      await runNew({ command: 'new', name, template: 'go', owner: 'acme', auto: true, git: false, withLayers: ['governance'] });
+      fs.writeFileSync(path.join(targetDir, 'AGENTS.md'), '# my-app\n\n## Build & Test\n\nRun the tests.\n');
+      const result = applyLayers({ projectDir: targetDir, layerIds: ['governance'], template: 'go', vars: {}, noInstall: true });
+      expect(result.labels).toEqual([]);
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).not.toContain('## Issue labels');
     } finally {
       cleanup(targetDir);
@@ -536,8 +538,8 @@ describe('generated ignore rules', () => {
     }
   });
 
-  test('javascript --with-recommended leaves the env-example file trackable', async () => {
-    const { targetDir } = await scaffold('javascript', { withRecommended: true });
+  test('javascript --with env-example leaves the env-example file trackable', async () => {
+    const { targetDir } = await scaffold('javascript', { withLayers: ['env-example'] });
     try {
       expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
       expect(isIgnored(targetDir, '.env.example')).toBe(false);
