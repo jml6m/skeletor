@@ -60,7 +60,7 @@ skeletor sets these itself instead of asking. Change them in the generated proje
 
 | Value | Default |
 |---|---|
-| License | `UNLICENSED` (no `LICENSE` file, nothing granted) without `--github` or with `--private`. A public `--github` repo is asked: MIT, Apache-2.0 or UNLICENSED; `--auto` picks MIT |
+| License | `UNLICENSED` (no `LICENSE` file, nothing granted) without `--github` or with `--private`. A public `--github` repo is asked: MIT, Apache-2.0 or UNLICENSED; `--auto` picks MIT. With `library-publishing`, MIT unless a public repo's prompt picks another |
 | Python version | the template's pinned runtime (`pinned-versions.json`) |
 | .NET target framework | the template's pinned framework (`pinned-versions.json`) |
 | Maven groupId | `io.github.<owner>` |

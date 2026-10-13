@@ -29,6 +29,25 @@ describe('license follows repository visibility', () => {
     expect(await resolveLicense({ github: true }, false)).toBe('MIT');
   });
 
+  test('library-publishing makes it MIT whatever the visibility; a public repo is still asked', async () => {
+    const layers = ['governance', 'library-publishing'];
+    expect(await resolveLicense({}, false, layers)).toBe('MIT');
+    expect(await resolveLicense({}, true, layers)).toBe('MIT');
+    expect(await resolveLicense({ github: true, githubPrivate: true }, false, layers)).toBe('MIT');
+    expect(await resolveLicense({ github: true }, false, layers)).toBe('MIT');
+    expect(await resolveLicense({}, false, ['governance'])).toBe('UNLICENSED');
+  });
+
+  test('a local library-publishing scaffold gets an MIT LICENSE and package.json license', async () => {
+    const dir = await scaffold({ template: 'typescript', withLayers: ['library-publishing'] });
+    try {
+      expect(read(dir, 'LICENSE')).toMatch(/^MIT License\n/);
+      expect(JSON.parse(read(dir, 'package.json')).license).toBe('MIT');
+    } finally {
+      cleanup(dir);
+    }
+  });
+
   test('the public-repo prompt describes each option and recommends MIT', () => {
     const options = licenseSelectOptions();
     expect(options.map((o) => o.value)).toEqual(['MIT', 'Apache-2.0', 'UNLICENSED']);
@@ -81,7 +100,7 @@ describe('license follows repository visibility', () => {
       const pub = await scaffold({ template: 'python', layout, github: true });
       const local = await scaffold({ template: 'python', layout });
       try {
-        expect(read(pub, 'pyproject.toml')).toContain('\nlicense = {text = "MIT"}\n');
+        expect(read(pub, 'pyproject.toml')).toContain('\nlicense = "MIT"\n');
         expect(read(local, 'pyproject.toml')).not.toMatch(/^license/m);
         expect(read(local, 'pyproject.toml')).not.toContain('UNLICENSED');
       } finally {

@@ -175,19 +175,6 @@ export function resolveLayerOrder(requestedIds, ctx) {
 }
 
 /**
- * Token defaults the resolved layers set through `defaults` in layer.json (e.g. library-publishing
- * defaults LICENSE to MIT). They change only a scaffold prompt's default; an explicit answer wins.
- * @param {string[]} layerIds
- * @param {{ template: string, language: string }} ctx
- * @returns {Record<string, string>}
- */
-export function layerTokenDefaults(layerIds, ctx) {
-  const { order, errors } = resolveLayerOrder(layerIds, ctx);
-  if (errors.length) return {};
-  return Object.assign({}, ...order.map((id) => loadLayerById(id).defaults || {}));
-}
-
-/**
  * @param {string} bundleName
  * @param {string} [templateId]
  */
@@ -636,9 +623,9 @@ export function validateLayerManifests() {
       }
     }
 
-    const defaults = layer.defaults;
-    if (defaults !== undefined && (typeof defaults !== 'object' || defaults === null || !Object.entries(defaults).every(([k, v]) => /^[A-Z][A-Z0-9_]*$/.test(k) && typeof v === 'string'))) {
-      errors.push(`${layer.id}: defaults must map TOKEN names to string values`);
+    // License defaults live in src/license.js; a layer can't change them.
+    if ('defaults' in layer) {
+      errors.push(`${layer.id}: "defaults" is not supported; the license rule for publishing layers is in src/license.js`);
     }
 
     // Layers either work alone or declare `requires`, which is auto-applied; a soft dependency is never read.

@@ -10,6 +10,8 @@ import { withRecommendedTag } from './interactive-prompts.js';
 
 export const UNLICENSED = 'UNLICENSED';
 export const PUBLIC_DEFAULT_LICENSE = 'MIT';
+// A publishable package needs an SPDX license, so these layers make MIT the license whatever the visibility.
+export const PUBLISHING_LAYERS = ['library-publishing'];
 
 export const LICENSES = [
   { id: 'MIT', hint: 'permissive and short; the usual choice for tools and libraries' },
@@ -31,22 +33,34 @@ export function licenseSelectOptions() {
 }
 
 /**
- * UNLICENSED without a prompt unless the repository is public; a public one is asked interactively
- * and gets MIT under --auto.
+ * A public repository is asked interactively and gets MIT under --auto. Anything else is UNLICENSED
+ * without a prompt, unless a publishing layer is applied: then it is MIT.
  * @param {{ github?: boolean, githubPrivate?: boolean }} opts
  * @param {boolean} isInteractive
+ * @param {string[]} [layerIds] the resolved layers the scaffold applies
  */
-export async function resolveLicense(opts, isInteractive) {
-  if (!isPublicRepo(opts)) return UNLICENSED;
+export async function resolveLicense(opts, isInteractive, layerIds = []) {
+  if (!isPublicRepo(opts)) return layerIds.some((id) => PUBLISHING_LAYERS.includes(id)) ? PUBLIC_DEFAULT_LICENSE : UNLICENSED;
   if (!isInteractive) return PUBLIC_DEFAULT_LICENSE;
   return p.select({ message: 'License', options: licenseSelectOptions(), initialValue: PUBLIC_DEFAULT_LICENSE });
 }
 
-// pyproject.toml and Cargo.toml take an SPDX license or nothing; UNLICENSED is not an SPDX id.
-const SPDX_ONLY_MANIFESTS = new Set(['pyproject.toml', 'Cargo.toml']);
+/**
+ * The `{{PYPROJECT_LICENSE}}` line: a PEP 639 SPDX string, or nothing for UNLICENSED, which is not
+ * an SPDX expression.
+ * @param {string} license
+ */
+export function pyprojectLicense(license) {
+  const value = String(license ?? '').trim();
+  if (!value || value === UNLICENSED) return '';
+  return `\nlicense = ${JSON.stringify(value)}`;
+}
+
+// Cargo.toml takes an SPDX license or nothing; UNLICENSED is not an SPDX id.
+const SPDX_ONLY_MANIFESTS = new Set(['Cargo.toml']);
 const LICENSE_FIELD = /^license(?:\.workspace)?\s*=.*\r?\n?/gm;
 
-/** Removes the license field from every pyproject.toml and Cargo.toml under projectDir. */
+/** Removes the license field from every Cargo.toml under projectDir. */
 export function removeSpdxLicenseFields(projectDir) {
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

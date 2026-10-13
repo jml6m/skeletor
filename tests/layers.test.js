@@ -21,11 +21,9 @@ import {
   loadLayerById,
   appendAgentsSection,
   buildLabelSeed,
-  layerTokenDefaults,
   applyPackageJsonOverride,
   getLayersWithManifests,
 } from '../src/layers.js';
-import { gatherTemplatePrompts, templatePromptDefaults } from '../src/template-prompts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -264,14 +262,6 @@ describe('layer application', () => {
     } finally {
       cleanup(targetDir);
     }
-  });
-
-  test('library-publishing makes MIT the license prompt default', () => {
-    const ctx = { template: 'typescript', language: 'typescript' };
-    const license = (vars) => templatePromptDefaults(gatherTemplatePrompts('typescript', vars)).LICENSE;
-    expect(layerTokenDefaults(['library-publishing'], ctx)).toEqual({ LICENSE: 'MIT' });
-    expect(license({ LICENSE: 'UNLICENSED', ...layerTokenDefaults(['library-publishing'], ctx) })).toBe('MIT');
-    expect(license({ LICENSE: 'UNLICENSED', ...layerTokenDefaults(['governance'], ctx) })).toBe('UNLICENSED');
   });
 
   test('layers take no prompts', () => {
