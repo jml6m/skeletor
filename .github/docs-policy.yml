@@ -6,15 +6,15 @@
 # Enforced by: .github/scripts/check-docs-policy.sh
 
 allowed:
-  - README.md                              # Public project overview, usage, install instructions
-  - AGENTS.md                               # Project guidance for agents and reviewers
-  - CONTRIBUTING.md                          # How to contribute
-  - CLAUDE.md                                # Thin @AGENTS.md import pointer only
-  - SECURITY.md                              # Supported versions and private vulnerability reporting
+  - README.md # Public project overview, usage, install instructions
+  - AGENTS.md # Project guidance for agents and reviewers
+  - CONTRIBUTING.md # How to contribute
+  - CLAUDE.md # Thin @AGENTS.md import pointer only
+  - SECURITY.md # Supported versions and private vulnerability reporting
   - .github/ISSUE_TEMPLATE/bug_report.md
   - .github/ISSUE_TEMPLATE/feature_request.md
   - .github/pull_request_template.md
 
 exempt_globs:
-  - "templates/**"  # emitted scaffolding fixtures — content skeletor generates for new projects
-  - "layers/**"      # emitted enhancement-layer fixtures (incl. AGENTS.snippet.md fragments)
+  - 'templates/**' # emitted scaffolding fixtures — content skeletor generates for new projects
+  - 'layers/**' # emitted enhancement-layer fixtures (incl. AGENTS.snippet.md fragments)

@@ -45,14 +45,16 @@ export function buildSelectOptions(opts) {
  */
 export async function promptConfirmRecommended(opts) {
   const recommended = opts.recommended !== false;
-  return p.select({
-    message: opts.message,
-    options: buildConfirmOptions(recommended),
-    initialValue: recommended ? 'yes' : 'no',
-  }).then((answer) => {
-    if (p.isCancel(answer)) return answer;
-    return answer === 'yes';
-  });
+  return p
+    .select({
+      message: opts.message,
+      options: buildConfirmOptions(recommended),
+      initialValue: recommended ? 'yes' : 'no',
+    })
+    .then((answer) => {
+      if (p.isCancel(answer)) return answer;
+      return answer === 'yes';
+    });
 }
 
 /**

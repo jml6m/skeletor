@@ -14,15 +14,15 @@ Latest release: [![npm](https://img.shields.io/npm/v/@jml6m/skeletor)](https://w
 
 Run `skeletor new my-project` for an interactive selector, or pass `--template <id>`.
 
-| Template | Notes |
-|----------|-------|
-| `javascript` | CJS — Prettier, ESLint, aliases, knip/madge gates, husky, AGENTS.md |
-| `typescript` | ESM + strict TS, flat ESLint, build, quality gates, AGENTS.md |
-| `python` | uv, pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
-| `go` | Standard module + tests |
-| `rust` | Cargo — `--layout single\|lib\|workspace` |
-| `java` | Maven + JUnit 6 |
-| `csharp` | .NET 10 + xUnit |
+| Template     | Notes                                                                        |
+| ------------ | ---------------------------------------------------------------------------- |
+| `javascript` | CJS — Prettier, ESLint, aliases, knip/madge gates, husky, AGENTS.md          |
+| `typescript` | ESM + strict TS, flat ESLint, build, quality gates, AGENTS.md                |
+| `python`     | uv, pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
+| `go`         | Standard module + tests                                                      |
+| `rust`       | Cargo — `--layout single\|lib\|workspace`                                    |
+| `java`       | Maven + JUnit 6                                                              |
+| `csharp`     | .NET 10 + xUnit                                                              |
 
 Each template declares `verifyCommands` in `template.json`: the scaffold's checks. A layer can add its own. The generated AGENTS.md and README list them, and the scaffold's CI runs them on every pull request.
 
@@ -74,16 +74,16 @@ Interactive prompts use **select lists** with `(recommended)` labels.
 
 skeletor sets these itself instead of asking. Change them in the generated project if you need to.
 
-| Value | Default |
-|---|---|
-| License | `UNLICENSED` (no `LICENSE` file, nothing granted) without `--github` or with `--private`. A public `--github` repo is asked: MIT, Apache-2.0 or UNLICENSED; `--auto` picks MIT. With `library-publishing`, MIT unless a public repo's prompt picks another |
-| Python version | the template's pinned runtime (`pinned-versions.json`) |
-| Python dependency workflow | uv (`uv sync`, `uv run`); commit the `uv.lock` the first `uv sync` creates |
-| .NET target framework | the template's pinned framework (`pinned-versions.json`) |
-| Maven groupId | `io.github.<owner>` |
-| Server port (`free-port`) | `3000`, overridable at runtime with `PORT`; the JS/TS server defaults to the same port |
-| Log directory (`logger-winston`) | `logs/` |
-| Initial git branch | `main` |
+| Value                            | Default                                                                                                                                                                                                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| License                          | `UNLICENSED` (no `LICENSE` file, nothing granted) without `--github` or with `--private`. A public `--github` repo is asked: MIT, Apache-2.0 or UNLICENSED; `--auto` picks MIT. With `library-publishing`, MIT unless a public repo's prompt picks another |
+| Python version                   | the template's pinned runtime (`pinned-versions.json`)                                                                                                                                                                                                     |
+| Python dependency workflow       | uv (`uv sync`, `uv run`); commit the `uv.lock` the first `uv sync` creates                                                                                                                                                                                 |
+| .NET target framework            | the template's pinned framework (`pinned-versions.json`)                                                                                                                                                                                                   |
+| Maven groupId                    | `io.github.<owner>`                                                                                                                                                                                                                                        |
+| Server port (`free-port`)        | `3000`, overridable at runtime with `PORT`; the JS/TS server defaults to the same port                                                                                                                                                                     |
+| Log directory (`logger-winston`) | `logs/`                                                                                                                                                                                                                                                    |
+| Initial git branch               | `main`                                                                                                                                                                                                                                                     |
 
 ## Enhancement layers
 
@@ -92,24 +92,24 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 - **Baseline layers** are applied to every scaffold of the templates they fit (`baselineLayers` in `template.json`): `governance`, `dependabot` and `issue-templates` everywhere, plus `quality-gates` and `docs-lint` on javascript and typescript.
 - **Feature layers** are opt-in, via `--with` or a `--bundle` (see [Commands and flags](#commands-and-flags) above). Bundles list feature layers only. Interactive runs without either flag offer a picker of the feature layers that fit the template.
 
-| Layer | Applies to | Baseline | What it adds |
-|---|---|---|---|
-| `dependabot` | all | yes | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions |
-| `docs-lint` | javascript, typescript | yes | Pinned docs-lint CI: lychee 0.24.2 link/anchor checking + markdownlint-cli2 |
-| `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job |
-| `env-example` | javascript, typescript |  | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists |
-| `express-server` | javascript |  | Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route |
-| `free-port` | javascript, typescript |  | Zero-dependency cross-platform port freeing script with a prestart hook |
-| `governance` | all | yes | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md |
-| `issue-labels` | all |  | Opt-in label conventions for repos with CI/release process: a chore label, the area: prefix rule, and criteria for gate labels |
-| `issue-templates` | all | yes | Minimal repo-agnostic issue forms: bug report, feature request, epic (native sub-issues), and blank issues disabled |
-| `library-publishing` | typescript |  | Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw in CI, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow that runs the CI checks first |
-| `log-table` | javascript, typescript |  | cli-table3 + string-width log table utility with display-width truncation and config defaults |
-| `logger-winston` | javascript, typescript |  | Replaces the console logger stub with Winston (levels, file transports, env-aware default level) |
-| `quality-gates` | javascript, typescript | yes | Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull |
-| `test-harness:mongo-memory` | javascript, typescript |  | mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script |
-| `test-harness:playwright` | javascript, typescript |  | Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts; CI runs the specs |
-| `zod-config` | javascript, typescript |  | Zod-validated env.config + config/index pattern; never read process.env in feature code |
+| Layer                       | Applies to             | Baseline | What it adds                                                                                                                                                                                                                                                                                       |
+| --------------------------- | ---------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dependabot`                | all                    | yes      | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions                                                                                                                                                                                                       |
+| `docs-lint`                 | javascript, typescript | yes      | Pinned docs-lint CI: lychee 0.24.2 link/anchor checking + markdownlint-cli2                                                                                                                                                                                                                        |
+| `docs-policy`               | all                    |          | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job                                                                                                                                                                                   |
+| `env-example`               | javascript, typescript |          | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists                                                                                                                                                                                                   |
+| `express-server`            | javascript             |          | Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route                                                                                                                                                       |
+| `free-port`                 | javascript, typescript |          | Zero-dependency cross-platform port freeing script with a prestart hook                                                                                                                                                                                                                            |
+| `governance`                | all                    | yes      | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md                                                                                                                                                                                                              |
+| `issue-labels`              | all                    |          | Opt-in label conventions for repos with CI/release process: a chore label, the area: prefix rule, and criteria for gate labels                                                                                                                                                                     |
+| `issue-templates`           | all                    | yes      | Minimal repo-agnostic issue forms: bug report, feature request, epic (native sub-issues), and blank issues disabled                                                                                                                                                                                |
+| `library-publishing`        | typescript             |          | Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw in CI, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow that runs the CI checks first |
+| `log-table`                 | javascript, typescript |          | cli-table3 + string-width log table utility with display-width truncation and config defaults                                                                                                                                                                                                      |
+| `logger-winston`            | javascript, typescript |          | Replaces the console logger stub with Winston (levels, file transports, env-aware default level)                                                                                                                                                                                                   |
+| `quality-gates`             | javascript, typescript | yes      | Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull                                                                                                                                                                                                        |
+| `test-harness:mongo-memory` | javascript, typescript |          | mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script                                                                                                                                                                                         |
+| `test-harness:playwright`   | javascript, typescript |          | Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts; CI runs the specs                                                                                                                                                                             |
+| `zod-config`                | javascript, typescript |          | Zod-validated env.config + config/index pattern; never read process.env in feature code                                                                                                                                                                                                            |
 
 `skeletor new --github` also creates the labels that the chosen layers expect (for example `epic`), right after it creates the repo.
 
@@ -117,13 +117,13 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 
 A bundle is a named set of feature layers for one template, defined in [bundles.json](./bundles.json). `--bundle` picks the template too, so `--template` is optional with it; if you pass both, they must match.
 
-| Bundle | Template | Feature layers |
-|---|---|---|
-| `node-cli` | javascript | `zod-config`, `logger-winston`, `env-example`, `log-table` |
+| Bundle        | Template   | Feature layers                                                               |
+| ------------- | ---------- | ---------------------------------------------------------------------------- |
+| `node-cli`    | javascript | `zod-config`, `logger-winston`, `env-example`, `log-table`                   |
 | `express-api` | javascript | `zod-config`, `logger-winston`, `env-example`, `free-port`, `express-server` |
-| `cli-report` | javascript | `log-table` |
-| `ts-library` | typescript | `library-publishing` |
-| `ts-native` | typescript | `test-harness:playwright` |
+| `cli-report`  | javascript | `log-table`                                                                  |
+| `ts-library`  | typescript | `library-publishing`                                                         |
+| `ts-native`   | typescript | `test-harness:playwright`                                                    |
 
 ## Rich interactive CLI
 

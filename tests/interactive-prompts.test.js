@@ -1,12 +1,6 @@
 process.env.SKELETOR_CLI_TEST = '1';
 
-import {
-  RECOMMENDED_TAG,
-  withRecommendedTag,
-  buildConfirmOptions,
-  buildSelectOptions,
-  CUSTOM_SELECT_VALUE,
-} from '../src/interactive-prompts.js';
+import { buildConfirmOptions, buildSelectOptions, CUSTOM_SELECT_VALUE, RECOMMENDED_TAG, withRecommendedTag } from '../src/interactive-prompts.js';
 
 describe('interactive-prompts', () => {
   test('withRecommendedTag appends standard label', () => {

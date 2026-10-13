@@ -23,10 +23,10 @@ ignores:
   - 'dist/**'
   - 'coverage/**'
   - 'lib/**'
-  - '.github/ISSUE_TEMPLATE/**'   # issue templates authored without an H1
+  - '.github/ISSUE_TEMPLATE/**' # issue templates authored without an H1
   - '.github/pull_request_template.md'
   - 'templates/**' # emitted scaffolding fixtures; covered by the verify-templates job
-  - 'layers/**'    # emitted enhancement-layer fixtures (incl. AGENTS.snippet.md fragments)
+  - 'layers/**' # emitted enhancement-layer fixtures (incl. AGENTS.snippet.md fragments)
   # Capped in length by scripts/check-agent-file-length.mjs instead of format-linted; lychee
   # still checks their links.
   - 'AGENTS.md'

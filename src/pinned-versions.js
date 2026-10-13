@@ -4,13 +4,7 @@ import { fileURLToPath } from 'url';
 
 const PINNED_VERSIONS_FILENAME = 'pinned-versions.json';
 // GitHub Actions every emitted workflow uses, SHA-pinned; one list for all templates and layers.
-const ACTION_PINS_PATH = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  'templates',
-  '_shared',
-  'github-actions.json',
-);
+const ACTION_PINS_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', '_shared', 'github-actions.json');
 const VALID_STATUSES = ['active', 'needs-review', 'deprecated'];
 const VALID_POLICIES = ['exact', 'major', 'minor', 'range'];
 
@@ -18,7 +12,10 @@ const VALID_POLICIES = ['exact', 'major', 'minor', 'range'];
  * @param {string} name
  */
 export function packageNameToToken(name) {
-  const base = String(name).replace(/^@/, '').replace(/[/\-@.]/g, '_').toUpperCase();
+  const base = String(name)
+    .replace(/^@/, '')
+    .replace(/[/\-@.]/g, '_')
+    .toUpperCase();
   return `PIN_${base}`;
 }
 

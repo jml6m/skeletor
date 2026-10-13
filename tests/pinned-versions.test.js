@@ -6,22 +6,18 @@ process.env.SKELETOR_CLI_TEST = '1';
 import { getTemplatesWithManifests, runNew } from '../src/index.js';
 import {
   buildPinTokens,
+  checkTemplateGenerationAllowed,
   formatPinnedSpec,
   packageNameToToken,
   validatePinnedVersionsManifest,
   validatePinTokenCoverage,
-  checkTemplateGenerationAllowed,
 } from '../src/pinned-versions.js';
-
 
 describe('pinned-versions', () => {
   const templates = getTemplatesWithManifests();
 
   test('every template has a valid pinned-versions.json', () => {
-    const errors = templates.flatMap((t) => validatePinnedVersionsManifest(
-      JSON.parse(fs.readFileSync(path.join(t.dir, 'pinned-versions.json'), 'utf8')),
-      t.id,
-    ));
+    const errors = templates.flatMap((t) => validatePinnedVersionsManifest(JSON.parse(fs.readFileSync(path.join(t.dir, 'pinned-versions.json'), 'utf8')), t.id));
     expect(errors).toEqual([]);
   });
 

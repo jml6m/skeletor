@@ -1,12 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import {
-  buildGitignore,
-  buildKnipConfig,
-  buildJscpdConfig,
-  formatConfigJson,
-  validateTemplateFeatures,
-} from '../src/features.js';
+import { buildGitignore, buildJscpdConfig, buildKnipConfig, formatConfigJson, validateTemplateFeatures } from '../src/features.js';
 import { getTemplatesWithManifests } from '../src/index.js';
 
 process.env.SKELETOR_CLI_TEST = '1';
@@ -78,13 +72,101 @@ describe('features registry', () => {
 // Patterns from the per-template .gitignore.tmpl files that the feature registry replaced. Each one
 // must still be in the template's generated .gitignore, or have a recorded reason for being dropped.
 const FORMER_TEMPLATE_GITIGNORES = {
-  csharp: ['bin/', 'obj/', 'TestResults/', '*.user', '*.suo', '*.userosscache', '*.sln.docstates', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
-  go: ['*.exe', '*.exe~', '*.dll', '*.so', '*.dylib', '/my-app', '*.test', 'bin/', 'dist/', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
+  csharp: [
+    'bin/',
+    'obj/',
+    'TestResults/',
+    '*.user',
+    '*.suo',
+    '*.userosscache',
+    '*.sln.docstates',
+    '.env',
+    '.env.*',
+    '!.env.example',
+    '.DS_Store',
+    'Thumbs.db',
+    '.idea/',
+    '.vscode/',
+  ],
+  go: [
+    '*.exe',
+    '*.exe~',
+    '*.dll',
+    '*.so',
+    '*.dylib',
+    '/my-app',
+    '*.test',
+    'bin/',
+    'dist/',
+    '.env',
+    '.env.*',
+    '!.env.example',
+    '.DS_Store',
+    'Thumbs.db',
+    '.idea/',
+    '.vscode/',
+  ],
   java: ['target/', '*.class', '*.jar', '*.war', '*.ear', 'hs_err_pid*', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
-  javascript: ['node_modules/', 'dist/', 'build/', 'coverage/', 'report/', 'reports/', '.env', '.env.*', '!.env.example', '*.local', '*.log', 'logs/', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/', '*.swp'],
-  python: ['__pycache__/', '*.py[cod]', '*.pyo', '.pytest_cache/', '.mypy_cache/', '.ruff_cache/', '.venv/', 'venv/', 'env/', 'dist/', 'build/', '*.egg-info/', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
+  javascript: [
+    'node_modules/',
+    'dist/',
+    'build/',
+    'coverage/',
+    'report/',
+    'reports/',
+    '.env',
+    '.env.*',
+    '!.env.example',
+    '*.local',
+    '*.log',
+    'logs/',
+    '.DS_Store',
+    'Thumbs.db',
+    '.idea/',
+    '.vscode/',
+    '*.swp',
+  ],
+  python: [
+    '__pycache__/',
+    '*.py[cod]',
+    '*.pyo',
+    '.pytest_cache/',
+    '.mypy_cache/',
+    '.ruff_cache/',
+    '.venv/',
+    'venv/',
+    'env/',
+    'dist/',
+    'build/',
+    '*.egg-info/',
+    '.env',
+    '.env.*',
+    '!.env.example',
+    '.DS_Store',
+    'Thumbs.db',
+    '.idea/',
+    '.vscode/',
+  ],
   rust: ['/target/', '**/*.rs.bk', '*.pdb', 'Cargo.lock', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
-  typescript: ['node_modules/', 'dist/', 'build/', 'coverage/', 'report/', 'reports/', '.env', '.env.*', '!.env.example', '*.local', '*.log', 'logs/', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/', '*.swp'],
+  typescript: [
+    'node_modules/',
+    'dist/',
+    'build/',
+    'coverage/',
+    'report/',
+    'reports/',
+    '.env',
+    '.env.*',
+    '!.env.example',
+    '*.local',
+    '*.log',
+    'logs/',
+    '.DS_Store',
+    'Thumbs.db',
+    '.idea/',
+    '.vscode/',
+    '*.swp',
+  ],
 };
 
 const DROPPED_TEMPLATE_GITIGNORE_PATTERNS = {
@@ -145,7 +227,7 @@ describe('formatConfigJson', () => {
         '  "threshold": 5',
         '}',
         '',
-      ].join('\n'),
+      ].join('\n')
     );
   });
 });

@@ -1,7 +1,7 @@
 name: Epic (Parent Issue)
 description: Track a larger feature or initiative that spans multiple sub-issues.
-title: "[Epic]: "
-labels: ["epic"]
+title: '[Epic]: '
+labels: ['epic']
 body:
   - type: markdown
     attributes:
@@ -43,7 +43,7 @@ body:
     id: acceptance
     attributes:
       label: Acceptance Criteria (Epic-level)
-      description: "When can this Epic be closed? (Usually: all sub-issues closed AND a final integration verification.)"
+      description: 'When can this Epic be closed? (Usually: all sub-issues closed AND a final integration verification.)'
       value: |
         - [ ] All sub-issues closed
         - [ ] `npm test` passes

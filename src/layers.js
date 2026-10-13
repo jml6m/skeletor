@@ -1,13 +1,9 @@
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { formatConfigJson } from './features.js';
-import {
-  mergePackageJson,
-  detectJsonIndent,
-  serializePackageJson,
-} from './merge-package-json.js';
+import { detectJsonIndent, mergePackageJson, serializePackageJson } from './merge-package-json.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,12 +44,10 @@ export function loadBundles() {
 
 function getAvailableLayerIds() {
   if (!fs.existsSync(LAYERS_DIR)) return [];
-  return fs
-    .readdirSync(LAYERS_DIR)
-    .filter((d) => {
-      const p = path.join(LAYERS_DIR, d);
-      return fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, 'layer.json'));
-    });
+  return fs.readdirSync(LAYERS_DIR).filter((d) => {
+    const p = path.join(LAYERS_DIR, d);
+    return fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, 'layer.json'));
+  });
 }
 
 function loadLayerManifest(layerDirName) {
@@ -219,11 +213,7 @@ function listLayerFiles(layer, filesDir) {
 function filterFilesByLanguage(fileEntries, ctx) {
   const preferredExt = ctx.language === 'typescript' ? '.ts' : '.js';
   const droppedExt = preferredExt === '.ts' ? '.js' : '.ts';
-  const basenames = new Set(
-    fileEntries
-      .filter((f) => f.relPath.endsWith(preferredExt))
-      .map((f) => f.relPath.slice(0, -preferredExt.length)),
-  );
+  const basenames = new Set(fileEntries.filter((f) => f.relPath.endsWith(preferredExt)).map((f) => f.relPath.slice(0, -preferredExt.length)));
   return fileEntries.filter((f) => {
     if (!f.relPath.endsWith(droppedExt)) return true;
     return !basenames.has(f.relPath.slice(0, -droppedExt.length));
@@ -370,13 +360,7 @@ export function buildLabelSeed(labels) {
  * @param {object} options
  */
 function planLayerApply(options) {
-  const {
-    projectDir,
-    layerIds,
-    vars = {},
-    force = false,
-    template,
-  } = options;
+  const { projectDir, layerIds, vars = {}, force = false, template } = options;
 
   if (!template) {
     throw new Error('planLayerApply requires a template id (layers apply only at scaffold time).');
@@ -514,7 +498,11 @@ export function applyLayers(options) {
     if (Array.isArray(layer.knip?.entry)) addKnipEntries(projectDir, layer.knip.entry);
 
     if (Array.isArray(layer.gitignore)) {
-      addGitignoreEntries(projectDir, layer.name || layer.id, layer.gitignore.map((e) => renderLayerContent(e, vars)));
+      addGitignoreEntries(
+        projectDir,
+        layer.name || layer.id,
+        layer.gitignore.map((e) => renderLayerContent(e, vars))
+      );
     }
 
     if (Array.isArray(layer.labels)) labels.push(...layer.labels);

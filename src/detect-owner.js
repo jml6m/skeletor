@@ -1,6 +1,6 @@
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { validateGithubOwner } from './validate-input.js';
 
 const GITHUB_OWNER_RE = /github\.com[/:]([^/]+?)(?:\.git)?(?:\/|$)/i;
@@ -73,10 +73,12 @@ function readPackageJsonOwner(dir) {
  */
 function readGhAuthenticatedUser() {
   try {
-    return execSync('gh api user -q .login', {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim() || null;
+    return (
+      execSync('gh api user -q .login', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim() || null
+    );
   } catch {
     return null;
   }

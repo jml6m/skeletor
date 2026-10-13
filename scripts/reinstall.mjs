@@ -2,10 +2,10 @@
 // Clean reinstall: blow away node_modules + the lockfile, reinstall from scratch,
 // then run the critical/high audit gate. Use this instead of hand-deleting
 // node_modules so the audit step always runs after a dependency refresh.
-import { rmSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // shell:true on Windows so the npm.cmd shim spawns (Node blocks bare .cmd).

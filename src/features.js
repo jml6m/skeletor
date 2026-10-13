@@ -181,9 +181,7 @@ export function validateTemplateFeatures(templateInfo) {
     if (!rule) continue;
     for (const feat of rule.features) {
       if (!features.includes(feat)) {
-        errors.push(
-          `Template "${templateInfo.id}": verifyCommand "${cmd}" requires feature "${feat}"`,
-        );
+        errors.push(`Template "${templateInfo.id}": verifyCommand "${cmd}" requires feature "${feat}"`);
       }
     }
   }

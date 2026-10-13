@@ -1,11 +1,6 @@
 process.env.SKELETOR_CLI_TEST = '1';
 
-import {
-  mergePackageJson,
-  compareSemverLoose,
-  serializePackageJson,
-  detectJsonIndent,
-} from '../src/merge-package-json.js';
+import { compareSemverLoose, detectJsonIndent, mergePackageJson, serializePackageJson } from '../src/merge-package-json.js';
 
 describe('mergePackageJson', () => {
   test('unions arrays without duplicates', () => {

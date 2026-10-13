@@ -182,7 +182,7 @@ describe('skeletor new', () => {
       expect(fs.existsSync(path.join(targetDir, 'docs'))).toBe(false);
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).not.toMatch(/GITHUB-SETUP|GitHub repo setup/);
       expect(out).not.toContain('One-time GitHub settings');
-      expect(out).not.toContain('<<\'JSON\'');
+      expect(out).not.toContain("<<'JSON'");
     } finally {
       fs.rmSync(targetDir, { recursive: true, force: true });
     }

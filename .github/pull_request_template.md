@@ -1,17 +1,22 @@
 ## What
+
 <!-- Briefly describe the changes in this PR -->
 
 ## Related Issues
+
 <!--
   A line starting with "Relates to #N" for the issue this PR serves (one line per issue).
   The issue must be open and in a milestone; the issue-link check enforces it.
 -->
+
 Relates to #
 
 ## Why
+
 <!-- Explain the motivation or context for these changes -->
 
 ## How
+
 <!--
   Describe the approach taken to implement these changes.
   Call out anything touching:
@@ -22,6 +27,7 @@ Relates to #
 -->
 
 ## Templates Affected
+
 <!-- Tick all that apply, or write "None" -->
 
 - [ ] javascript

@@ -74,7 +74,7 @@ describe('GitHub Action pins', () => {
       template: t.id,
       layout: t.layouts ? layout : undefined,
       withLayers: WORKFLOW_LAYERS[t.id] || ['docs-policy'],
-    })),
+    }))
   );
 
   test.each(cases)('$template $layout scaffolds SHA-pinned workflows only', async ({ template, layout, withLayers }) => {

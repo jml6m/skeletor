@@ -3,9 +3,9 @@
  * open-source license. Everything else is UNLICENSED, which grants nothing until the author decides.
  */
 
+import * as p from '@clack/prompts';
 import fs from 'fs';
 import path from 'path';
-import * as p from '@clack/prompts';
 import { withRecommendedTag } from './interactive-prompts.js';
 
 export const UNLICENSED = 'UNLICENSED';
@@ -79,9 +79,10 @@ export function removeSpdxLicenseFields(projectDir) {
 
 /** @param {string} license */
 function readmeLicenseSection(license) {
-  const body = license === UNLICENSED
-    ? 'UNLICENSED: all rights reserved. No license is granted to use, copy, modify or distribute this code.'
-    : `${license}. See [LICENSE](LICENSE).`;
+  const body =
+    license === UNLICENSED
+      ? 'UNLICENSED: all rights reserved. No license is granted to use, copy, modify or distribute this code.'
+      : `${license}. See [LICENSE](LICENSE).`;
   return `## License\n\n${body}\n`;
 }
 
