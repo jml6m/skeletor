@@ -9,7 +9,7 @@
  * @param {string} version
  * @returns {[number, number, number] | null}
  */
-export function parseSemverCore(version) {
+function parseSemverCore(version) {
   if (typeof version !== 'string') return null;
   const match = version.trim().match(/(\d+)\.(\d+)\.(\d+)/);
   if (!match) return null;
@@ -55,7 +55,7 @@ const DEP_BUCKETS = new Set([
  * @param {Record<string, unknown>} patch
  * @param {MergeConflict[]} conflicts
  * @param {string} [pathPrefix]
- * @returns {Record<string, unknown>}
+ * @returns {Record<string, any>}
  */
 export function mergePackageJson(target, patch, conflicts = [], pathPrefix = '') {
   const out = { ...target };
@@ -150,6 +150,10 @@ const KEY_ORDER = [
 ];
 const SORTED_OBJECTS = new Set(['engines', 'devEngines', 'scripts', ...DEPENDENCY_KEYS]);
 
+/**
+ * @param {[string, unknown]} a
+ * @param {[string, unknown]} b
+ */
 const byKey = ([a], [b]) => (a > b ? 1 : a < b ? -1 : 0);
 
 /**

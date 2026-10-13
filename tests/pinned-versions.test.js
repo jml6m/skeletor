@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 process.env.SKELETOR_CLI_TEST = '1';
 
@@ -14,8 +13,6 @@ import {
   checkTemplateGenerationAllowed,
 } from '../src/pinned-versions.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
 
 describe('pinned-versions', () => {
   const templates = getTemplatesWithManifests();
@@ -39,7 +36,7 @@ describe('pinned-versions', () => {
   test('formatPinnedSpec respects policy', () => {
     expect(formatPinnedSpec({ version: '29.7.0', policy: 'major' })).toBe('^29.7.0');
     expect(formatPinnedSpec({ version: '3.3.3', policy: 'minor' })).toBe('~3.3.3');
-    expect(formatPinnedSpec({ version: '0.6.9', policy: 'minor', ecosystem: 'pypi' }, 'pypi')).toBe('>=0.6.9,<0.7.0');
+    expect(formatPinnedSpec({ version: '0.6.9', policy: 'minor' }, 'pypi')).toBe('>=0.6.9,<0.7.0');
   });
 
   test('packageNameToToken normalizes scoped names', () => {

@@ -11,6 +11,7 @@ function scaffoldBranch(globalConfig) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-branch-'));
   const configPath = path.join(root, 'gitconfig');
   fs.writeFileSync(configPath, globalConfig);
+  /** @type {NodeJS.ProcessEnv} */
   const env = {
     ...process.env,
     GIT_CONFIG_GLOBAL: configPath,

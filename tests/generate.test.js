@@ -71,12 +71,11 @@ function runCommands(projectDir, commands) {
         env,
         stdio: 'pipe',
         timeout: 300000,
-        shell: true,
       });
     } catch (e) {
       const output = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
       // Re-throw with context so the test failure is informative
-      throw new Error(`Command failed: ${cmd}\n${output}`);
+      throw new Error(`Command failed: ${cmd}\n${output}`, { cause: e });
     }
   }
 }
@@ -436,7 +435,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
     let threw = false;
     try {
       runCli(`new "${name}" --auto --template go --no-git`, tempRoot);
-    } catch (e) {
+    } catch {
       threw = true;
     } finally {
       const stillThere = fs.existsSync(path.join(dir, 'existing.txt'));

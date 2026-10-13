@@ -41,7 +41,7 @@ export const TAG_RULESET = {
   rules: [{ type: 'deletion' }, { type: 'non_fast_forward' }, { type: 'update' }],
 };
 
-export const MERGE_SETTINGS = {
+const MERGE_SETTINGS = {
   allow_merge_commit: false,
   allow_rebase_merge: false,
   allow_squash_merge: true,

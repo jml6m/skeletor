@@ -32,7 +32,6 @@ import {
   loadLayerById,
   resolveLayerOrder,
   labelCreateCommand,
-  validateLayerManifests,
   writeDocsPolicyAllowlist,
 } from './layers.js';
 import { escaperForFile, normalizeDescription } from './escape.js';
@@ -148,6 +147,10 @@ function dependabotIgnoreFor(ecosystem) {
   return ['', '    # Majors need a deliberate toolchain bump, not a grouped Dependabot PR.', '    ignore:', ...entries].join('\n');
 }
 
+/**
+ * The `{{TOKEN}}` values every template file is rendered with.
+ * @param {{ name: string, owner?: string, description?: string, extra?: Record<string, unknown> }} options (throws without an owner)
+ */
 function buildRenderVars({ name, owner, description, extra = {} }) {
   if (!owner) {
     throw new Error('owner is required');
@@ -212,6 +215,11 @@ function getAvailableTemplates() {
   });
 }
 
+/**
+ * template.json, with defaults for a template that has none, plus its directory.
+ * @param {string} templateId
+ * @returns {Record<string, any> & { dir: string }}
+ */
 function loadTemplateManifest(templateId) {
   const dir = path.join(TEMPLATES_DIR, templateId);
   const manifestPath = path.join(dir, 'template.json');

@@ -25,7 +25,10 @@ function ssLines(pids, port = 3000) {
   ].join('\n');
 }
 
-/** A fake system whose lookups answer from `listening`, a mutable list of PIDs. */
+/**
+ * A fake system whose lookups answer from `listening`, a mutable list of PIDs.
+ * @param {{ platform?: string, listening?: number[], kill?: (pid: number, signal: string) => void, lsofError?: Error, ssError?: Error }} [options]
+ */
 function fakeSystem({ platform = 'linux', listening, kill = () => {}, lsofError, ssError } = {}) {
   const calls = { exec: [], kill: [] };
   return {

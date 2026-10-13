@@ -15,6 +15,7 @@ const SRC = path.join(ROOT, 'src', 'index.js');
 const NASTY = 'x "quoted" & <b>bold</b> \'it\' \\N $& {{YEAR}}\nsecond\tline';
 
 function cliEnv(extra = {}) {
+  /** @type {NodeJS.ProcessEnv} */
   const env = { ...process.env, ...extra };
   delete env.JEST_WORKER_ID;
   delete env.SKELETOR_CLI_TEST;
@@ -147,6 +148,7 @@ describe('description', () => {
       expect(line).toMatch(/^description = "(?:[^"\\]|\\.)*"$/);
       return unescapeQuoted(line.slice('description = "'.length, -1));
     };
+    /** @type {Array<[string, string | undefined, string, (text: string) => string]>} */
     const cases = [
       ['javascript', undefined, 'package.json', (t) => JSON.parse(t).description],
       ['python', 'src', 'pyproject.toml', tomlValue],

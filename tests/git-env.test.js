@@ -8,6 +8,7 @@ const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'sr
 
 describe('git environment', () => {
   let root;
+  /** @type {NodeJS.ProcessEnv} */
   let env;
   const git = (cwd, ...args) => execFileSync('git', args, { cwd, env, encoding: 'utf8' }).trim();
 

@@ -100,7 +100,7 @@ describe('generated .gitignore', () => {
     for (const tmpl of templates) {
       expect({ id: tmpl.id, features: tmpl.features?.length > 0 }).toEqual({ id: tmpl.id, features: true });
     }
-    const shipped = fs.readdirSync('templates', { recursive: true }).filter((rel) => /(^|[\\/])\.gitignore(\.tmpl)?$/.test(rel));
+    const shipped = fs.readdirSync('templates', { recursive: true, encoding: 'utf8' }).filter((rel) => /(^|[\\/])\.gitignore(\.tmpl)?$/.test(rel));
     expect(shipped).toEqual([]);
   });
 

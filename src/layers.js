@@ -11,9 +11,9 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-export const ROOT = path.resolve(__dirname, '..');
-export const LAYERS_DIR = path.join(ROOT, 'layers');
-export const BUNDLES_PATH = path.join(ROOT, 'bundles.json');
+const ROOT = path.resolve(__dirname, '..');
+const LAYERS_DIR = path.join(ROOT, 'layers');
+const BUNDLES_PATH = path.join(ROOT, 'bundles.json');
 
 const FORBIDDEN_POST_APPLY = /\b(git\s+push|npm\s+publish|release:(major|minor|patch))\b/i;
 
@@ -21,7 +21,7 @@ const FORBIDDEN_POST_APPLY = /\b(git\s+push|npm\s+publish|release:(major|minor|p
  * @param {string} content
  * @param {Record<string, string|number>} vars
  */
-export function renderLayerContent(content, vars) {
+function renderLayerContent(content, vars) {
   let out = content;
   for (const [k, v] of Object.entries(vars)) {
     out = out.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
@@ -30,7 +30,7 @@ export function renderLayerContent(content, vars) {
 }
 
 /** Map layer file paths that cannot be tracked (e.g. .env.*) to project output paths. */
-export function resolveLayerOutputPath(relPath) {
+function resolveLayerOutputPath(relPath) {
   if (relPath === 'env.example' || relPath.endsWith('/env.example')) {
     return relPath.replace(/(^|\/)env\.example$/, '$1.env.example');
   }
@@ -46,7 +46,7 @@ export function loadBundles() {
   }
 }
 
-export function getAvailableLayerIds() {
+function getAvailableLayerIds() {
   if (!fs.existsSync(LAYERS_DIR)) return [];
   return fs
     .readdirSync(LAYERS_DIR)
@@ -56,7 +56,7 @@ export function getAvailableLayerIds() {
     });
 }
 
-export function loadLayerManifest(layerDirName) {
+function loadLayerManifest(layerDirName) {
   const dir = path.join(LAYERS_DIR, layerDirName);
   const raw = JSON.parse(fs.readFileSync(path.join(dir, 'layer.json'), 'utf8'));
   return { ...raw, dir, dirName: layerDirName };
@@ -70,7 +70,7 @@ export function getLayersWithManifests() {
  * Map layer id (may contain ':') to directory name.
  * @param {string} layerId
  */
-export function layerIdToDirName(layerId) {
+function layerIdToDirName(layerId) {
   const direct = path.join(LAYERS_DIR, layerId);
   if (fs.existsSync(direct)) return layerId;
   const dashed = layerId.replace(/:/g, '-');
@@ -101,7 +101,7 @@ function templateToLanguage(template) {
 }
 
 /**
- * @param {Record<string, unknown>} layer
+ * @param {Record<string, any>} layer
  * @param {{ template: string, language: string }} ctx
  */
 export function layerAppliesTo(layer, ctx) {
@@ -216,7 +216,7 @@ function listLayerFiles(layer, filesDir) {
  * @param {{ srcPath: string, relPath: string }[]} fileEntries
  * @param {{ language: string }} ctx
  */
-export function filterFilesByLanguage(fileEntries, ctx) {
+function filterFilesByLanguage(fileEntries, ctx) {
   const preferredExt = ctx.language === 'typescript' ? '.ts' : '.js';
   const droppedExt = preferredExt === '.ts' ? '.js' : '.ts';
   const basenames = new Set(
@@ -369,7 +369,7 @@ export function buildLabelSeed(labels) {
 /**
  * @param {object} options
  */
-export function planLayerApply(options) {
+function planLayerApply(options) {
   const {
     projectDir,
     layerIds,

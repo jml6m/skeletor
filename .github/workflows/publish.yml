@@ -50,6 +50,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Source checks (as CI's checks job)
+        run: npm run lint && npm run format:check && npm run typecheck && npm run health:dead && npm run health:circular
+
       - name: Lint, audit, unit tests, and template verifyCommands
         run: npm run lint:encoding && npm run audit:ci && npm test && npm run test:verify
 

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "target": "es2024",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "types": ["node", "jest"],
+    "maxNodeModuleJsDepth": 0,
+    "skipLibCheck": true
+  },
+  "include": ["src", "scripts", "tests", "*.js"]
+}

@@ -2,7 +2,6 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 process.env.SKELETOR_CLI_TEST = '1';
 
@@ -27,8 +26,6 @@ import {
   getLayersWithManifests,
 } from '../src/layers.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
 
 function makeName(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -87,7 +84,7 @@ describe('packageJsonOverride', () => {
 describe('bundle expansion', () => {
   test('bundles resolve without conflicts for their template', () => {
     const bundles = loadBundles();
-    for (const [name, bundle] of Object.entries(bundles)) {
+    for (const bundle of Object.values(bundles)) {
       const ctx = { template: bundle.template, language: bundle.template };
       const { errors } = resolveLayerOrder(bundle.layers, ctx);
       expect(errors).toEqual([]);
@@ -208,9 +205,9 @@ describe('layer application', () => {
       expect(policy).toContain('  - AGENTS.md');
       expect(fs.existsSync(path.join(targetDir, '.github', 'CODEOWNERS'))).toBe(false);
       expect(fs.readFileSync(path.join(targetDir, '.github', 'scripts', 'check-docs-policy.sh'), 'utf8')).not.toContain('CODEOWNERS');
-      execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true });
+      execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe' });
       fs.writeFileSync(path.join(targetDir, 'NOTES.md'), '# notes\n');
-      expect(() => execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true })).toThrow();
+      expect(() => execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe' })).toThrow();
     } finally {
       cleanup(targetDir);
     }
