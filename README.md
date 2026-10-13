@@ -2,7 +2,7 @@
 
 **Multi-language project scaffolding with composable enhancement layers and AGENTS.md built in.**
 
-Generates projects pre-configured with lint/format/health/release defaults (JS/TS encode real workspace conventions; other stacks ship clean baselines).
+Generates projects pre-configured with lint/format/health/release defaults: JS/TS templates ship an opinionated toolchain, other stacks start from clean standard defaults.
 
 ```bash
 npx @jml6m/skeletor new my-api --template typescript
@@ -80,8 +80,8 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 
 | Layer | Applies to | Baseline | What it adds |
 |---|---|---|---|
-| `dependabot` | all | yes | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions, matching the account-wide baseline |
-| `docs-lint` | javascript, typescript | yes | Pinned docs-lint CI matching the account baseline: lychee 0.24.2 link/anchor checking + markdownlint-cli2 |
+| `dependabot` | all | yes | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions |
+| `docs-lint` | javascript, typescript | yes | Pinned docs-lint CI: lychee 0.24.2 link/anchor checking + markdownlint-cli2 |
 | `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job |
 | `env-example` | javascript, typescript |  | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists |
 | `express-server` | javascript |  | Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route |
@@ -106,7 +106,7 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 ## Philosophy
 
 - Developers **pick** language + flavor.
-- Personal conventions live in JS/TS templates; other stacks start from solid defaults.
+- JS/TS templates are opinionated; other stacks start from solid defaults.
 - Add templates under `templates/<id>/` — auto-discovered by CLI and tests.
 - Dependency manifests in templates use `.tmpl` suffix (see root `AGENTS.md`).
 

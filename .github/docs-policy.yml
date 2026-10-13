@@ -1,8 +1,7 @@
-# Exact allowlist of markdown files permitted in this public repo. Any tracked
-# *.md file not listed here, and not under an exempt_globs path, fails the
-# "docs-policy" job in .github/workflows/docs-lint.yml. Widening this list
-# requires a PR — this file is CODEOWNERS-gated to @jml6m — so new/renamed
-# docs always get a human review, not just an agent's judgment call.
+# Exact allowlist of markdown files permitted in this repo. Any tracked *.md
+# file not listed here, and not under an exempt_globs path, fails the
+# "docs-policy" job in .github/workflows/docs-lint.yml. A new or renamed doc
+# is added here, with its purpose, in the same PR.
 #
 # Enforced by: .github/scripts/check-docs-policy.sh
 

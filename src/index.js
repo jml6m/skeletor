@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Skeletor — Efficient scaffolding for custom development
+ * Skeletor — multi-language project scaffolding
  */
 
 import fs from 'fs';
@@ -83,7 +83,7 @@ Examples:
   skeletor new my-api --template typescript
   skeletor new my-api --template typescript --with zod-config,logger-winston
   skeletor new my-lib --auto --template typescript --bundle ts-library
-  skeletor new tbra --auto --template rust --layout workspace
+  skeletor new my-app --auto --template rust --layout workspace
 `;
 
 function log(msg) { console.log(msg); }
