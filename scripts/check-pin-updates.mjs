@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Advisory check: report when registry versions have moved ahead of template pins.
- * Does not fail CI by default — use --strict to exit 1 when any major drift is found.
+ * Advisory check: report when registry versions have moved ahead of template pins (npm and PyPI).
+ * Does not fail CI by default — use --strict to exit 1 when any pin is behind its policy.
  */
 
 import { execSync } from 'child_process';
@@ -36,6 +36,28 @@ function npmLatest(pkg) {
   }
 }
 
+async function pypiLatest(pkg) {
+  try {
+    const res = await fetch(`https://pypi.org/pypi/${encodeURIComponent(pkg)}/json`);
+    return res.ok ? (await res.json()).info.version : null;
+  } catch {
+    return null;
+  }
+}
+
+// The release line a pin covers: major for a `major` policy, major.minor for `minor` (ruff 0.x moves by minors).
+function pinLine(version, policy) {
+  const parts = String(version).split('.').map(Number);
+  return policy === 'minor' ? parts.slice(0, 2) : parts.slice(0, 1);
+}
+
+function isBehind(pinnedLine, latestLine) {
+  for (let i = 0; i < pinnedLine.length; i++) {
+    if ((latestLine[i] ?? 0) !== pinnedLine[i]) return (latestLine[i] ?? 0) > pinnedLine[i];
+  }
+  return false;
+}
+
 const strict = process.argv.includes('--strict');
 const findings = [];
 
@@ -49,6 +71,14 @@ for (const templateId of listTemplates()) {
 
   for (const [name, entry] of Object.entries(pinned.packages || {})) {
     const eco = entry.ecosystem || (['javascript', 'typescript'].includes(templateId) ? 'npm' : null);
+    if (eco === 'pypi') {
+      const latest = await pypiLatest(name);
+      const policy = entry.policy || 'exact';
+      if (latest && isBehind(pinLine(entry.version, policy), pinLine(latest, policy))) {
+        findings.push({ templateId, kind: 'policy', message: `${name}: pinned ${entry.version} (policy ${policy}), PyPI latest ${latest}` });
+      }
+      continue;
+    }
     if (eco !== 'npm') continue;
     const latest = npmLatest(name);
     if (!latest) continue;
@@ -80,6 +110,6 @@ for (const f of findings) {
   console.log(`  [${f.templateId}] (${f.kind}) ${f.message}`);
 }
 
-if (strict && findings.some((f) => f.kind === 'major' || f.kind === 'status')) {
+if (strict && findings.some((f) => ['major', 'policy', 'status'].includes(f.kind))) {
   process.exit(1);
 }

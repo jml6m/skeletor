@@ -2,16 +2,15 @@
   "schemaVersion": 1,
   "status": "active",
   "statusMessage": null,
-  "lastReviewed": "2026-10-09",
+  "lastReviewed": "2026-10-13",
   "runtime": {
     "python": { "version": "3.13", "policy": "minor" }
   },
   "packages": {
-    "ruff": { "version": "0.6.9", "policy": "minor", "ecosystem": "pypi", "spec": "ruff>=0.6.9,<0.7.0" },
-    "pytest": { "version": "8.3.0", "policy": "major", "ecosystem": "pypi", "spec": "pytest>=8.3.0,<9.0.0" },
-    "pytest-cov": { "version": "5.0.0", "policy": "major", "ecosystem": "pypi", "spec": "pytest-cov>=5.0.0,<6.0.0" },
-    "mypy": { "version": "1.11.0", "policy": "minor", "ecosystem": "pypi", "spec": "mypy>=1.11.0,<1.12.0" },
-    "setuptools": { "version": "68.0.0", "policy": "major", "ecosystem": "pypi", "spec": "setuptools>=68.0.0,<69.0.0" },
-    "wheel": { "version": "0.44.0", "policy": "major", "ecosystem": "pypi", "spec": "wheel>=0.44.0,<0.45.0" }
+    "ruff": { "version": "0.17.0", "policy": "minor", "ecosystem": "pypi", "spec": "ruff>=0.17.0,<0.18.0" },
+    "pytest": { "version": "9.1.1", "policy": "major", "ecosystem": "pypi", "spec": "pytest>=9.1.1,<10.0.0" },
+    "pytest-cov": { "version": "7.1.0", "policy": "major", "ecosystem": "pypi", "spec": "pytest-cov>=7.1.0,<8.0.0" },
+    "mypy": { "version": "2.4.0", "policy": "minor", "ecosystem": "pypi", "spec": "mypy>=2.4.0,<2.5.0" },
+    "setuptools": { "version": "84.0.0", "policy": "major", "ecosystem": "pypi", "spec": "setuptools>=84.0.0,<85.0.0" }
   }
 }

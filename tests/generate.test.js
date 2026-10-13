@@ -393,6 +393,7 @@ describe('non-default template layouts', () => {
       const pyproject = fs.readFileSync(path.join(targetDir, 'pyproject.toml'), 'utf8');
       expect(pyproject).toContain('[dependency-groups]');
       expect(pyproject).not.toContain('[build-system]');
+      expect(pyproject).not.toMatch(/^license\b/m);
 
       const pinnedPython = JSON.parse(
         fs.readFileSync(path.join(ROOT, 'templates', 'python', 'pinned-versions.json'), 'utf8'),
