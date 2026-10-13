@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { checkFlagCombinations, parseArgs, REMOVED_FLAGS, UsageError } from '../src/args.js';
 import { closestMatch, unknownIdMessage } from '../src/suggest.js';
+import { loadBundles } from '../src/layers.js';
 import {
   checkTemplateOptions,
   getTemplatesWithManifests,
@@ -187,6 +188,15 @@ describe('options that depend on the template', () => {
   test('valid options pass', () => {
     expect(checkTemplateOptions({ layout: 'src', withLayers: [] }, template('python'))).toBeNull();
     expect(checkTemplateOptions({ withLayers: ['zod-config', 'governance'], bundle: 'ts-library' }, template('typescript'))).toBeNull();
+  });
+
+  test('every bundle and its feature layers pass for the bundle\'s template', () => {
+    for (const [name, bundle] of Object.entries(loadBundles())) {
+      expect({ name, error: checkTemplateOptions({ bundle: name, withLayers: bundle.layers }, template(bundle.template)) }).toEqual({ name, error: null });
+    }
+    // express-server is javascript-only, like the express-api bundle that uses it.
+    expect(checkTemplateOptions({ bundle: 'express-api', withLayers: ['express-server'] }, template('javascript'))).toBeNull();
+    expect(checkTemplateOptions({ withLayers: ['express-server'] }, template('typescript'))).toMatch(/^Layer "express-server" doesn't apply to typescript/);
   });
 });
 
