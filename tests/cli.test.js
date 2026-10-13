@@ -8,6 +8,7 @@ import {
   buildRenderVars,
   getAvailableTemplates,
   printPostScaffoldSteps,
+  labelHint,
 } from '../src/index.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -104,6 +105,20 @@ describe('skeletor CLI pure functions', () => {
     expect(logs.some((l) => l.includes('cargo check'))).toBe(true);
     expect(logs.some((l) => l.includes('cargo test'))).toBe(true);
     expect(logs.some((l) => l.includes('Next steps:'))).toBe(true);
+  });
+
+  test('labelHint lists each expected label once with the command that creates it', () => {
+    const hint = labelHint([
+      { name: 'epic', color: '3E4B9E', description: 'Tracks a set of child issues' },
+      { name: 'chore', color: 'EDEDED', description: 'Say "hi" for $5' },
+      { name: 'epic', color: '3E4B9E', description: 'Tracks a set of child issues' },
+    ]);
+    expect(hint).not.toContain('AGENTS.md');
+    expect(hint.split('\n')).toEqual([
+      'Layers expect these labels on GitHub: epic, chore. --github creates them; otherwise run:',
+      '  gh label create "epic" --color 3E4B9E --description "Tracks a set of child issues" --force',
+      '  gh label create "chore" --color EDEDED --description "Say \\"hi\\" for \\$5" --force',
+    ]);
   });
 
   test('parseArgs falls back to help for unknown', () => {

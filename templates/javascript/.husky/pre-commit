@@ -1,4 +1,4 @@
 #!/bin/sh
-# Husky v9 + lint-staged pre-commit
-# Runs format/lint on staged files only. Fast feedback before commit.
+# Husky v9 + lint-staged: Prettier on staged files only ("lint-staged" in package.json).
+# ESLint runs in `npm run lint` and CI.
 npx lint-staged

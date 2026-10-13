@@ -110,6 +110,11 @@ function expectLeanDocs(targetDir, allFiles) {
   return agents;
 }
 
+/** The commands in AGENTS.md's Build & Test block. */
+function buildAndTestCommands(agents) {
+  return agents.match(/## Build & Test\n[\s\S]*?```bash\n([\s\S]*?)\n```/)?.[1].split('\n');
+}
+
 // Maps template id to the expected unsuffixed manifest file in the generated project
 // (csharp names its projects after the project, so its block below checks them).
 const expectedManifest = {
@@ -282,10 +287,19 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           expect(agents).toMatch(/## Build & Test\n[\s\S]*?\n## Code conventions\n/);
           expect(agents.match(/\n## Code conventions\n[\s\S]*?(?=\n## )/)[0]).toMatch(/no parent imports[\s\S]*health:full/);
           expect(agents).not.toMatch(/routes|controllers|AppError|reference project/i);
+          // The hook and README describe what lint-staged actually runs, and name the release-gate label one way.
+          const lintStaged = Object.values(JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'))['lint-staged']);
+          expect(lintStaged).toEqual(['prettier --write']);
+          expect(fs.readFileSync(path.join(targetDir, '.husky', 'pre-commit'), 'utf8')).toMatch(/Prettier on staged files/);
+          const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
+          expect(readme).toMatch(/lint-staged runs Prettier on staged files/);
+          expect(readme.match(/v[A-Z]-required/g).every((label) => label === 'vN-required')).toBe(true);
         } else {
           expect(agents).not.toContain('## Code conventions');
         }
         expect(fs.existsSync(path.join(targetDir, 'AGENTS.snippet.md'))).toBe(false);
+        const defaultLayout = tmpl.layouts?.[tmpl.defaultLayout];
+        expect(buildAndTestCommands(agents)).toEqual(defaultLayout?.verifyCommands || tmpl.verifyCommands);
         expect(agents).not.toMatch(/git push[^\n]*prohibited/i);
         expect(agents).toContain('push the branch and open a pull request');
         const never = (agents.match(/\*\*Never\*\*:(?:.+\n)+/)?.[0] ?? '').replace(/\s+/g, ' ');
@@ -333,6 +347,9 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         if (tmpl.id === 'rust') {
+          const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
+          expect(readme).toContain('A single binary crate');
+          for (const cmd of tmpl.verifyCommands) expect(readme).toContain(cmd);
           expect(fs.existsSync(path.join(targetDir, '.gitignore'))).toBe(true);
           const cargo = fs.readFileSync(path.join(targetDir, 'Cargo.toml'), 'utf8');
           expect(cargo).toContain('description = "Tetrahedral \\"barycentric\\" coords & <b>tags</b> */ \\\\ $&"');
@@ -384,7 +401,15 @@ describe('non-default template layouts', () => {
     const targetDir = path.resolve(process.cwd(), name);
     try {
       await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', description: DESCRIPTION, auto: true, git: false, withRecommended: true });
-      expectLeanDocs(targetDir, listFilesRecursive(targetDir));
+      const agents = expectLeanDocs(targetDir, listFilesRecursive(targetDir));
+      expect(buildAndTestCommands(agents)).toEqual(layout.verifyCommands || tmpl.verifyCommands);
+      expect(fs.existsSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'))).toBe(true);
+      if (tmpl.id === 'rust') {
+        const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
+        expect(readme).not.toContain('binary crate');
+        expect(readme).toContain(id === 'lib' ? 'A library crate' : 'A Cargo workspace');
+        for (const cmd of tmpl.verifyCommands) expect(readme).toContain(cmd);
+      }
       if (tmpl.id === 'python' && id === 'src') {
         expect(fs.existsSync(path.join(targetDir, 'src', 'app', 'main.py'))).toBe(true);
         expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(false);
@@ -396,6 +421,20 @@ describe('non-default template layouts', () => {
       cleanup(targetDir);
     }
   }));
+
+  test('AGENTS.md Build & Test follows the uv answer', async () => {
+    const name = makeTempProjectName('gen-python-uv');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: 'python', owner: 'tbra-owner', auto: true, git: false, uv: true });
+      const commands = buildAndTestCommands(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8'));
+      expect(commands[0]).toBe('uv sync --all-extras');
+      expect(commands).toContain('uv run python -m pytest -q');
+      expect(commands.join('\n')).not.toContain('pip install');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
 
   test('python defaults to the flat layout (scripts at the repo root, no packaging)', async () => {
     const name = makeTempProjectName('gen-python-flat');

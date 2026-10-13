@@ -5,7 +5,12 @@
 
 ## Build & Test
 
-Run the project's tests before submitting changes and keep the test suite green.
+Run these from the repo root before submitting changes, and keep them passing. [CI](./.github/workflows/ci.yml)
+runs the checks on every pull request.
+
+```bash
+{{VERIFY_COMMANDS}}
+```
 
 ## GitHub repo setup
 
