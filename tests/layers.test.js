@@ -571,7 +571,7 @@ describe('generated ignore rules', () => {
     }
   });
 
-  test('layer entries render tokens and are not duplicated', async () => {
+  test('layer entries are not duplicated, and logger-winston output stays ignored', async () => {
     const { targetDir } = await scaffold('javascript', { withLayers: ['test-harness:playwright'] });
     try {
       for (let i = 0; i < 2; i++) {
@@ -579,15 +579,15 @@ describe('generated ignore rules', () => {
           projectDir: targetDir,
           layerIds: ['logger-winston', 'test-harness:playwright'],
           template: 'javascript',
-          vars: { LOG_DIR: 'var/log' },
+          vars: {},
           noInstall: true,
         });
         expect(result.ok).toBe(true);
       }
       const ignoreFile = fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8');
       expect(ignoreFile.match(/^\/test-results\/$/gm)).toHaveLength(1);
-      expect(ignoreFile.match(/^var\/log\/$/gm)).toHaveLength(1);
-      expect(isIgnored(targetDir, 'var/log/app.log')).toBe(true);
+      // logger-winston writes to the fixed logs/ directory, which the template already ignores.
+      expect(isIgnored(targetDir, 'logs/app.log')).toBe(true);
     } finally {
       cleanup(targetDir);
     }

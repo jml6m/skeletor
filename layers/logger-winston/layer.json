@@ -9,7 +9,6 @@
   },
   "requires": ["zod-config"],
   "files": { "dir": "files", "overwrite": true, "onConflict": "replace" },
-  "gitignore": ["{{LOG_DIR}}/"],
   "patch": { "packageJson": "patch/package.json.json" },
   "docs": {
     "agents": { "section": "Logging & Error Handling", "append": "docs/AGENTS.snippet.md" }
