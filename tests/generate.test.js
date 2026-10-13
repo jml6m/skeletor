@@ -315,7 +315,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         const dependabot = fs.readFileSync(path.join(targetDir, '.github', 'dependabot.yml'), 'utf8');
-        const ecosystem = { javascript: 'npm', typescript: 'npm', python: 'pip', go: 'gomod', rust: 'cargo', java: 'maven', csharp: 'nuget' }[tmpl.id];
+        const ecosystem = { javascript: 'npm', typescript: 'npm', python: 'uv', go: 'gomod', rust: 'cargo', java: 'maven', csharp: 'nuget' }[tmpl.id];
         expect(dependabot).toContain(`package-ecosystem: "${ecosystem}"`);
         expect(dependabot).not.toMatch(/^\s*labels:/m);
         expect(dependabot.includes('ignore:')).toBe(ecosystem === 'npm');
@@ -454,8 +454,38 @@ describe('non-default template layouts', () => {
       expect(fs.readFileSync(path.join(targetDir, '.python-version'), 'utf8').trim()).toBe(pinnedPython);
       expect(pyproject).toContain(`requires-python = ">=${pinnedPython}"`);
       expect(pyproject).toContain(`target-version = "py${pinnedPython.replace('.', '')}"`);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test.each(['flat', 'src'])('python %s uses uv only: CI, README, AGENTS.md and next steps', async (layout) => {
+    const name = makeTempProjectName(`gen-python-uv-${layout}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNewProgrammatic({ command: 'new', name, template: 'python', layout, owner: 'tbra-owner', auto: true, git: false });
+      const python = allTemplates.find((t) => t.id === 'python');
+      const verify = python.layouts[layout].verifyCommands;
+      expect(verify[0]).toBe('uv sync');
+      expect(verify.slice(1).every((cmd) => cmd.startsWith('uv run '))).toBe(true);
+
       const ci = fs.readFileSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'), 'utf8');
-      expect(ci).toContain('python-version-file: .python-version');
+      // SHA-pinned, with the release it points at.
+      expect(ci).toMatch(/uses: astral-sh\/setup-uv@[0-9a-f]{40} # v\d+\.\d+\.\d+\n/);
+      expect(ci).toContain('uv sync --locked');
+      for (const cmd of verify.slice(1)) expect(ci).toContain(`run: ${cmd}`);
+
+      const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
+      expect(readme).toContain('uv sync');
+      expect(readme).toContain('Commit `uv.lock`');
+      expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('This project uses uv only');
+      expect(fs.readFileSync(path.join(targetDir, 'pyproject.toml'), 'utf8')).toContain('[dependency-groups]');
+      expect(fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8')).not.toContain('uv.lock');
+
+      for (const rel of listFilesRecursive(targetDir)) {
+        const text = fs.readFileSync(path.join(targetDir, rel), 'utf8');
+        expect({ rel, pip: /\bpip install\b|python -m pip/.test(text) }).toEqual({ rel, pip: false });
+      }
     } finally {
       cleanup(targetDir);
     }

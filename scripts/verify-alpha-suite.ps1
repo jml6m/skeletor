@@ -51,7 +51,7 @@ $templateExpectations = @{
     }
     "python" = @{
         Files = @("pyproject.toml", "AGENTS.md", "src/app/main.py", "tests/test_main.py")
-        Commands = @("python -m pip install -e '.[dev]'", "python -m ruff check .", "python -m pytest -q")
+        Commands = @("uv sync", "uv run ruff check .", "uv run pytest -q")
     }
     "go" = @{
         Files = @("go.mod", "main.go", "main_test.go", "AGENTS.md")
