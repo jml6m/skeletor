@@ -1,9 +1,0 @@
-# Paths that need the maintainer's review.
-CLAUDE.md                          @jml6m
-.github/                           @jml6m
-
-# Every Markdown add or change; .github/docs-policy.yml holds the allowlist.
-*.md                                @jml6m
-
-# Dependencies and scripts. Lockfiles are not listed (high churn).
-package.json                       @jml6m
