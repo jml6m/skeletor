@@ -1,21 +1,9 @@
 /**
- * Template-specific interactive prompts (license, stack choices).
+ * Template-specific interactive prompts (stack choices).
  */
 
 import * as p from '@clack/prompts';
 import { promptSelectRecommended } from './interactive-prompts.js';
-
-const COMMON_PROMPTS = [
-  {
-    id: 'license',
-    token: 'LICENSE',
-    message: 'License',
-    options: ['MIT', 'Apache-2.0', 'UNLICENSED'],
-    default: 'UNLICENSED',
-    // A layer can change the default (library-publishing: MIT, so the package is publishable).
-    defaultFrom: 'LICENSE',
-  },
-];
 
 const TEMPLATE_PROMPTS = {
   python: [
@@ -31,13 +19,9 @@ const TEMPLATE_PROMPTS = {
 
 /**
  * @param {string} templateId
- * @param {Record<string, string>} [defaults] token defaults from the applied layers, read through `defaultFrom`
  */
-export function gatherTemplatePrompts(templateId, defaults = {}) {
-  return [...COMMON_PROMPTS, ...(TEMPLATE_PROMPTS[templateId] || [])].map((pr) => ({
-    ...pr,
-    default: pr.defaultFrom ? defaults[pr.defaultFrom] || pr.default : pr.default,
-  }));
+export function gatherTemplatePrompts(templateId) {
+  return TEMPLATE_PROMPTS[templateId] || [];
 }
 
 /**

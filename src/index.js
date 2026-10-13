@@ -42,6 +42,7 @@ import {
   writeDocsPolicyAllowlist,
 } from './layers.js';
 import { escaperForFile, normalizeDescription } from './escape.js';
+import { appendReadmeLicense, removeSpdxLicenseFields, resolveLicense, UNLICENSED } from './license.js';
 import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -78,6 +79,7 @@ new options:
 
 Fixed defaults (not prompted): pinned Python and .NET versions, Maven groupId io.github.<owner>,
 port 3000 (override with PORT), logs/ for log files, initial branch main.
+License: UNLICENSED unless --github creates a public repo, which is asked (MIT under --auto).
 
 Examples:
   skeletor new my-api --template typescript --with-recommended
@@ -235,7 +237,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     JAVA_PACKAGE_PATH: javaPackage.replace(/\./g, '/'),
     GO_MODULE: `github.com/${repoOwner}/${name}`,
     REPO_URL: `https://github.com/${repoOwner}/${name}`,
-    LICENSE: 'UNLICENSED',
+    LICENSE: UNLICENSED,
     PYTHON_PACKAGE_MANAGER: 'pip',
     ...extra,
   };
@@ -371,6 +373,16 @@ function insertTemplateAgentsSection(agentsPath, snippetPath, vars) {
     ? `${content.trimEnd()}\n\n${section}\n`
     : `${content.slice(0, next + 1)}${section}\n\n${content.slice(next + 1)}`;
   fs.writeFileSync(agentsPath, updated, 'utf8');
+}
+
+/** Writes LICENSE (none for UNLICENSED, which grants nothing) and keeps manifests and README in step. */
+function applyLicense(targetDir, vars) {
+  if (vars.LICENSE === UNLICENSED) {
+    removeSpdxLicenseFields(targetDir);
+  } else {
+    copyAndRender(path.join(SHARED_TEMPLATES_DIR, 'licenses', `${vars.LICENSE}.txt`), path.join(targetDir, 'LICENSE'), vars);
+  }
+  appendReadmeLicense(targetDir, vars.LICENSE);
 }
 
 function getRecommendedLayers(templateInfo) {
@@ -568,6 +580,9 @@ async function runNew(opts) {
     templateVars = { ...templateVars, ...prompted };
   }
 
+  const license = await resolveLicense(opts, isInteractive);
+  if (p.isCancel(license)) { p.cancel('Cancelled.'); process.exit(0); }
+
   let chosenLayout = opts.layout;
   if (isInteractive && templateInfo.layouts && !chosenLayout) {
     const layoutIds = Object.keys(templateInfo.layouts);
@@ -637,6 +652,7 @@ async function runNew(opts) {
     description: finalDesc,
     extra: {
       ...templateVars,
+      LICENSE: license,
       ...pinTokens,
       DEPENDABOT_ECOSYSTEM: dependabotEcosystem,
       DEPENDABOT_IGNORE: dependabotIgnoreFor(dependabotEcosystem),
@@ -651,6 +667,7 @@ async function runNew(opts) {
     logError(`❌ ${e.message}`);
     process.exit(1);
   }
+  applyLicense(targetDir, vars);
 
   let verifyCommands = templateVerifyCommands(templateInfo, layoutId, vars);
   let repoLabels = [];
@@ -838,6 +855,7 @@ export {
   loadTemplateManifest,
   resolveTemplateLayout,
   copyTemplateToProject,
+  applyLicense,
   ensureDir,
   copyAndRender,
   runNew,
