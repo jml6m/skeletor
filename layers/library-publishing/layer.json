@@ -12,7 +12,7 @@
   "gitignore": ["/lib/"],
   "patch": {
     "packageJson": "patch/package.json.json",
-    "packageJsonOverride": { "private": null, "main": "./lib/index.cjs" }
+    "packageJsonOverride": ["private", "main"]
   },
   "docs": {
     "agents": { "section": "Publishing", "append": "docs/AGENTS.snippet.md" }

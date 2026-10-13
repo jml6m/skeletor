@@ -13,6 +13,6 @@
       "javascript": "patch/package.javascript.json",
       "typescript": "patch/package.typescript.json"
     },
-    "replaceScripts": ["start"]
+    "packageJsonOverride": ["scripts.start"]
   }
 }

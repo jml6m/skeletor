@@ -24,6 +24,7 @@ import {
   appendAgentsSection,
   buildLabelSeed,
   layerTokenDefaults,
+  applyPackageJsonOverride,
 } from '../src/layers.js';
 import { gatherTemplatePrompts, templatePromptDefaults } from '../src/template-prompts.js';
 
@@ -55,6 +56,32 @@ describe('layer manifests', () => {
   test('every layer.json passes contract validation', () => {
     const errors = validateLayerManifests();
     expect(errors).toEqual([]);
+  });
+});
+
+describe('packageJsonOverride', () => {
+  test('replaces nested and top-level values from the patch, and null removes a key', () => {
+    const pkg = { private: true, main: 'dist/index.js', scripts: { start: 'node src/index.js', test: 'jest' } };
+    const patch = { private: null, main: './lib/index.cjs', scripts: { start: 'node --env-file-if-exists=.env src/index.js' } };
+    const applied = applyPackageJsonOverride(pkg, patch, ['private', 'main', 'scripts.start', 'scripts.lint']);
+    expect(applied).toEqual(['private', 'main', 'scripts.start']);
+    expect(pkg).toEqual({ main: './lib/index.cjs', scripts: { start: 'node --env-file-if-exists=.env src/index.js', test: 'jest' } });
+  });
+
+  test('settles the merge conflicts of the paths it overrides', () => {
+    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-override-'));
+    try {
+      fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify({ name: 'x', private: true, main: 'dist/index.js', scripts: { start: 'node dist/index.js' } }));
+      const result = applyLayers({ projectDir: targetDir, template: 'typescript', language: 'typescript', layerIds: ['library-publishing', 'env-example'], vars: {}, noInstall: true });
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.private).toBeUndefined();
+      expect(pkg.main).toBe('./lib/index.cjs');
+      expect(pkg.scripts.start).toBe('node --env-file-if-exists=.env dist/index.js');
+      const settled = result.conflicts.map((c) => c.path).filter((p) => ['private', 'main', 'scripts.start'].includes(p));
+      expect(settled).toEqual([]);
+    } finally {
+      cleanup(targetDir);
+    }
   });
 });
 
