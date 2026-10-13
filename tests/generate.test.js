@@ -243,6 +243,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         expect(allFiles.every((f) => !f.endsWith('.tmpl'))).toBe(true);
         expect(fs.existsSync(path.join(targetDir, 'template.json'))).toBe(false);
         expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
+        expect(fs.existsSync(path.join(targetDir, '.github', 'CODEOWNERS'))).toBe(false);
 
         // Assert the expected unsuffixed manifest exists for this template.
         const manifest = expectedManifest[tmpl.id];

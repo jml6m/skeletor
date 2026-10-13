@@ -50,7 +50,6 @@ The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`)
 - `--auto` — non-interactive; requires `--template`
 - `--no-git` — skip `git init`
 - `--github` / `--private` — create the GitHub repo with `gh`, push the initial commit, and seed layer labels. Visibility also sets the license (see [Fixed defaults](#fixed-defaults))
-- `--codeowners` — generate a scoped `.github/CODEOWNERS` (interactive: pick from recommended paths; `--auto`: full candidate set)
 
 Interactive prompts use **select lists** with `(recommended)` labels.
 
@@ -79,7 +78,7 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 |---|---|---|---|
 | `dependabot` | all | yes | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions, matching the account-wide baseline |
 | `docs-lint` | javascript, typescript | yes | Pinned docs-lint CI matching the account baseline: lychee 0.24.2 link/anchor checking + markdownlint-cli2 |
-| `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job; offers *.md as a CODEOWNERS path |
+| `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job |
 | `env-example` | javascript, typescript |  | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists |
 | `express-server` | javascript |  | Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route |
 | `free-port` | javascript, typescript |  | Zero-dependency cross-platform port freeing script with a prestart hook |

@@ -206,6 +206,8 @@ describe('layer application', () => {
       const policy = fs.readFileSync(path.join(targetDir, '.github', 'docs-policy.yml'), 'utf8');
       expect(policy).toContain('  - README.md');
       expect(policy).toContain('  - AGENTS.md');
+      expect(fs.existsSync(path.join(targetDir, '.github', 'CODEOWNERS'))).toBe(false);
+      expect(fs.readFileSync(path.join(targetDir, '.github', 'scripts', 'check-docs-policy.sh'), 'utf8')).not.toContain('CODEOWNERS');
       execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true });
       fs.writeFileSync(path.join(targetDir, 'NOTES.md'), '# notes\n');
       expect(() => execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true })).toThrow();

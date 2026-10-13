@@ -2,8 +2,8 @@
 # Enforces .github/docs-policy.yml: every tracked *.md file must be explicitly
 # allowlisted, or covered by an exempt_globs prefix. New/renamed .md files
 # that aren't listed fail CI with the offending paths, instead of silently
-# merging — the manifest itself is CODEOWNERS-gated so widening it always
-# requires @{{REPO_OWNER}}'s review.
+# merging. Widening the allowlist is itself a change to this repo, so it goes
+# through the same pull request review as any other.
 set -euo pipefail
 
 POLICY_FILE=".github/docs-policy.yml"
@@ -68,8 +68,7 @@ if [ "${#offenders[@]}" -gt 0 ]; then
   echo "Markdown files are locked to an exact allowlist to keep" >&2
   echo "internal notes/patterns out and stop unreviewed doc sprawl. Either:" >&2
   echo "  1. Remove the file, or" >&2
-  echo "  2. Open a PR adding it (with its purpose) to $POLICY_FILE's 'allowed' list" >&2
-  echo "     (protect .github/ with CODEOWNERS so additions get a review from @{{REPO_OWNER}})." >&2
+  echo "  2. Open a PR adding it (with its purpose) to $POLICY_FILE's 'allowed' list." >&2
   exit 1
 fi
 
