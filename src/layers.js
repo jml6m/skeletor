@@ -319,6 +319,25 @@ function applyPackageJsonOverride(pkg, override) {
 }
 
 /**
+ * The package.json merge keeps a script the template already defines. `patch.replaceScripts` names
+ * the scripts a layer's patch replaces instead (env-example's `start`, which loads .env).
+ * @param {Record<string, any>} pkg merged package.json, updated in place
+ * @param {Record<string, any>} patch
+ * @param {string[] | undefined} names
+ * @returns {string[]} conflict paths the replacement settled
+ */
+function replaceScripts(pkg, patch, names = []) {
+  const settled = [];
+  for (const name of names) {
+    const value = patch.scripts?.[name];
+    if (value === undefined) continue;
+    pkg.scripts = { ...pkg.scripts, [name]: value };
+    settled.push(`scripts.${name}`);
+  }
+  return settled;
+}
+
+/**
  * `patch.packageJson` is either one patch file for every language, or a map of language → file
  * for layers whose dependencies differ (e.g. a CommonJS-compatible major for the javascript template).
  * @param {{ patch?: { packageJson?: string | Record<string, string> } }} layer
@@ -524,7 +543,8 @@ export function applyLayers(options) {
       const target = JSON.parse(raw);
       const conflicts = [];
       const merged = mergePackageJson(target, layerPlan.packageJsonPatch, conflicts);
-      allConflicts.push(...conflicts);
+      const replaced = replaceScripts(merged, layerPlan.packageJsonPatch, layer.patch?.replaceScripts);
+      allConflicts.push(...conflicts.filter((c) => !replaced.includes(c.path)));
       applyPackageJsonOverride(merged, layer.patch?.packageJsonOverride);
       fs.writeFileSync(pkgPath, serializePackageJson(merged, indent), 'utf8');
     }
@@ -616,6 +636,11 @@ export function validateLayerManifests() {
     const patchSpec = layer.patch?.packageJson;
     for (const rel of typeof patchSpec === 'object' && patchSpec ? Object.values(patchSpec) : patchSpec ? [patchSpec] : []) {
       if (!fs.existsSync(path.join(layer.dir, rel))) errors.push(`${layer.id}: patch missing: ${rel}`);
+    }
+
+    const replace = layer.patch?.replaceScripts;
+    if (replace !== undefined && (!Array.isArray(replace) || !replace.every((n) => typeof n === 'string' && n))) {
+      errors.push(`${layer.id}: patch.replaceScripts must be an array of script names`);
     }
 
     for (const label of layer.labels || []) {

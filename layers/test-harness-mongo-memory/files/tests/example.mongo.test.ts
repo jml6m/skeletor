@@ -1,13 +1,13 @@
-import type { MongoClient } from 'mongodb';
+import { MongoClient } from 'mongodb';
 
-import { connectMongo, startMongoMemory, stopMongoMemory } from './support/mongo-memory.js';
+import { startMongoMemory, stopMongoMemory } from './support/mongo-memory.js';
 
 describe('MongoDB memory server', () => {
   let client: MongoClient;
 
   // The first run can be slow while mongodb-memory-server starts its MongoDB binary.
   beforeAll(async () => {
-    client = await connectMongo(await startMongoMemory());
+    client = await MongoClient.connect(await startMongoMemory());
   }, 60_000);
 
   afterAll(async () => {

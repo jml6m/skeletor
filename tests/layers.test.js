@@ -110,13 +110,32 @@ describe('layer application', () => {
       const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
       expect(pkg.dependencies.express).toBeDefined();
       expect(pkg.scripts.start).toBe('node --env-file-if-exists=.env src/index.js');
-      expect(pkg.scripts['free-port']).toBe('node --env-file-if-exists=.env scripts/free-port.cjs');
+      expect(pkg.scripts['free-port']).toBe('node scripts/free-port.cjs');
+      expect(fs.readFileSync(path.join(targetDir, 'scripts', 'free-port.cjs'), 'utf8')).toContain("process.loadEnvFile('.env')");
       expect(fs.readFileSync(path.join(targetDir, 'src', 'index.js'), 'utf8')).toContain('createApp().listen(port');
       expect(fs.existsSync(path.join(targetDir, 'src', 'app.js'))).toBe(true);
       expect(fs.existsSync(path.join(targetDir, 'tests', 'app.test.js'))).toBe(true);
       expect(fs.readFileSync(path.join(targetDir, '.env.example'), 'utf8')).toContain('PORT=3000');
     } finally {
       cleanup(targetDir);
+    }
+  });
+
+  test.each([
+    ['javascript', 'src/index.js'],
+    ['typescript', 'dist/index.js'],
+  ])('%s: only env-example makes npm start load .env', async (template, entry) => {
+    const plain = makeName(`layer-env-plain-${template}`);
+    const withEnv = makeName(`layer-env-${template}`);
+    const start = (name) => JSON.parse(fs.readFileSync(path.resolve(process.cwd(), name, 'package.json'), 'utf8')).scripts.start;
+    try {
+      await runNew({ command: 'new', name: plain, template, owner: 'acme', auto: true, git: false, withLayers: ['governance'] });
+      await runNew({ command: 'new', name: withEnv, template, owner: 'acme', auto: true, git: false, withLayers: ['env-example'] });
+      expect(start(plain)).toBe(`node ${entry}`);
+      expect(start(withEnv)).toBe(`node --env-file-if-exists=.env ${entry}`);
+    } finally {
+      cleanup(path.resolve(process.cwd(), plain));
+      cleanup(path.resolve(process.cwd(), withEnv));
     }
   });
 

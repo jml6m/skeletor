@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "free-port": "node --env-file-if-exists=.env scripts/free-port.cjs",
+    "free-port": "node scripts/free-port.cjs",
     "prestart": "npm run free-port"
   }
 }

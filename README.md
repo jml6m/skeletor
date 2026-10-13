@@ -73,7 +73,7 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 | `log-table` | javascript, typescript |  | cli-table3 + string-width log table utility with display-width truncation and config defaults |
 | `logger-winston` | javascript, typescript |  | Replaces the console logger stub with Winston (levels, file transports, env-aware default level) |
 | `quality-gates` | javascript, typescript | yes | Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull |
-| `test-harness:mongo-memory` | javascript, typescript |  | mongodb-memory-server helpers for Jest (start, stop, connect), an example test that uses them, and a test:mongo script |
+| `test-harness:mongo-memory` | javascript, typescript |  | mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script |
 | `test-harness:playwright` | javascript, typescript |  | Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts |
 | `zod-config` | javascript, typescript | yes | Zod-validated env.config + config/index pattern; never read process.env in feature code |
 

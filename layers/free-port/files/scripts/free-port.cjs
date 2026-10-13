@@ -1,6 +1,7 @@
 'use strict';
 
 const { execSync } = require('child_process');
+const fs = require('fs');
 
 /**
  * The process and OS calls free-port makes. Each function takes an optional partial override,
@@ -183,6 +184,10 @@ function freePort(port, options = {}) {
 }
 
 if (require.main === module) {
+  // Read PORT from .env the way `npm start` does when the project loads one (env-example), without
+  // Node's notice when the file is missing. Variables already set in the environment win.
+  if (fs.existsSync('.env')) process.loadEnvFile('.env');
+
   const port = Number(process.argv[2] || process.env.PORT || {{APP_PORT}});
   if (!Number.isInteger(port) || port <= 0) {
     console.error('Usage: node scripts/free-port.cjs [port] (defaults to $PORT, then {{APP_PORT}})');

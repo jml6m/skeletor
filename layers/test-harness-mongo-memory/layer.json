@@ -1,7 +1,7 @@
 {
   "id": "test-harness:mongo-memory",
   "name": "MongoDB Memory Server test harness",
-  "description": "mongodb-memory-server helpers for Jest (start, stop, connect), an example test that uses them, and a test:mongo script.",
+  "description": "mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": [

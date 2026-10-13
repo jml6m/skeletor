@@ -7,5 +7,12 @@
     "languages": ["javascript", "typescript"],
     "templates": ["javascript", "typescript"]
   },
-  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" }
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": {
+    "packageJson": {
+      "javascript": "patch/package.javascript.json",
+      "typescript": "patch/package.typescript.json"
+    },
+    "replaceScripts": ["start"]
+  }
 }
