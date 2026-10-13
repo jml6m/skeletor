@@ -15,6 +15,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - `{{DESCRIPTION}}` is collapsed to one line and escaped only in `.json`, `.toml` and XML (`.xml`, `.csproj`, `.props`, `.targets`) files ([src/escape.js](./src/escape.js)); put it inside a `"..."` string in `.json` and `.toml`. Elsewhere it goes in raw: use it in README and AGENTS.md text, not in source-file comments or docstrings (use `{{PROJECT_NAME}}` there). Project names (lowercase kebab-case) and owners are validated up front ([src/validate-input.js](./src/validate-input.js)), so they need no escaping. C# templates use `{{CSHARP_NAMESPACE}}`, the name in PascalCase.
   - **Any file that contains real ecosystem dependency declarations** (e.g. `package.json`, `pyproject.toml`, `Cargo.toml`, `pom.xml`, `*.csproj`, `go.mod`) **must use a `.tmpl` suffix** in the template directory (e.g. `package.json.tmpl`). The generator strips the suffix on output so the generated project has the conventional filename. This keeps skeletor's own dependency graph clean.
   - File and directory names are rendered too, so a path segment can carry a token (java's `src/main/java/{{JAVA_PACKAGE_PATH}}/`, csharp's `src/{{CSHARP_NAMESPACE}}/{{CSHARP_NAMESPACE}}.csproj.tmpl`). Use a token only where the ecosystem names files after the project; keep fixed names elsewhere.
+  - **The generated `.gitignore` has one source**: the template's `features` in `template.json`, built from `FEATURE_REGISTRY` in [src/features.js](./src/features.js) (plus each applied layer's `gitignore` entries). Every template declares `features`, and no template ships a `.gitignore` or `.gitignore.tmpl`. When a template gains a tool, add its output paths to that tool's feature.
   - Include at minimum: README.md + AGENTS.md (light version) + one main source file + one test file + appropriate build config (go.mod, Cargo.toml, pom.xml, .csproj, etc.).
 
 - **When adding or modifying templates**
@@ -38,7 +39,6 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - `--owner` skips auto-detection (git remote → package.json → gh CLI); required in `--auto` when detection fails. No hardcoded default owner.
   - `--description` is optional (defaults to a generic string); no interactive description prompt.
   - Interactive prompts use select lists with `(recommended)` labels where applicable.
-  - Template `.gitignore` files must be named `.gitignore.tmpl` so npm publish includes them (npm strips bare `.gitignore` from packages).
   - Keep the generator itself (copyAndRender + render) dependency-free and simple.
 
 - **Don't commit** test artifacts (`gen-*` directories from previous runs) or `node_modules`.
