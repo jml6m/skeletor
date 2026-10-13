@@ -40,6 +40,7 @@ import {
   resolveLayerOrder,
   gatherLayerPrompts,
   layerPromptDefaults,
+  layerTokenDefaults,
   validateLayerManifests,
   writeDocsPolicyAllowlist,
 } from './layers.js';
@@ -545,9 +546,10 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  let layerVars = layerPromptDefaults(layerPrompts);
+  const tokenDefaults = layerTokenDefaults(layerIds, layerCtx);
+  let layerVars = { ...tokenDefaults, ...layerPromptDefaults(layerPrompts) };
   if (isInteractive && layerPrompts.length) {
-    layerVars = await promptForLayerVars(layerPrompts);
+    layerVars = { ...tokenDefaults, ...(await promptForLayerVars(layerPrompts)) };
   }
 
   const basePinTokens = buildPinTokens(pinned, templateInfo);

@@ -23,7 +23,9 @@ import {
   loadLayerById,
   appendAgentsSection,
   buildLabelSeed,
+  layerTokenDefaults,
 } from '../src/layers.js';
+import { gatherTemplatePrompts, templatePromptDefaults } from '../src/template-prompts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -140,6 +142,40 @@ describe('layer application', () => {
     } finally {
       cleanup(targetDir);
     }
+  });
+
+  test('library-publishing scaffolds a publishable package with its own library entry', async () => {
+    const name = makeName('layer-lib');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'typescript', owner: 'acme', auto: true, git: false, withLayers: ['library-publishing'] });
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.private).toBeUndefined();
+      expect(pkg.license).toBe('MIT');
+      expect(pkg.main).toBe('./lib/index.cjs');
+      expect(pkg.exports['.'].require.default).toBe(pkg.main);
+      expect(pkg.files).toEqual(['lib']);
+      expect(pkg.scripts.prepack).toBe('npm run build:lib');
+      // Self-contained: every script prepublishOnly calls exists without other layers.
+      for (const script of pkg.scripts.prepublishOnly.match(/npm run [\w:-]+/g)) {
+        expect(pkg.scripts[script.slice('npm run '.length)]).toBeDefined();
+      }
+      expect(fs.readFileSync(path.join(targetDir, 'tsup.config.ts'), 'utf8')).toContain("entry: ['src/lib/index.ts']");
+      expect(fs.readFileSync(path.join(targetDir, 'src', 'lib', 'index.ts'), 'utf8')).toContain('export function');
+      expect(fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8').split('\n')).toContain('/lib/');
+      expect(fs.readFileSync(path.join(targetDir, '.prettierignore'), 'utf8').split('\n')).toContain('lib/');
+      expect(fs.readFileSync(path.join(targetDir, 'eslint.config.js'), 'utf8')).toContain("'lib/**'");
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('library-publishing makes MIT the license prompt default', () => {
+    const ctx = { template: 'typescript', language: 'typescript' };
+    const license = (vars) => templatePromptDefaults(gatherTemplatePrompts('typescript', vars)).LICENSE;
+    expect(layerTokenDefaults(['library-publishing'], ctx)).toEqual({ LICENSE: 'MIT' });
+    expect(license({ LICENSE: 'UNLICENSED', ...layerTokenDefaults(['library-publishing'], ctx) })).toBe('MIT');
+    expect(license({ LICENSE: 'UNLICENSED', ...layerTokenDefaults(['governance'], ctx) })).toBe('UNLICENSED');
   });
 
   test('gatherLayerPrompts includes free-port port question', () => {

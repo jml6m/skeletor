@@ -12,6 +12,8 @@ const COMMON_PROMPTS = [
     message: 'License',
     options: ['MIT', 'Apache-2.0', 'UNLICENSED'],
     default: 'UNLICENSED',
+    // A layer can change the default (library-publishing: MIT, so the package is publishable).
+    defaultFrom: 'LICENSE',
   },
   {
     id: 'author',

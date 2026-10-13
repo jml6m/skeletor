@@ -28,8 +28,11 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
 - **Layers live in `layers/<id>/`** (`layer.json` plus `files/`), are applied only at `skeletor new` time, and are recorded nowhere in the generated project.
   - A layer applied to both `javascript` (CommonJS) and `typescript` (ESM) must emit a correct module format for each. Ship `.js` (CommonJS) plus `.ts` twins, since the twin for the other language is dropped. Use `.cjs` for one script that must run in both.
   - `patch.packageJson` is one file, or a `{ "javascript": …, "typescript": … }` map when dependencies differ (for example, `string-width` v4 is the last CommonJS major).
+  - `patch.packageJson` merges keep a key the template already has; `patch.packageJsonOverride` lists top-level keys the layer replaces instead (`null` removes one, e.g. `private`).
+  - `requires` lists layers this one can't work without; they are applied automatically. There is no soft dependency: a layer is self-contained or declares `requires`.
+  - `defaults` changes the default of a scaffold prompt by token (library-publishing: `LICENSE` → `MIT`); an explicit answer still wins.
   - `knip.entry` registers the layer's public API or harness files as knip entry points. `labels` declares GitHub labels that `--github` creates. `gitignore` lists the output paths the layer's tools create (reports, build output); they are appended to the generated `.gitignore` and may use `{{TOKEN}}` values.
-  - Every optional layer and bundle is generated and verified in CI (`tests/generate.test.js`, "optional layers and bundles"), including a strict `npx knip`.
+  - Every optional layer and bundle is generated and verified in CI (`tests/generate.test.js`, "optional layers and bundles"): the template's and layer's `verifyCommands`, with `npm run lint -- --max-warnings 0` and `npx knip --treat-config-hints-as-errors`.
 
 - **CLI / src/index.js**
   - Use `@clack/prompts` for rich interactive experience (select with hints, text, confirm, intro/outro, cancel handling).

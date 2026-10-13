@@ -19,6 +19,7 @@ export default defineConfig([
       '.jscpd/**',
       'playwright-report/**',
       'test-results/**',
+      'lib/**',
       'eslint.config.js',
       'scripts/**/*.js',
     ],
