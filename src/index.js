@@ -255,12 +255,14 @@ function ensureDir(dir) {
   }
 }
 
+const SKELETOR_METADATA_FILES = new Set(['template.json', 'layer.json', 'pinned-versions.json', 'AGENTS.snippet.md']);
+
 function copyAndRender(src, dest, vars) {
   const stat = fs.statSync(src);
   if (stat.isDirectory()) {
     ensureDir(dest);
     for (const entry of fs.readdirSync(src)) {
-      if (entry === 'node_modules' || entry === '.git' || entry === 'template.json' || entry === 'layer.json' || entry === 'pinned-versions.json') continue;
+      if (entry === 'node_modules' || entry === '.git' || SKELETOR_METADATA_FILES.has(entry)) continue;
       const outEntry = renderPathSegment(entry, vars);
       copyAndRender(path.join(src, entry), path.join(dest, outEntry), vars);
     }
@@ -330,6 +332,8 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
     if (src) copyAndRender(src, dest, vars);
   }
 
+  insertTemplateAgentsSection(path.join(targetDir, 'AGENTS.md'), path.join(templateInfo.dir, 'AGENTS.snippet.md'), vars);
+
   const sharedDirs = ['.github'];
   for (const dir of sharedDirs) {
     const src = path.join(templateInfo.dir, dir);
@@ -351,6 +355,22 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   }
 
   return layoutId;
+}
+
+/**
+ * A template's AGENTS.snippet.md holds its own AGENTS.md sections (e.g. code conventions); they go
+ * right after "Build & Test", ahead of the shared sections and anything layers append.
+ */
+function insertTemplateAgentsSection(agentsPath, snippetPath, vars) {
+  if (!fs.existsSync(snippetPath) || !fs.existsSync(agentsPath)) return;
+  const section = render(fs.readFileSync(snippetPath, 'utf8'), vars).trim();
+  const content = fs.readFileSync(agentsPath, 'utf8');
+  const buildAndTest = content.indexOf('\n## Build & Test');
+  const next = buildAndTest === -1 ? -1 : content.indexOf('\n## ', buildAndTest + 1);
+  const updated = next === -1
+    ? `${content.trimEnd()}\n\n${section}\n`
+    : `${content.slice(0, next + 1)}${section}\n\n${content.slice(next + 1)}`;
+  fs.writeFileSync(agentsPath, updated, 'utf8');
 }
 
 function getRecommendedLayers(templateInfo) {

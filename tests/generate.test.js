@@ -9,6 +9,7 @@ process.env.SKELETOR_CLI_TEST = '1';
 import { getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
 import { loadBundles, loadLayerById } from '../src/layers.js';
 import { bundleShard, layerShard, listShards, selectedShard, shardsForChanges } from '../scripts/verify-shards.mjs';
+import { LIMITS } from '../scripts/check-agent-file-length.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,6 +97,17 @@ function listFilesRecursive(dir) {
     }
   }
   return results;
+}
+
+// A scaffold's Markdown is README, AGENTS and CLAUDE, plus forms and setup notes; anything else is a doc to keep true by hand (#94).
+const SCAFFOLD_MARKDOWN = /^(README|AGENTS|CLAUDE)\.md$|^docs\/GITHUB-SETUP\.md$|^\.github\/ISSUE_TEMPLATE\/[\w-]+\.md$/;
+
+function expectLeanDocs(targetDir, allFiles) {
+  const markdown = allFiles.map((f) => f.split(path.sep).join('/')).filter((f) => f.endsWith('.md'));
+  expect(markdown.filter((f) => !SCAFFOLD_MARKDOWN.test(f))).toEqual([]);
+  const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+  expect(agents.length).toBeLessThanOrEqual(LIMITS['AGENTS.md']);
+  return agents;
 }
 
 // Maps template id to the expected unsuffixed manifest file in the generated project
@@ -264,7 +276,16 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
 
         // Agents work through branches and PRs; what's protected is the default branch, not `git push`.
-        const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+        const agents = expectLeanDocs(targetDir, allFiles);
+        if (['javascript', 'typescript'].includes(tmpl.id)) {
+          // The conventions section sits right after Build & Test and names only what the scaffold enforces.
+          expect(agents).toMatch(/## Build & Test\n[\s\S]*?\n## Code conventions\n/);
+          expect(agents.match(/\n## Code conventions\n[\s\S]*?(?=\n## )/)[0]).toMatch(/no parent imports[\s\S]*health:full/);
+          expect(agents).not.toMatch(/routes|controllers|AppError|reference project/i);
+        } else {
+          expect(agents).not.toContain('## Code conventions');
+        }
+        expect(fs.existsSync(path.join(targetDir, 'AGENTS.snippet.md'))).toBe(false);
         expect(agents).not.toMatch(/git push[^\n]*prohibited/i);
         expect(agents).toContain('push the branch and open a pull request');
         const never = (agents.match(/\*\*Never\*\*:(?:.+\n)+/)?.[0] ?? '').replace(/\s+/g, ' ');
@@ -363,7 +384,7 @@ describe('non-default template layouts', () => {
     const targetDir = path.resolve(process.cwd(), name);
     try {
       await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', description: DESCRIPTION, auto: true, git: false, withRecommended: true });
-      expect(fs.existsSync(path.join(targetDir, 'AGENTS.md'))).toBe(true);
+      expectLeanDocs(targetDir, listFilesRecursive(targetDir));
       if (tmpl.id === 'python' && id === 'src') {
         expect(fs.existsSync(path.join(targetDir, 'src', 'app', 'main.py'))).toBe(true);
         expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(false);
@@ -411,6 +432,12 @@ describe('optional layers and bundles', () => {
       const allFiles = listFilesRecursive(targetDir);
       for (const rel of allFiles) {
         expect({ rel, unresolved: fs.readFileSync(path.join(targetDir, rel), 'utf8').match(/\{\{[A-Z][A-Z0-9_]*\}\}/g) }).toEqual({ rel, unresolved: null });
+      }
+      const agents = expectLeanDocs(targetDir, allFiles);
+      const layers = opts.withLayers?.length ? opts.withLayers : loadBundles()[opts.bundle]?.layers || [];
+      if (layers.includes('log-table')) {
+        expect(agents).toContain('## Log tables');
+        expect(agents).toMatch(/display width[\s\S]*--json/i);
       }
       if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
         // Strict knip on top of the (report-only) health:dead script: layers must ship dead-code-clean.

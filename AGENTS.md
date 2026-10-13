@@ -17,6 +17,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - File and directory names are rendered too, so a path segment can carry a token (java's `src/main/java/{{JAVA_PACKAGE_PATH}}/`, csharp's `src/{{CSHARP_NAMESPACE}}/{{CSHARP_NAMESPACE}}.csproj.tmpl`). Use a token only where the ecosystem names files after the project; keep fixed names elsewhere.
   - **The generated `.gitignore` has one source**: the template's `features` in `template.json`, built from `FEATURE_REGISTRY` in [src/features.js](./src/features.js) (plus each applied layer's `gitignore` entries). Every template declares `features`, and no template ships a `.gitignore` or `.gitignore.tmpl`. When a template gains a tool, add its output paths to that tool's feature.
   - Include at minimum: README.md + AGENTS.md (light version) + one main source file + one test file + appropriate build config (go.mod, Cargo.toml, pom.xml, .csproj, etc.).
+  - Don't add Markdown docs to a scaffold beyond `README.md`, `AGENTS.md` and `CLAUDE.md`; put the content in one of those. Template-specific AGENTS.md sections (e.g. the JS/TS code conventions) go in `AGENTS.snippet.md` at the template root: it is inserted after "Build & Test" and never copied as a file. A layer adds AGENTS.md text through `docs.agents`.
 
 - **When adding or modifying templates**
   - Start with "standard main library" best practices for the language/ecosystem.

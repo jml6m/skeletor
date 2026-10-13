@@ -24,6 +24,12 @@
       "typescript": "patch/package.typescript.json"
     }
   },
+  "docs": {
+    "agents": {
+      "section": "Log tables",
+      "append": "docs/AGENTS.snippet.md"
+    }
+  },
   "knip": {
     "entry": [
       "src/utils/logTable.{js,ts}"

@@ -1,7 +1,7 @@
 {
   "id": "free-port",
   "name": "Free-port helper",
-  "description": "Zero-dependency cross-platform port freeing script with prestart hook and port registry.",
+  "description": "Zero-dependency cross-platform port freeing script with a prestart hook.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["javascript", "typescript"],
