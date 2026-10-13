@@ -9,7 +9,9 @@ process.env.SKELETOR_CLI_TEST = '1';
 import {
   runNew,
   collectLayerIds,
-  getRecommendedLayers,
+  getBaselineLayers,
+  getFeatureLayers,
+  getTemplatesWithManifests,
   loadTemplateManifest,
 } from '../src/index.js';
 import {
@@ -283,37 +285,56 @@ describe('layer application', () => {
     }
   });
 
-  test('collectLayerIds expands --with-recommended from template manifest', () => {
+  test('collectLayerIds always includes the baseline, then --with and bundle layers', () => {
     const ts = loadTemplateManifest('typescript');
-    const ids = collectLayerIds({ withRecommended: true }, ts);
-    expect(ids).toEqual(expect.arrayContaining(['governance', 'quality-gates', 'zod-config', 'env-example']));
+    const baseline = ['governance', 'dependabot', 'issue-templates', 'quality-gates', 'docs-lint'];
+    expect(getBaselineLayers(ts)).toEqual(baseline);
+    expect(collectLayerIds({}, ts)).toEqual(baseline);
+    expect(collectLayerIds({ withLayers: ['zod-config', 'governance'] }, ts)).toEqual([...baseline, 'zod-config']);
+    expect(collectLayerIds({ bundle: 'ts-library' }, 'typescript')).toEqual([...baseline, 'library-publishing']);
+    expect(getBaselineLayers({ id: 'fake' })).toEqual([]);
   });
 
-  test('getRecommendedLayers returns empty for unknown template', () => {
-    expect(getRecommendedLayers({ id: 'fake' })).toEqual([]);
+  test('every template declares baselineLayers that apply to it, and no recommendedLayers', () => {
+    for (const t of getTemplatesWithManifests()) {
+      expect({ id: t.id, recommendedLayers: t.recommendedLayers }).toEqual({ id: t.id, recommendedLayers: undefined });
+      expect(getBaselineLayers(t)).toEqual(expect.arrayContaining(['governance', 'dependabot', 'issue-templates']));
+      const { errors } = resolveLayerOrder(getBaselineLayers(t), { template: t.id, language: t.language });
+      expect({ id: t.id, errors }).toEqual({ id: t.id, errors: [] });
+    }
   });
 
-  test('new --with-recommended applies template recommended layers', async () => {
-    const name = makeName('layer-rec');
+  test('the feature-layer picker offers only layers outside the baseline', () => {
+    for (const t of getTemplatesWithManifests()) {
+      const offered = getFeatureLayers(t).map((l) => l.id);
+      expect(offered.filter((id) => getBaselineLayers(t).includes(id))).toEqual([]);
+      expect(offered).toEqual(expect.arrayContaining(['docs-policy', 'issue-labels']));
+    }
+    const ts = getFeatureLayers(loadTemplateManifest('typescript')).map((l) => l.id);
+    expect(ts).toEqual(expect.arrayContaining(['zod-config', 'env-example', 'logger-winston', 'library-publishing']));
+    expect(getFeatureLayers(loadTemplateManifest('go')).map((l) => l.id)).not.toContain('zod-config');
+  });
+
+  test('bundles list only feature layers', () => {
+    for (const [name, bundle] of Object.entries(loadBundles())) {
+      const baseline = getBaselineLayers(loadTemplateManifest(bundle.template));
+      expect({ name, baseline: bundle.layers.filter((id) => baseline.includes(id)) }).toEqual({ name, baseline: [] });
+    }
+  });
+
+  test('a default scaffold applies the baseline and no feature layers', async () => {
+    const name = makeName('layer-baseline');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({
-        command: 'new',
-        name,
-        template: 'typescript',
-        auto: true,
-        git: false,
-        withRecommended: true,
-      });
-      // governance
+      await runNew({ command: 'new', name, template: 'typescript', owner: 'acme', auto: true, git: false, withLayers: [] });
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Critical Protocols');
-      // quality-gates
+      expect(fs.existsSync(path.join(targetDir, '.github', 'dependabot.yml'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, '.github', 'ISSUE_TEMPLATE', 'epic.yml'))).toBe(true);
       expect(fs.existsSync(path.join(targetDir, 'scripts', 'audit-ci.mjs'))).toBe(true);
-      // zod-config
-      expect(fs.existsSync(path.join(targetDir, 'src', 'config', 'env.config.ts'))).toBe(true);
-      // env-example
-      expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
-      // no lingering skeletor state
+      expect(fs.existsSync(path.join(targetDir, '.github', 'workflows', 'docs-lint.yml'))).toBe(true);
+      // zod-config and env-example are feature layers now.
+      expect(fs.readFileSync(path.join(targetDir, 'src', 'config', 'env.config.ts'), 'utf8')).not.toContain('z.object');
+      expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(false);
       expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
     } finally {
       cleanup(targetDir);

@@ -27,7 +27,7 @@
       ]
     }
   },
-  "recommendedLayers": [
+  "baselineLayers": [
     "governance",
     "dependabot",
     "issue-templates"
