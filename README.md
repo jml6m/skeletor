@@ -48,8 +48,11 @@ The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`)
 - `--owner <user>` — skips GitHub owner auto-detection
 - `--description <text>` — optional (generic default when omitted)
 - `--auto` — non-interactive; requires `--template`
-- `--no-git` — skip `git init`
-- `--github` / `--private` — create the GitHub repo with `gh`, push the initial commit, and seed layer labels. Visibility also sets the license (see [Fixed defaults](#fixed-defaults))
+- `--no-git` — skip `git init`. The printed next steps then leave out commands that need a repository and list them separately
+- `--github` / `--private` — create the GitHub repo with `gh`, push the initial commit, and seed layer labels. Visibility also sets the license (see [Fixed defaults](#fixed-defaults)). `--github` needs git, and `--private` needs `--github`
+- `--version` / `-v` — print the skeletor version
+
+Unknown options, removed options (`--with-recommended`, `--codeowners`, `--uv`) and options that don't fit the template (such as `--layout` on a template without layouts, or a layer that doesn't apply to it) are errors. Errors for an unknown template, layout, layer or bundle list the valid ids and suggest the closest one.
 
 Interactive prompts use **select lists** with `(recommended)` labels.
 

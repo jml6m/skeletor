@@ -393,6 +393,7 @@ export function planLayerApply(options) {
     conflicts: [],
     postApply: [],
     verifyCommands: [],
+    gitVerifyCommands: [],
   };
 
   for (const id of order) {
@@ -454,6 +455,7 @@ export function planLayerApply(options) {
     plan.layers.push(layerPlan);
     plan.postApply.push(...(layer.postApply || []).filter((c) => !FORBIDDEN_POST_APPLY.test(c)));
     plan.verifyCommands.push(...(layer.verifyCommands || []));
+    plan.gitVerifyCommands.push(...(layer.gitVerifyCommands || []));
   }
 
   return { ok: true, errors: [], plan, ctx };
@@ -471,7 +473,7 @@ export function applyLayers(options) {
   const allConflicts = [];
 
   if (dryRun) {
-    return { ...planResult, applied: [], conflicts: allConflicts, verifyCommands: [], dryRun: true };
+    return { ...planResult, applied: [], conflicts: allConflicts, verifyCommands: [], gitVerifyCommands: [], dryRun: true };
   }
 
   const applied = [];
@@ -542,7 +544,15 @@ export function applyLayers(options) {
     }
   }
 
-  return { ...planResult, applied, labels: repoLabels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
+  return {
+    ...planResult,
+    applied,
+    labels: repoLabels,
+    conflicts: allConflicts,
+    verifyCommands: [...new Set(plan.verifyCommands)],
+    gitVerifyCommands: [...new Set(plan.gitVerifyCommands)],
+    dryRun: false,
+  };
 }
 
 /**

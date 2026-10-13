@@ -9,5 +9,6 @@
   },
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
   "patch": { "packageJson": "patch/package.json.json" },
-  "verifyCommands": ["npm run lint:encoding", "npm run audit:ci"]
+  "verifyCommands": ["npm run audit:ci"],
+  "gitVerifyCommands": ["npm run lint:encoding"]
 }
