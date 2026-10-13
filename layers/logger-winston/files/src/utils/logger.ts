@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { config } from '#config/index.js';
 
-const logDir = path.resolve(process.cwd(), '{{LOG_DIR}}');
+const logDir = path.resolve(process.cwd(), 'logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }

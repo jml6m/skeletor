@@ -8,15 +8,5 @@
     "templates": ["javascript", "typescript"]
   },
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
-  "patch": { "packageJson": "patch/package.json.json" },
-  "prompts": [
-    {
-      "id": "appPort",
-      "type": "select",
-      "message": "Default server port",
-      "default": "3000",
-      "options": ["3000", "3001", "4200", "8080"],
-      "token": "APP_PORT"
-    }
-  ]
+  "patch": { "packageJson": "patch/package.json.json" }
 }

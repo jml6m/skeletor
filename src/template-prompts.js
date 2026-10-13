@@ -20,15 +20,6 @@ const COMMON_PROMPTS = [
 const TEMPLATE_PROMPTS = {
   python: [
     {
-      id: 'pythonVersion',
-      token: 'PYTHON_VERSION',
-      message: 'Python version',
-      // Nothing newer than the pinned runtime: the pinned ruff/mypy are validated against it.
-      options: ['3.12', '3.13'],
-      default: '3.13',
-      defaultFrom: 'PIN_RUNTIME_PYTHON',
-    },
-    {
       id: 'pythonPackageManager',
       token: 'PYTHON_PACKAGE_MANAGER',
       message: 'Dependency workflow',
@@ -36,38 +27,17 @@ const TEMPLATE_PROMPTS = {
       default: 'pip',
     },
   ],
-  java: [
-    {
-      id: 'javaGroupId',
-      token: 'GROUP_ID',
-      message: 'Maven groupId',
-      type: 'text',
-      defaultFrom: 'GROUP_ID',
-    },
-  ],
-  csharp: [
-    {
-      id: 'targetFramework',
-      token: 'TARGET_FRAMEWORK',
-      message: 'Target framework',
-      options: ['net10.0'],
-      default: 'net10.0',
-      defaultFrom: 'PIN_TARGET_FRAMEWORK',
-    },
-  ],
 };
 
 /**
  * @param {string} templateId
- * @param {Record<string, string>} [baseVars]
+ * @param {Record<string, string>} [defaults] token defaults from the applied layers, read through `defaultFrom`
  */
-export function gatherTemplatePrompts(templateId, baseVars = {}) {
-  const specific = TEMPLATE_PROMPTS[templateId] || [];
-  const prompts = [...COMMON_PROMPTS, ...specific].map((pr) => ({
+export function gatherTemplatePrompts(templateId, defaults = {}) {
+  return [...COMMON_PROMPTS, ...(TEMPLATE_PROMPTS[templateId] || [])].map((pr) => ({
     ...pr,
-    default: pr.defaultFrom ? baseVars[pr.defaultFrom] || pr.default : pr.default,
+    default: pr.defaultFrom ? defaults[pr.defaultFrom] || pr.default : pr.default,
   }));
-  return prompts;
 }
 
 /**
@@ -87,29 +57,11 @@ export function templatePromptDefaults(prompts) {
 export async function promptForTemplateVars(prompts) {
   const vars = {};
   for (const pr of prompts) {
-    let answer;
-    if (pr.type === 'text') {
-      answer = await p.text({
-        message: pr.message,
-        defaultValue: pr.default ? String(pr.default) : undefined,
-        validate(value) {
-          if (!value || !String(value).trim()) return 'A value is required.';
-        },
-      });
-    } else if (pr.options?.length) {
-      answer = await promptSelectRecommended({
-        message: pr.message,
-        options: pr.options,
-        recommended: pr.default,
-      });
-    } else {
-      answer = await p.text({
-        message: pr.message,
-        validate(value) {
-          if (!value || !String(value).trim()) return 'A value is required.';
-        },
-      });
-    }
+    const answer = await promptSelectRecommended({
+      message: pr.message,
+      options: pr.options,
+      recommended: pr.default,
+    });
     if (p.isCancel(answer)) return answer;
     vars[pr.token] = String(answer).trim() || String(pr.default ?? '');
   }

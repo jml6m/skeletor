@@ -18,13 +18,12 @@ import {
   expandBundle,
   applyLayers,
   loadBundles,
-  gatherLayerPrompts,
-  layerPromptDefaults,
   loadLayerById,
   appendAgentsSection,
   buildLabelSeed,
   layerTokenDefaults,
   applyPackageJsonOverride,
+  getLayersWithManifests,
 } from '../src/layers.js';
 import { gatherTemplatePrompts, templatePromptDefaults } from '../src/template-prompts.js';
 
@@ -275,31 +274,23 @@ describe('layer application', () => {
     expect(license({ LICENSE: 'UNLICENSED', ...layerTokenDefaults(['governance'], ctx) })).toBe('UNLICENSED');
   });
 
-  test('gatherLayerPrompts includes free-port port question', () => {
-    const { prompts, errors } = gatherLayerPrompts(
-      ['free-port'],
-      { template: 'javascript', language: 'javascript' },
-    );
-    expect(errors).toEqual([]);
-    expect(prompts.map((p) => p.token)).toContain('APP_PORT');
-    expect(layerPromptDefaults(prompts).APP_PORT).toBe('3000');
+  test('layers take no prompts', () => {
+    expect(getLayersWithManifests().filter((l) => l.prompts).map((l) => l.id)).toEqual([]);
   });
 
-  test('gatherLayerPrompts includes layer-specific questions', () => {
-    const { prompts, errors } = gatherLayerPrompts(
-      ['logger-winston'],
-      { template: 'typescript', language: 'typescript' },
-    );
-    expect(errors).toEqual([]);
-    expect(prompts.map((p) => p.token)).toContain('LOG_DIR');
-    expect(layerPromptDefaults(prompts).LOG_DIR).toBe('logs');
-  });
-
-  test('gatherLayerPrompts is empty for recommended-only typescript stack', () => {
-    const ts = loadTemplateManifest('typescript');
-    const ids = collectLayerIds({ withRecommended: true }, ts);
-    const { prompts } = gatherLayerPrompts(ids, { template: 'typescript', language: 'typescript' });
-    expect(prompts).toEqual([]);
+  test('free-port and logger-winston use fixed defaults: port 3000 (or $PORT) and logs/', async () => {
+    const name = makeName('layer-fixed');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'typescript', owner: 'acme', auto: true, git: false, withLayers: ['free-port', 'logger-winston'] });
+      const script = fs.readFileSync(path.join(targetDir, 'scripts', 'free-port.cjs'), 'utf8');
+      expect(script).toContain('process.env.PORT || 3000');
+      // The server reads the same default, so prestart frees the port the app listens on.
+      expect(fs.readFileSync(path.join(targetDir, 'src', 'config', 'env.config.ts'), 'utf8')).toContain('.default(3000)');
+      expect(fs.readFileSync(path.join(targetDir, 'src', 'utils', 'logger.ts'), 'utf8')).toContain("path.resolve(process.cwd(), 'logs')");
+    } finally {
+      cleanup(targetDir);
+    }
   });
 
   test('collectLayerIds expands --with-recommended from template manifest', () => {
