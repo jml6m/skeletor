@@ -1,5 +1,3 @@
-// {{PROJECT_NAME}}
-
 namespace {{CSHARP_NAMESPACE}};
 
 class Program

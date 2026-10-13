@@ -46,7 +46,6 @@ export const FEATURE_REGISTRY = {
   knip: { gitignore: [] },
   jscpd: { gitignore: ['report/', 'reports/', '.jscpd/'] },
   madge: { gitignore: [] },
-  'prompt-gen': { gitignore: ['prompt.md'] },
   python: {
     gitignore: [
       '__pycache__/',
@@ -122,7 +121,8 @@ export function buildKnipConfig(features, templateInfo) {
   const ext = isTs ? 'ts' : 'js';
   return {
     $schema: 'https://unpkg.com/knip@6/schema.json',
-    entry: [`src/index.${ext}`],
+    // JS: package.json `main` already makes src/index.js an entry, and knip flags a repeat as redundant.
+    ...(isTs ? { entry: ['src/index.ts'] } : {}),
     project: [`src/**/*.${ext}`, `tests/**/*.${ext}`],
     ignoreExportsUsedInFile: true,
   };

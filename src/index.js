@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execFileSync, execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import * as p from '@clack/prompts';
 import { detectGithubOwners } from './detect-owner.js';
 import {
@@ -681,12 +681,14 @@ async function runNew(opts) {
 
   if (git) {
     try {
-      execSync('git init -q -b main', { cwd: targetDir, stdio: 'ignore' });
-      execSync('git add -A', { cwd: targetDir, stdio: 'ignore' });
-      execSync('git commit -q -m "chore: initial commit from skeletor"', { cwd: targetDir, stdio: 'ignore' });
+      const env = gitEnv();
+      const run = (args) => execFileSync('git', args, { cwd: targetDir, env, stdio: 'ignore' });
+      run(['init', '-q', '-b', 'main']);
+      run(['add', '-A']);
+      run(['commit', '-q', '-m', 'chore: initial commit from skeletor']);
       p.log.success('Git repository initialized');
       if (opts.github) {
-        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels);
+        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels, env);
       }
     } catch {
       p.log.warn('Git init skipped (git not available or failed)');
@@ -702,7 +704,19 @@ async function runNew(opts) {
   printPostScaffoldSteps(name, verifyCommands);
 }
 
-function createGithubRemote(targetDir, name, owner, isPrivate, labels = []) {
+/**
+ * process.env without git's repository-local variables (GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...).
+ * Git exports them to hooks and aliases; inherited, they would point the scaffold's git commands
+ * at that repository instead of the new project.
+ */
+function gitEnv() {
+  const env = { ...process.env };
+  const names = execFileSync('git', ['rev-parse', '--local-env-vars'], { encoding: 'utf8' });
+  for (const varName of names.split('\n')) if (varName) delete env[varName];
+  return env;
+}
+
+function createGithubRemote(targetDir, name, owner, isPrivate, labels, env) {
   try {
     execFileSync('gh', ['--version'], { stdio: 'ignore' });
   } catch {
@@ -713,16 +727,17 @@ function createGithubRemote(targetDir, name, owner, isPrivate, labels = []) {
   try {
     execFileSync('gh', ['repo', 'create', `${owner}/${name}`, visibility, '--source=.', '--remote=origin'], {
       cwd: targetDir,
+      env,
       stdio: 'pipe',
     });
     p.log.success(`GitHub remote created: ${owner}/${name}`);
     try {
-      execSync('git push -u origin HEAD', { cwd: targetDir, stdio: 'pipe' });
+      execFileSync('git', ['push', '-u', 'origin', 'HEAD'], { cwd: targetDir, env, stdio: 'pipe' });
       p.log.success('Initial commit pushed to origin');
     } catch {
       p.log.warn('Remote created but push failed — run: git push -u origin HEAD');
     }
-    seedGithubLabels(targetDir, `${owner}/${name}`, labels);
+    seedGithubLabels(targetDir, `${owner}/${name}`, labels, env);
   } catch (e) {
     const msg = e.stderr?.toString() || e.message || String(e);
     p.log.warn(`gh repo create failed: ${msg.trim()}`);
@@ -734,14 +749,15 @@ function createGithubRemote(targetDir, name, owner, isPrivate, labels = []) {
  * @param {string} targetDir
  * @param {string} repo
  * @param {{ name: string, color: string, description?: string }[]} labels
+ * @param {NodeJS.ProcessEnv} env
  */
-function seedGithubLabels(targetDir, repo, labels) {
+function seedGithubLabels(targetDir, repo, labels, env) {
   for (const label of labels) {
     try {
       execFileSync(
         'gh',
         ['label', 'create', label.name, '--color', label.color, '--description', label.description || '', '--force', '-R', repo],
-        { cwd: targetDir, stdio: 'pipe' },
+        { cwd: targetDir, env, stdio: 'pipe' },
       );
       p.log.success(`Label ready: ${label.name}`);
     } catch {
