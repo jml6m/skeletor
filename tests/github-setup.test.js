@@ -1,26 +1,18 @@
 process.env.SKELETOR_CLI_TEST = '1';
 
-import { execFileSync } from 'child_process';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { parseArgs, UsageError } from '../src/args.js';
 import {
   branchRuleset,
   collectPullRequestChecks,
   DEFAULT_BRANCH_RULESET,
   formatJson,
   githubSetupLines,
-  githubSetupPointerLines,
   outputWidth,
   pullRequestChecks,
   TAG_RULESET,
 } from '../src/github-setup.js';
 import { runNew } from '../src/index.js';
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = path.join(ROOT, 'src', 'index.js');
 
 function scaffoldName(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -168,12 +160,6 @@ describe('printed settings', () => {
     expect(printed).toContain('Add them once CI runs on pull requests');
   });
 
-  test('the pointer puts the command on its own line', () => {
-    const pointer = githubSetupPointerLines({ repo: 'my-org/my-app', width: 60 });
-    expect(pointer.at(-1).trim()).toBe('npx @jml6m/skeletor github-setup my-org/my-app');
-    expect(pointer.every((l) => l.length < 60)).toBe(true);
-  });
-
   test('formatJson keeps short values on one line and stays valid JSON', () => {
     const value = { a: { b: [1, 2] }, long: 'x'.repeat(50) };
     expect(formatJson(value, 30)).toEqual(['{', '  "a": { "b": [1, 2] },', `  "long": "${'x'.repeat(50)}"`, '}']);
@@ -187,41 +173,18 @@ describe('printed settings', () => {
   });
 });
 
-describe('skeletor new and github-setup', () => {
-  test('a scaffold ships no GitHub setup doc and prints a pointer when there is no repository', async () => {
-    const name = scaffoldName('gh-setup-pointer');
+describe('skeletor new', () => {
+  test('a scaffold ships no GitHub setup doc, and without --github prints no settings', async () => {
+    const name = scaffoldName('gh-setup-none');
     const targetDir = path.resolve(process.cwd(), name);
     try {
       const out = await quietRunNew({ name, template: 'go' });
       expect(fs.existsSync(path.join(targetDir, 'docs'))).toBe(false);
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).not.toMatch(/GITHUB-SETUP|GitHub repo setup/);
-      expect(out).toContain(`npx @jml6m/skeletor github-setup my-org/${name}`);
+      expect(out).not.toContain('One-time GitHub settings');
       expect(out).not.toContain('<<\'JSON\'');
     } finally {
       fs.rmSync(targetDir, { recursive: true, force: true });
-    }
-  });
-
-  test('parseArgs reads github-setup <owner>/<repo>', () => {
-    expect(parseArgs(['node', 'skeletor', 'github-setup', 'my-org/my-app'])).toEqual({ command: 'github-setup', repo: 'my-org/my-app' });
-    for (const bad of [[], ['my-org'], ['my-org/a/b'], ['-org/app'], ['my-org/..'], ['my-org/my app'], ['a/b', 'c/d'], ['--force', 'a/b']]) {
-      expect(() => parseArgs(['node', 'skeletor', 'github-setup', ...bad])).toThrow(UsageError);
-    }
-  });
-
-  test('the CLI prints the settings for the project it runs in', () => {
-    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-gh-setup-'));
-    try {
-      fs.mkdirSync(path.join(cwd, '.github', 'workflows'), { recursive: true });
-      fs.writeFileSync(path.join(cwd, '.github', 'workflows', 'ci.yml'), 'on: [pull_request]\njobs:\n  build:\n    runs-on: ubuntu-latest\n');
-      const env = { ...process.env, COLUMNS: '80' };
-      delete env.JEST_WORKER_ID;
-      delete env.SKELETOR_CLI_TEST;
-      const out = execFileSync(process.execPath, [SRC, 'github-setup', 'my-org/my-app'], { cwd, env, stdio: 'pipe' }).toString();
-      expect(heredocs(out.split('\n'))[0]).toEqual(branchRuleset(['build']));
-      expect(Math.max(...out.split('\n').map((l) => l.length))).toBeLessThan(80);
-    } finally {
-      fs.rmSync(cwd, { recursive: true, force: true });
     }
   });
 });

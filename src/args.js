@@ -4,7 +4,6 @@
  */
 
 import { closestMatch } from './suggest.js';
-import { validateGithubOwner } from './validate-input.js';
 
 export class UsageError extends Error {}
 
@@ -31,13 +30,13 @@ const BOOLEAN_FLAGS = {
 /** Flags that used to exist, with what replaced them. */
 export const REMOVED_FLAGS = {
   '--with-recommended': "the template's baseline layers are always applied; add feature layers with --with or --bundle",
-  '--codeowners': 'scaffolds no longer include .github/CODEOWNERS; "skeletor github-setup" shows how to add one for code-owner review',
+  '--codeowners': 'scaffolds no longer include .github/CODEOWNERS; add one yourself if you want code-owner review',
   '--uv': 'python scaffolds always use uv',
 };
 
 const HELP_FLAGS = ['--help', '-h'];
 const VERSION_FLAGS = ['--version', '-v'];
-const COMMANDS = ['new', 'github-setup'];
+const COMMANDS = ['new'];
 const KNOWN_FLAGS = [...Object.keys(VALUE_FLAGS), ...Object.keys(BOOLEAN_FLAGS), ...HELP_FLAGS, ...VERSION_FLAGS];
 
 function parseCommaList(value) {
@@ -67,24 +66,6 @@ export function checkFlagCombinations(opts) {
 /** The long form of a value option, for messages: `-t` → `--template`. */
 function longFlag(key) {
   return Object.keys(VALUE_FLAGS).find((f) => f.startsWith('--') && VALUE_FLAGS[f] === key);
-}
-
-const GITHUB_REPO_NAME_RE = /^(?!\.\.?$)[A-Za-z0-9._-]{1,100}$/;
-
-/** `skeletor github-setup <owner>/<repo>`: one argument, no options. */
-function parseGithubSetup(args) {
-  const usage = 'Usage: skeletor github-setup <owner>/<repo>';
-  const unknown = args.find((a) => a.startsWith('-') && a !== '-');
-  if (unknown) throw new UsageError(`Unknown option "${unknown}". github-setup takes no options. ${usage}`);
-  if (args.length !== 1) throw new UsageError(`github-setup takes one argument, the repository. ${usage}`);
-  const [owner, repo, ...rest] = args[0].split('/');
-  if (rest.length || !repo) throw new UsageError(`"${args[0]}" is not <owner>/<repo>. ${usage}`);
-  const ownerError = validateGithubOwner(owner);
-  if (ownerError) throw new UsageError(ownerError);
-  if (!GITHUB_REPO_NAME_RE.test(repo)) {
-    throw new UsageError(`"${repo}" is not a valid GitHub repository name: use letters, digits, ".", "-" or "_".`);
-  }
-  return { command: 'github-setup', repo: `${owner}/${repo}` };
 }
 
 /**
@@ -122,7 +103,6 @@ export function parseArgs(argv) {
   if (!COMMANDS.includes(args[0])) {
     throw new UsageError(`Unknown command "${args[0]}".${didYouMean(args[0], COMMANDS)} Usage: skeletor new <name> [options]`);
   }
-  if (args[0] === 'github-setup') return parseGithubSetup(args.slice(1));
   result.command = args[0];
 
   const seen = new Set();

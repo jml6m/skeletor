@@ -192,7 +192,6 @@ describePosix('--github', () => {
       // The repository exists, so the one-time settings print in full, requiring the scaffold's CI job.
       expect(output).toContain('One-time GitHub settings for my-org/my-app.');
       expect(output).toContain('{ "context": "ci" }');
-      expect(output).not.toContain('npx @jml6m/skeletor github-setup');
       const calls = fs.readFileSync(log, 'utf8').split('---\n').filter(Boolean).map((c) => c.trimEnd().split('\n'));
       expect(calls).toContainEqual(['repo', 'create', 'my-org/my-app', '--public', '--source=.', '--remote=origin']);
     } finally {

@@ -49,7 +49,7 @@ The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`)
 - `--description <text>` — optional (generic default when omitted)
 - `--auto` — non-interactive; requires `--template`
 - `--no-git` — skip `git init`. The printed next steps then leave out commands that need a repository and list them separately
-- `--github` / `--private` — create the GitHub repo with `gh`, push the initial commit, and seed layer labels. Visibility also sets the license (see [Fixed defaults](#fixed-defaults)). `--github` needs git, and `--private` needs `--github`
+- `--github` / `--private` — create the GitHub repo with `gh`, push the initial commit, seed layer labels, and print the repository's one-time settings (rulesets, merge button). Visibility also sets the license (see [Fixed defaults](#fixed-defaults)). `--github` needs git, and `--private` needs `--github`
 - `--version` / `-v` — print the skeletor version
 
 Unknown options, removed options (`--with-recommended`, `--codeowners`, `--uv`) and options that don't fit the template (such as `--layout` on a template without layouts, or a layer that doesn't apply to it) are errors. Errors for an unknown template, layout, layer or bundle list the valid ids and suggest the closest one.
@@ -70,20 +70,6 @@ skeletor sets these itself instead of asking. Change them in the generated proje
 | Server port (`free-port`) | `3000`, overridable at runtime with `PORT`; the JS/TS server defaults to the same port |
 | Log directory (`logger-winston`) | `logs/` |
 | Initial git branch | `main` |
-
-### GitHub repository settings
-
-Rulesets and merge options live in GitHub, so scaffolds don't ship a copy that would drift. skeletor prints the one-time settings instead, as `gh api` commands:
-
-- a default-branch ruleset: pull requests with one required approval, linear history, and the scaffold's pull-request jobs as required checks. It also covers code-owner review with no required approvals, for which you add a `.github/CODEOWNERS` yourself, and an aggregator job for matrix workflows
-- squash-only merges that delete the merged branch
-- a tag ruleset that keeps `v*` release tags from being deleted or moved
-
-With `--github` they print in full once the repository is created. Otherwise `skeletor new` prints the command that shows them later; run it in the project:
-
-```bash
-npx @jml6m/skeletor github-setup my-org/my-app
-```
 
 ## Enhancement layers
 

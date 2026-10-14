@@ -38,7 +38,7 @@ import { appendReadmeLicense, pyprojectLicense, removeSpdxLicenseFields, resolve
 import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
 import { parseArgs, UsageError } from './args.js';
 import { unknownIdMessage } from './suggest.js';
-import { collectPullRequestChecks, githubSetupLines, githubSetupPointerLines } from './github-setup.js';
+import { collectPullRequestChecks, githubSetupLines } from './github-setup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,12 +52,10 @@ const USAGE = `
 
 Usage:
   skeletor new <name> [options]
-  skeletor github-setup <owner>/<repo>
   skeletor --help | -h
   skeletor --version | -v
 
   <name> is lowercase kebab-case, starting with a letter (e.g. my-api), at most 64 characters.
-  github-setup prints a project's one-time GitHub settings; run it in the project.
 
 new options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
@@ -660,11 +658,8 @@ async function runNew(opts) {
   }
 
   p.outro('✅ Done!');
-  // In full only when the repository exists to apply them to; otherwise how to print them later.
-  const repo = `${finalOwner}/${name}`;
-  const githubSetup = repoCreated
-    ? githubSetupLines({ repo, ...collectPullRequestChecks(targetDir) })
-    : githubSetupPointerLines({ repo });
+  // Only once --github has created the repository they apply to.
+  const githubSetup = repoCreated ? githubSetupLines({ repo: `${finalOwner}/${name}`, ...collectPullRequestChecks(targetDir) }) : [];
   printPostScaffoldSteps(
     name,
     hasRepo ? [...new Set([...verifyCommands, ...gitVerifyCommands])] : verifyCommands,
@@ -749,7 +744,7 @@ function seedGithubLabels(targetDir, repo, labels, env) {
  * @param {string} projectName
  * @param {string[]} verifyCommands commands that work in the generated project as it is
  * @param {string[]} [needRepo] commands that need a git repository, for a scaffold without one
- * @param {string[]} [githubSetup] the one-time GitHub settings, or how to print them
+ * @param {string[]} [githubSetup] the one-time GitHub settings, after --github created the repository
  */
 function printPostScaffoldSteps(projectName, verifyCommands, needRepo = [], githubSetup = []) {
   console.log(`   cd ${projectName}`);
@@ -779,11 +774,6 @@ function main() {
 
   if (opts.command === 'version') {
     log(SKELETOR_VERSION);
-    process.exit(0);
-  }
-
-  if (opts.command === 'github-setup') {
-    log(githubSetupLines({ repo: opts.repo, ...collectPullRequestChecks(process.cwd()) }).join('\n'));
     process.exit(0);
   }
 

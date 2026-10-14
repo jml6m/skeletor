@@ -253,19 +253,3 @@ export function githubSetupLines({ repo, checks, matrixJobs = [], width }) {
   code(createRuleset(repo, TAG_RULESET, cols - CODE_INDENT.length));
   return out;
 }
-
-/**
- * What `skeletor new` prints when the repository doesn't exist yet: where to get the settings.
- * @param {{ repo: string, width?: number }} options
- */
-export function githubSetupPointerLines({ repo, width }) {
-  return [
-    ...wrap(
-      'Once the repository is on GitHub, this prints its one-time settings (branch ruleset, required ' +
-        'checks, merge button, tag ruleset). Run it in the project:',
-      outputWidth(width),
-      INDENT,
-    ),
-    `${CODE_INDENT}npx @jml6m/skeletor github-setup ${repo}`,
-  ];
-}
