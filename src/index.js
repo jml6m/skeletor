@@ -36,12 +36,12 @@ import {
   getLayersWithManifests,
   loadBundles,
   resolveLayerOrder,
-  layerTokenDefaults,
   labelCreateCommand,
   validateLayerManifests,
   writeDocsPolicyAllowlist,
 } from './layers.js';
 import { escaperForFile, normalizeDescription } from './escape.js';
+import { appendReadmeLicense, pyprojectLicense, removeSpdxLicenseFields, resolveLicense, UNLICENSED } from './license.js';
 import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -78,6 +78,8 @@ new options:
 
 Fixed defaults (not prompted): pinned Python and .NET versions, Maven groupId io.github.<owner>,
 port 3000 (override with PORT), logs/ for log files, initial branch main.
+License: UNLICENSED unless --github creates a public repo, which is asked (MIT under --auto),
+or library-publishing is applied (MIT).
 
 Examples:
   skeletor new my-api --template typescript --with-recommended
@@ -205,13 +207,6 @@ function dependabotIgnoreFor(ecosystem) {
   return ['', '    # Majors need a deliberate toolchain bump, not a grouped Dependabot PR.', '    ignore:', ...entries].join('\n');
 }
 
-// pyproject.toml takes a PEP 639 SPDX expression; UNLICENSED is not one, so it gets no license key.
-function pyprojectLicenseFor(license) {
-  const value = String(license ?? '').trim();
-  if (!value || value === 'UNLICENSED') return '';
-  return `\nlicense = ${JSON.stringify(value)}`;
-}
-
 function buildRenderVars({ name, owner, description, extra = {} }) {
   if (!owner) {
     throw new Error('owner is required');
@@ -235,11 +230,11 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     JAVA_PACKAGE_PATH: javaPackage.replace(/\./g, '/'),
     GO_MODULE: `github.com/${repoOwner}/${name}`,
     REPO_URL: `https://github.com/${repoOwner}/${name}`,
-    LICENSE: 'UNLICENSED',
+    LICENSE: UNLICENSED,
     PYTHON_PACKAGE_MANAGER: 'pip',
     ...extra,
   };
-  return { ...vars, PYPROJECT_LICENSE: pyprojectLicenseFor(vars.LICENSE) };
+  return { ...vars, PYPROJECT_LICENSE: pyprojectLicense(vars.LICENSE) };
 }
 
 function ensureDir(dir) {
@@ -371,6 +366,16 @@ function insertTemplateAgentsSection(agentsPath, snippetPath, vars) {
     ? `${content.trimEnd()}\n\n${section}\n`
     : `${content.slice(0, next + 1)}${section}\n\n${content.slice(next + 1)}`;
   fs.writeFileSync(agentsPath, updated, 'utf8');
+}
+
+/** Writes LICENSE (none for UNLICENSED, which grants nothing) and keeps manifests and README in step. */
+function applyLicense(targetDir, vars) {
+  if (vars.LICENSE === UNLICENSED) {
+    removeSpdxLicenseFields(targetDir);
+  } else {
+    copyAndRender(path.join(SHARED_TEMPLATES_DIR, 'licenses', `${vars.LICENSE}.txt`), path.join(targetDir, 'LICENSE'), vars);
+  }
+  appendReadmeLicense(targetDir, vars.LICENSE);
 }
 
 function getRecommendedLayers(templateInfo) {
@@ -546,7 +551,7 @@ async function runNew(opts) {
   }
 
   const layerIds = collectLayerIds(opts, templateInfo);
-  const { errors: layerErrors } = resolveLayerOrder(layerIds, {
+  const { order: layerOrder, errors: layerErrors } = resolveLayerOrder(layerIds, {
     template: chosenTemplateId,
     language: templateInfo.language || chosenTemplateId,
   });
@@ -555,9 +560,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  // A layer can change a prompt's default (library-publishing: LICENSE → MIT); an explicit answer still wins.
-  const layerDefaults = layerTokenDefaults(layerIds, { template: chosenTemplateId, language: templateInfo.language || chosenTemplateId });
-  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId, layerDefaults);
+  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId);
   let templateVars = templatePromptDefaults(templatePromptDefs);
   if (opts.uv && chosenTemplateId === 'python') {
     templateVars.PYTHON_PACKAGE_MANAGER = 'uv';
@@ -567,6 +570,9 @@ async function runNew(opts) {
     if (p.isCancel(prompted)) { p.cancel('Cancelled.'); process.exit(0); }
     templateVars = { ...templateVars, ...prompted };
   }
+
+  const license = await resolveLicense(opts, isInteractive, layerOrder);
+  if (p.isCancel(license)) { p.cancel('Cancelled.'); process.exit(0); }
 
   let chosenLayout = opts.layout;
   if (isInteractive && templateInfo.layouts && !chosenLayout) {
@@ -637,6 +643,7 @@ async function runNew(opts) {
     description: finalDesc,
     extra: {
       ...templateVars,
+      LICENSE: license,
       ...pinTokens,
       DEPENDABOT_ECOSYSTEM: dependabotEcosystem,
       DEPENDABOT_IGNORE: dependabotIgnoreFor(dependabotEcosystem),
@@ -651,6 +658,7 @@ async function runNew(opts) {
     logError(`❌ ${e.message}`);
     process.exit(1);
   }
+  applyLicense(targetDir, vars);
 
   let verifyCommands = templateVerifyCommands(templateInfo, layoutId, vars);
   let repoLabels = [];
@@ -838,6 +846,7 @@ export {
   loadTemplateManifest,
   resolveTemplateLayout,
   copyTemplateToProject,
+  applyLicense,
   ensureDir,
   copyAndRender,
   runNew,

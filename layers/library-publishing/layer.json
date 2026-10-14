@@ -7,7 +7,6 @@
     "languages": ["typescript"],
     "templates": ["typescript"]
   },
-  "defaults": { "LICENSE": "MIT" },
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
   "gitignore": ["/lib/"],
   "patch": {
