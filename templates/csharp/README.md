@@ -20,7 +20,7 @@ Test packages are referenced only by the test project, so they don't ship with t
 
 ## Checks
 
-Every check is a gate: [CI](./.github/workflows/ci.yml) runs them on every pull request and fails when one does.
+Every check is a gate: the [CI workflows](./.github/workflows/) run them on every pull request and fail when one does.
 AGENTS.md lists the same commands.
 
 ```bash

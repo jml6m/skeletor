@@ -2,7 +2,7 @@
  * Centralized environment / config.
  *
  * Never read process.env directly in feature code — go through here.
- * Use Zod in real projects for validation + defaults (see reference projects).
+ * Add validation and defaults here (for example with Zod) as settings grow.
  */
 
 const raw = {

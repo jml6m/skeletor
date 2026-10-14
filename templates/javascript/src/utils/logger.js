@@ -6,7 +6,7 @@ const { config } = require('@config');
  * In real projects, replace with Winston (or your preferred logger)
  * and import from here everywhere.
  *
- * Rules (from conventions):
+ * Rules:
  * - Messages are static strings
  * - Dynamic data goes in the metadata object (2nd arg)
  * - For errors: { error: err.message, stack: err.stack }

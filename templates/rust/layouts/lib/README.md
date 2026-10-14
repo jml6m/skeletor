@@ -5,11 +5,11 @@
 ## Development
 
 A library crate: the public API is in `src/lib.rs`, with its unit tests in the same file. `cargo test` also runs
-doc tests. The toolchain is pinned in `rust-toolchain.toml`.
+doc tests. `rust-toolchain.toml` selects the `{{PIN_RUNTIME_RUST_CHANNEL}}` toolchain with rustfmt and clippy.
 
 ## Checks
 
-Every check is a gate: [CI](./.github/workflows/ci.yml) runs them on every pull request and fails when one does.
+Every check is a gate: the [CI workflows](./.github/workflows/) run them on every pull request and fail when one does.
 AGENTS.md lists the same commands.
 
 ```bash

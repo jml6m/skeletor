@@ -106,7 +106,7 @@ module.exports = defineConfig([
     },
   },
   {
-    files: ['knip.config.js', 'release.js', 'scripts/**', 'tests/**'],
+    files: ['release.js', 'scripts/**', 'tests/**'],
     rules: {
       'no-console': 'off',
     },

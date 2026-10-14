@@ -8,7 +8,7 @@
 //   - stray control characters (NUL, etc.)
 //
 // Only inspects files git actually tracks (`git ls-files`). Binary types are
-// skipped by extension. Wire this into `lint` so bad bytes never get committed.
+// skipped by extension. It runs as `npm run lint:encoding`, a step of its own in CI.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 

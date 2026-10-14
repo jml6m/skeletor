@@ -1,6 +1,6 @@
 ## Code conventions
 
-What the tooling enforces. [CI](./.github/workflows/ci.yml) runs every Build & Test check on every PR.
+What the tooling enforces. The [CI workflows](./.github/workflows/) run every Build & Test check on every PR.
 
 - **Gates**: `npm run format:check` (Prettier), `npm run lint` (ESLint with typescript-eslint recommended +
   stylistic, fails on any warning), `npm run typecheck` (`tsc --noEmit`, strict), `npm run build`, `npm test`

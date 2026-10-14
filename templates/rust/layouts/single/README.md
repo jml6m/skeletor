@@ -4,12 +4,12 @@
 
 ## Development
 
-A single binary crate: `src/main.rs` holds `main` and its unit tests. Run it with `cargo run`. The toolchain is
-pinned in `rust-toolchain.toml`.
+A single binary crate: `src/main.rs` holds `main` and its unit tests. Run it with `cargo run`.
+`rust-toolchain.toml` selects the `{{PIN_RUNTIME_RUST_CHANNEL}}` toolchain with rustfmt and clippy.
 
 ## Checks
 
-Every check is a gate: [CI](./.github/workflows/ci.yml) runs them on every pull request and fails when one does.
+Every check is a gate: the [CI workflows](./.github/workflows/) run them on every pull request and fail when one does.
 AGENTS.md lists the same commands.
 
 ```bash
