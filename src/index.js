@@ -36,6 +36,8 @@ import {
 import { escaperForFile, normalizeDescription } from './escape.js';
 import { appendReadmeLicense, pyprojectLicense, removeSpdxLicenseFields, resolveLicense, UNLICENSED } from './license.js';
 import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
+import { parseArgs, UsageError } from './args.js';
+import { unknownIdMessage } from './suggest.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,7 +51,8 @@ const USAGE = `
 
 Usage:
   skeletor new <name> [options]
-  skeletor --help
+  skeletor --help | -h
+  skeletor --version | -v
 
   <name> is lowercase kebab-case, starting with a letter (e.g. my-api), at most 64 characters.
 
@@ -64,7 +67,10 @@ new options:
   --no-git              Skip git init
   --github              Create GitHub remote via gh CLI (after git init)
   --private             Use --private with --github (default: public)
-  --allow-deprecated-template  Allow scaffolding templates marked deprecated in pinned-versions.json
+  --allow-deprecated-template
+                        Allow scaffolding templates marked deprecated in pinned-versions.json
+
+Unknown options are rejected. Value options also accept --option=value.
 
 Fixed defaults (not prompted): pinned Python and .NET versions, uv for Python dependencies,
 Maven groupId io.github.<owner>, port 3000 (override with PORT), logs/ for log files,
@@ -81,59 +87,6 @@ Examples:
 
 function log(msg) { console.log(msg); }
 function logError(msg) { console.error(msg); }
-
-function parseCommaList(value) {
-  if (!value) return [];
-  return value.split(',').map((s) => s.trim()).filter(Boolean);
-}
-
-function parseArgs(argv) {
-  const args = argv.slice(2);
-  const result = {
-    command: null,
-    name: null,
-    template: null,
-    layout: null,
-    withLayers: [],
-    bundle: null,
-    owner: null,
-    description: null,
-    auto: false,
-    git: true,
-    github: false,
-    githubPrivate: false,
-    allowDeprecatedTemplate: false,
-  };
-
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-    result.command = 'help';
-    return result;
-  }
-
-  if (args[0] === 'new') {
-    result.command = 'new';
-    result.name = args[1];
-    for (let i = 2; i < args.length; i++) {
-      const a = args[i];
-      if (a === '--template' || a === '-t') result.template = args[++i] || null;
-      else if (a === '--layout') result.layout = args[++i] || null;
-      else if (a === '--with') result.withLayers = parseCommaList(args[++i]);
-      else if (a === '--bundle') result.bundle = args[++i] || null;
-      else if (a === '--owner' || a === '-o') result.owner = args[++i] || null;
-      else if (a === '--description' || a === '-d') result.description = args[++i] || null;
-      else if (a === '--auto') result.auto = true;
-      else if (a === '--no-git') result.git = false;
-      else if (a === '--github') result.github = true;
-      else if (a === '--private') result.githubPrivate = true;
-      else if (a === '--allow-deprecated-template') result.allowDeprecatedTemplate = true;
-      else if (!a.startsWith('-') && !result.name) result.name = a;
-    }
-    return result;
-  }
-
-  result.command = 'help';
-  return result;
-}
 
 // One pass, so a value containing "{{TOKEN}}" or "$&" is inserted literally.
 function render(content, vars) {
@@ -281,18 +234,31 @@ function getTemplatesWithManifests() {
 }
 
 function resolveTemplateLayout(templateInfo, layout) {
+  const layoutError = checkLayout(templateInfo, layout);
+  if (layoutError) throw new Error(layoutError);
   const layouts = templateInfo.layouts;
   if (!layouts) return { layoutId: 'default', sourceDir: templateInfo.dir };
   const layoutId = layout || templateInfo.defaultLayout || Object.keys(layouts)[0];
-  if (!layouts[layoutId]) {
-    throw new Error(`Unknown layout "${layoutId}" for template "${templateInfo.id}". Available: ${Object.keys(layouts).join(', ')}`);
-  }
   return { layoutId, sourceDir: path.join(templateInfo.dir, layouts[layoutId].dir) };
 }
 
-/** The template's (or layout's) post-scaffold commands, adjusted for prompt answers such as uv. */
+/** The template's (or layout's) post-scaffold commands, as AGENTS.md and the next steps list them. */
 function templateVerifyCommands(templateInfo, layoutId) {
   return [...(templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [])];
+}
+
+/** A message when `layout` isn't one of the template's layouts (or the template has none), else null. */
+function checkLayout(templateInfo, layout) {
+  if (!layout) return null;
+  const layouts = Object.keys(templateInfo.layouts || {});
+  if (!layouts.length) {
+    const withLayouts = getTemplatesWithManifests()
+      .filter((t) => t.layouts)
+      .map((t) => `${t.id} (${Object.keys(t.layouts).join(', ')})`);
+    return `--layout doesn't apply to ${templateInfo.id}, which has one layout. Templates with layouts: ${withLayouts.join(', ')}.`;
+  }
+  if (layouts.includes(layout)) return null;
+  return unknownIdMessage('layout', layout, layouts, { label: `Layouts for ${templateInfo.id}` });
 }
 
 function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
@@ -371,6 +337,41 @@ function getFeatureLayers(templateInfo) {
   const baseline = getBaselineLayers(templateInfo);
   const ctx = { template: templateInfo.id, language: templateInfo.language || templateInfo.id };
   return getLayersWithManifests().filter((l) => layerAppliesTo(l, ctx) && !baseline.includes(l.id));
+}
+
+/**
+ * Checks the options that depend on the chosen template: --layout, --with and --bundle.
+ * @returns {string | null} a message for the user, or null when they fit
+ */
+function checkTemplateOptions(opts, templateInfo) {
+  const layoutError = checkLayout(templateInfo, opts.layout);
+  if (layoutError) return layoutError;
+
+  if (opts.bundle) {
+    const bundle = loadBundles()[opts.bundle];
+    if (bundle?.template && bundle.template !== templateInfo.id) {
+      return `Bundle "${opts.bundle}" is for the ${bundle.template} template, not ${templateInfo.id}: drop --template or pick another bundle.`;
+    }
+  }
+
+  const ctx = { template: templateInfo.id, language: templateInfo.language || templateInfo.id };
+  const allLayers = getLayersWithManifests();
+  const featureIds = getFeatureLayers(templateInfo).map((l) => l.id);
+  for (const id of opts.withLayers || []) {
+    const layer = allLayers.find((l) => l.id === id);
+    if (!layer) {
+      return unknownIdMessage('layer', id, allLayers.map((l) => l.id), { label: `Feature layers for ${templateInfo.id}`, list: featureIds });
+    }
+    if (!layerAppliesTo(layer, ctx)) {
+      return `Layer "${id}" doesn't apply to ${templateInfo.id}.\n   Feature layers for ${templateInfo.id}: ${featureIds.join(', ') || '(none)'}`;
+    }
+  }
+  return null;
+}
+
+function fail(message) {
+  logError(`❌ ${message}`);
+  process.exit(1);
 }
 
 function collectLayerIds(opts, templateInfo) {
@@ -467,19 +468,19 @@ async function runNew(opts) {
   const name = await resolveProjectName(opts.name, isInteractive);
 
   const allTemplates = getTemplatesWithManifests();
-  if (allTemplates.length === 0) {
-    logError('❌ No templates found in templates/ directory.');
-    process.exit(1);
+  if (allTemplates.length === 0) fail('No templates found in templates/ directory.');
+  const templateIds = allTemplates.map((t) => t.id);
+  if (opts.template && !templateIds.includes(opts.template)) {
+    fail(unknownIdMessage('template', opts.template, templateIds, { label: 'Templates' }));
   }
 
   let chosenTemplateId = opts.template;
-  if (!chosenTemplateId && opts.bundle) {
-    const bundle = loadBundles()[opts.bundle];
-    if (!bundle) {
-      logError(`❌ Unknown bundle "${opts.bundle}". Available: ${Object.keys(loadBundles()).join(', ')}`);
-      process.exit(1);
+  if (opts.bundle) {
+    const bundles = loadBundles();
+    if (!Object.hasOwn(bundles, opts.bundle)) {
+      fail(unknownIdMessage('bundle', opts.bundle, Object.keys(bundles), { label: 'Bundles' }));
     }
-    chosenTemplateId = bundle.template;
+    chosenTemplateId ||= bundles[opts.bundle].template;
   }
   let finalOwner = await resolveOwnerForNew(opts, isInteractive);
   const finalDesc = opts.description || DEFAULT_DESCRIPTION;
@@ -500,10 +501,9 @@ async function runNew(opts) {
   }
 
   const templateInfo = allTemplates.find((t) => t.id === chosenTemplateId);
-  if (!templateInfo) {
-    logError(`❌ Unknown template "${chosenTemplateId}".`);
-    process.exit(1);
-  }
+  if (!templateInfo) fail(unknownIdMessage('template', chosenTemplateId, templateIds, { label: 'Templates' }));
+  const optionsError = checkTemplateOptions(opts, templateInfo);
+  if (optionsError) fail(optionsError);
 
   const pinned = loadPinnedVersions(templateInfo.dir);
   const pinManifestErrors = validatePinnedVersionsManifest(pinned, chosenTemplateId);
@@ -607,6 +607,7 @@ async function runNew(opts) {
   applyLicense(targetDir, vars);
 
   let verifyCommands = templateVerifyCommands(templateInfo, layoutId);
+  let gitVerifyCommands = [];
   let repoLabels = [];
 
   if (layerIds.length) {
@@ -629,14 +630,17 @@ async function runNew(opts) {
       p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
     }
     verifyCommands = [...new Set([...verifyCommands, ...result.verifyCommands])];
+    gitVerifyCommands = result.gitVerifyCommands || [];
   }
 
+  let hasRepo = false;
   if (git) {
     try {
       const env = gitEnv();
       const run = (args) => execFileSync('git', args, { cwd: targetDir, env, stdio: 'ignore' });
       run(['init', '-q', '-b', 'main']);
       run(['add', '-A']);
+      hasRepo = true;
       run(['commit', '-q', '-m', 'chore: initial commit from skeletor']);
       p.log.success('Git repository initialized');
       if (opts.github) {
@@ -652,7 +656,11 @@ async function runNew(opts) {
   }
 
   p.outro('✅ Done!');
-  printPostScaffoldSteps(name, verifyCommands);
+  if (hasRepo) {
+    printPostScaffoldSteps(name, [...new Set([...verifyCommands, ...gitVerifyCommands])]);
+  } else {
+    printPostScaffoldSteps(name, verifyCommands, gitVerifyCommands);
+  }
 }
 
 /** The labels applied layers expect, with the commands that create them when --github didn't. */
@@ -725,19 +733,40 @@ function seedGithubLabels(targetDir, repo, labels, env) {
   }
 }
 
-function printPostScaffoldSteps(projectName, verifyCommands) {
+/**
+ * @param {string} projectName
+ * @param {string[]} verifyCommands commands that work in the generated project as it is
+ * @param {string[]} [needRepo] commands that need a git repository, for a scaffold without one
+ */
+function printPostScaffoldSteps(projectName, verifyCommands, needRepo = []) {
   console.log(`   cd ${projectName}`);
   const steps = Array.isArray(verifyCommands) && verifyCommands.length
     ? verifyCommands
     : ['Run your language-specific install + test commands'];
   console.log('   Next steps:');
   steps.forEach((cmd) => console.log(`     ${cmd}`));
+  if (needRepo.length) {
+    console.log('   Once the project is a git repository (git init && git add -A):');
+    needRepo.forEach((cmd) => console.log(`     ${cmd}`));
+  }
   console.log('\n   Edit AGENTS.md (or equivalent) to customize the AI contract.');
   console.log('   Happy scaffolding. Your rules, your choice of stack.\n');
 }
 
 function main() {
-  const opts = parseArgs(process.argv);
+  let opts;
+  try {
+    opts = parseArgs(process.argv);
+  } catch (e) {
+    if (!(e instanceof UsageError)) throw e;
+    logError(`❌ ${e.message}`);
+    process.exit(1);
+  }
+
+  if (opts.command === 'version') {
+    log(SKELETOR_VERSION);
+    process.exit(0);
+  }
 
   if (opts.command === 'help' || !opts.command) {
     log(USAGE.trim());
@@ -794,6 +823,7 @@ export {
   ensureDir,
   copyAndRender,
   runNew,
+  checkTemplateOptions,
   printPostScaffoldSteps,
   labelHint,
   collectLayerIds,

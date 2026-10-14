@@ -41,11 +41,6 @@ describe('skeletor CLI pure functions', () => {
     expect(result).not.toHaveProperty('uv');
   });
 
-  test('parseArgs has no --codeowners option', () => {
-    const result = parseArgs(['node', 'skeletor', 'new', 'demo', '--template', 'go', '--auto', '--codeowners']);
-    expect(result).not.toHaveProperty('codeowners');
-  });
-
   test('renderPathSegment substitutes tokens in paths', () => {
     const vars = { JAVA_PACKAGE_PATH: 'io/github/acme' };
     expect(renderPathSegment('{{JAVA_PACKAGE_PATH}}', vars)).toBe('io/github/acme');
@@ -133,9 +128,8 @@ describe('skeletor CLI pure functions', () => {
     expect(hintCommands).toEqual(seedCommands);
   });
 
-  test('parseArgs falls back to help for unknown', () => {
-    const result = parseArgs(['node', 'skeletor', 'foo']);
-    expect(result.command).toBe('help');
+  test('parseArgs rejects an unknown command', () => {
+    expect(() => parseArgs(['node', 'skeletor', 'foo'])).toThrow('Unknown command "foo"');
   });
 
   test('render replaces all tokens', () => {
