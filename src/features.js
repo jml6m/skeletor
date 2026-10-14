@@ -134,7 +134,8 @@ export function buildKnipConfig(features, templateInfo) {
     // JS: package.json `main` already makes src/index.js an entry, and knip flags a repeat as redundant.
     ...(isTs ? { entry: ['src/index.ts'] } : {}),
     project: [`src/**/*.${ext}`, `tests/**/*.${ext}`],
-    ignoreExportsUsedInFile: true,
+    // Not for JS: it would exempt every name a CommonJS `module.exports = { ... }` lists.
+    ...(isTs ? { ignoreExportsUsedInFile: true } : {}),
   };
 }
 

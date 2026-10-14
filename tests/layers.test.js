@@ -252,6 +252,8 @@ describe('layer application', () => {
       expect(pkg.main).toBe('./lib/index.cjs');
       expect(pkg.exports['.'].require.default).toBe(pkg.main);
       expect(pkg.files).toEqual(['lib']);
+      // npm publish --provenance checks it against the repository the workflow runs in.
+      expect(pkg.repository).toEqual({ type: 'git', url: `git+https://github.com/acme/${name}.git` });
       expect(pkg.scripts.prepack).toBe('npm run build:lib');
       // Self-contained: every script prepublishOnly calls exists without other layers.
       for (const script of pkg.scripts.prepublishOnly.match(/npm run [\w:-]+/g)) {

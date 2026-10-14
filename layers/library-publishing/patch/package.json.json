@@ -1,5 +1,9 @@
 {
   "private": null,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/{{REPO_OWNER}}/{{REPO_NAME}}.git"
+  },
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
   "types": "./lib/index.d.cts",
