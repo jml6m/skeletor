@@ -20,6 +20,8 @@ import {
   loadBundles,
   gatherLayerPrompts,
   layerPromptDefaults,
+  loadLayerById,
+  appendAgentsSection,
 } from '../src/layers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -219,6 +221,72 @@ describe('layer application', () => {
       expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
     } finally {
       cleanup(targetDir);
+    }
+  });
+});
+
+/** The body of `## <section>`: everything up to the next level-1 or level-2 heading. */
+function sectionBody(agents, section) {
+  const lines = agents.split('\n');
+  const start = lines.indexOf(`## ${section}`);
+  if (start === -1) return null;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((l) => /^#{1,2}\s/.test(l));
+  return (end === -1 ? rest : rest.slice(0, end)).join('\n');
+}
+
+function expectSnippetsUnderHeadings(targetDir, layerIds) {
+  const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+  expect(agents).not.toContain('skeletor-layer');
+  const withDocs = layerIds.map((id) => loadLayerById(id)).filter((l) => l.docs?.agents);
+  expect(withDocs.length).toBeGreaterThan(0);
+  for (const layer of withDocs) {
+    const { section, append } = layer.docs.agents;
+    const snippet = fs.readFileSync(path.join(layer.dir, append), 'utf8').trim();
+    expect(agents.split('\n').filter((l) => l === `## ${section}`)).toHaveLength(1);
+    expect({ layer: layer.id, underHeading: sectionBody(agents, section)?.includes(snippet) }).toEqual({ layer: layer.id, underHeading: true });
+  }
+}
+
+describe('AGENTS.md layer snippets', () => {
+  test.each([
+    [['governance', 'issue-labels']],
+    [['issue-labels', 'governance']],
+  ])('python + %j puts each snippet under its own heading', async (layerIds) => {
+    const name = makeName('agents-py');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'python', owner: 'acme', auto: true, git: false, withLayers: layerIds });
+      expectSnippetsUnderHeadings(targetDir, layerIds);
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('javascript --with-recommended puts each snippet under its own heading', async () => {
+    const name = makeName('agents-js');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withRecommended: true });
+      expectSnippetsUnderHeadings(targetDir, collectLayerIds({ withRecommended: true }, loadTemplateManifest('javascript')));
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('appendAgentsSection inserts before the next heading and ignores headings in code fences', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-agents-'));
+    const agentsPath = path.join(dir, 'AGENTS.md');
+    try {
+      fs.writeFileSync(agentsPath, '# Title\n\n## One\n\nFirst.\n\n```md\n## Not a heading\n```\n\n### Sub\n\nNested.\n\n## Two\n\nSecond.\n');
+      expect(appendAgentsSection(agentsPath, 'One', 'Added.\n')).toBe(
+        '# Title\n\n## One\n\nFirst.\n\n```md\n## Not a heading\n```\n\n### Sub\n\nNested.\n\nAdded.\n\n## Two\n\nSecond.\n',
+      );
+      expect(appendAgentsSection(agentsPath, 'Two', 'Added.')).toMatch(/## Two\n\nSecond\.\n\nAdded\.\n$/);
+      expect(appendAgentsSection(agentsPath, 'Three', 'Added.')).toMatch(/Second\.\n\n## Three\n\nAdded\.\n$/);
+      expect(appendAgentsSection(path.join(dir, 'missing.md'), 'Three', 'Added.')).toBe('## Three\n\nAdded.\n');
+    } finally {
+      cleanup(dir);
     }
   });
 });

@@ -289,26 +289,37 @@ function resolvePackageJsonPatch(layer, language) {
 }
 
 /**
+ * Returns AGENTS.md content with `snippet` at the end of its `## <section>`, before the next
+ * level-1 or level-2 heading. The heading is added at the end of the file only when it's missing.
+ * Headings inside fenced code blocks don't count.
  * @param {string} agentsPath
  * @param {string} section
  * @param {string} snippet
  */
 export function appendAgentsSection(agentsPath, section, snippet) {
   const heading = `## ${section}`;
-  let content = fs.existsSync(agentsPath) ? fs.readFileSync(agentsPath, 'utf8') : '';
-  if (!content.includes(heading)) {
-    content = content.trimEnd() + (content ? '\n\n' : '') + `${heading}\n\n`;
+  const content = fs.existsSync(agentsPath) ? fs.readFileSync(agentsPath, 'utf8') : '';
+  const block = snippet.trim();
+  const lines = content.split('\n');
+  let start = -1;
+  let end = lines.length;
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*(```|~~~)/.test(lines[i])) inFence = !inFence;
+    if (inFence) continue;
+    if (start === -1) {
+      if (lines[i].trimEnd() === heading) start = i;
+    } else if (/^#{1,2}\s/.test(lines[i])) {
+      end = i;
+      break;
+    }
   }
-  const marker = `<!-- skeletor-layer:${section} -->`;
-  if (content.includes(marker)) {
-    const re = new RegExp(`${marker}[\\s\\S]*?<!-- /skeletor-layer:${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->`, 'm');
-    const block = `${marker}\n${snippet.trim()}\n<!-- /skeletor-layer:${section} -->`;
-    if (re.test(content)) content = content.replace(re, block);
-    else content = content.trimEnd() + `\n\n${block}\n`;
-  } else {
-    content = content.trimEnd() + `\n\n${marker}\n${snippet.trim()}\n<!-- /skeletor-layer:${section} -->\n`;
+  if (start === -1) {
+    return `${content.trimEnd()}${content.trim() ? '\n\n' : ''}${heading}\n\n${block}\n`;
   }
-  return content;
+  const before = lines.slice(0, end).join('\n').trimEnd();
+  const after = lines.slice(end).join('\n');
+  return after ? `${before}\n\n${block}\n\n${after}` : `${before}\n\n${block}\n`;
 }
 
 /**
