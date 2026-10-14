@@ -15,9 +15,8 @@ for a one-time checklist to run after your first push.
 
 ## Branch & ref hygiene
 
-- Use short-lived topic branches off the default branch, prefixed by intent: `feat/`, `fix/`, `chore/`, `docs/`.
-  Squash-merge PRs and let GitHub delete merged branches automatically.
-- Release tags (`v*`) are permanent. Never delete or move a published tag; fix a mistake with a new version.
+- Squash-merge PRs and let GitHub delete merged branches automatically.
+- Release tags (`v*`) are permanent: fix a mistake with a new version.
 - Stale-branch sweeps are manual and report-only. List branches with
   `git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/remotes/origin`,
   compare against `gh pr list --state open`, and delete only stale, merged, PR-less branches, one at a time.
@@ -39,11 +38,15 @@ If the same error persists after **3 attempts**:
 - Revert to the last known-good state.
 - Document what was tried and surface the blocker.
 
-### Commit & Push Safety
+### Branches and PRs
 
-- Agents **propose** changes; humans or CI **push**.
-- `git push` and publish commands are **prohibited** for agents.
-- Never commit secrets, tokens, API keys, or credentials.
+Work on short-lived branches off the default branch, prefixed by intent: `feat/`, `fix/`, `chore/`,
+`docs/`. Commit, push the branch and open a pull request. The default branch changes only through
+reviewed PRs with passing checks.
+
+**Never**: push or force-push the default branch, delete a protected branch, skip a required check,
+delete or move a published tag, or publish a package or release unless asked. Never commit secrets,
+tokens, API keys or credentials.
 
 ### GitHub Credentials — Never Commit Values
 

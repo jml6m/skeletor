@@ -306,26 +306,59 @@ function resolvePackageJsonPatch(layer, language) {
 }
 
 /**
+ * Returns AGENTS.md content with `snippet` at the end of its `## <section>`, before the next
+ * level-1 or level-2 heading. The heading is added at the end of the file only when it's missing.
+ * Headings inside fenced code blocks don't count.
  * @param {string} agentsPath
  * @param {string} section
  * @param {string} snippet
  */
 export function appendAgentsSection(agentsPath, section, snippet) {
   const heading = `## ${section}`;
-  let content = fs.existsSync(agentsPath) ? fs.readFileSync(agentsPath, 'utf8') : '';
-  if (!content.includes(heading)) {
-    content = content.trimEnd() + (content ? '\n\n' : '') + `${heading}\n\n`;
+  const content = fs.existsSync(agentsPath) ? fs.readFileSync(agentsPath, 'utf8') : '';
+  const block = snippet.trim();
+  const lines = content.split('\n');
+  let start = -1;
+  let end = lines.length;
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*(```|~~~)/.test(lines[i])) inFence = !inFence;
+    if (inFence) continue;
+    if (start === -1) {
+      if (lines[i].trimEnd() === heading) start = i;
+    } else if (/^#{1,2}\s/.test(lines[i])) {
+      end = i;
+      break;
+    }
   }
-  const marker = `<!-- skeletor-layer:${section} -->`;
-  if (content.includes(marker)) {
-    const re = new RegExp(`${marker}[\\s\\S]*?<!-- /skeletor-layer:${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->`, 'm');
-    const block = `${marker}\n${snippet.trim()}\n<!-- /skeletor-layer:${section} -->`;
-    if (re.test(content)) content = content.replace(re, block);
-    else content = content.trimEnd() + `\n\n${block}\n`;
-  } else {
-    content = content.trimEnd() + `\n\n${marker}\n${snippet.trim()}\n<!-- /skeletor-layer:${section} -->\n`;
+  if (start === -1) {
+    return `${content.trimEnd()}${content.trim() ? '\n\n' : ''}${heading}\n\n${block}\n`;
   }
-  return content;
+  const before = lines.slice(0, end).join('\n').trimEnd();
+  const after = lines.slice(end).join('\n');
+  return after ? `${before}\n\n${block}\n\n${after}` : `${before}\n\n${block}\n`;
+}
+
+const LABELS_SECTION = 'Issue labels';
+
+/**
+ * AGENTS.md text listing every label the applied layers declare, with the commands that create them.
+ * @param {{ name: string, color: string, description?: string }[]} labels
+ */
+export function buildLabelSeed(labels) {
+  const quote = (s) => `"${String(s).replace(/(["\\$`])/g, '\\$1')}"`;
+  const names = labels.map((l) => `\`${l.name}\``).join(', ');
+  const commands = labels.map(
+    (l) => `gh label create ${quote(l.name)} --color ${l.color} --description ${quote(l.description || '')} --force`,
+  );
+  return [
+    `This repo's issue forms and conventions use these labels: ${names}. \`skeletor new --github\` creates them;`,
+    'otherwise run:',
+    '',
+    '```bash',
+    ...commands,
+    '```',
+  ].join('\n');
 }
 
 /**
@@ -486,6 +519,13 @@ export function applyLayers(options) {
     applied.push(layerPlan.id);
   }
 
+  const seenLabels = new Set();
+  const repoLabels = labels.filter((l) => !seenLabels.has(l.name) && seenLabels.add(l.name));
+  if (repoLabels.length) {
+    const agentsPath = path.join(projectDir, 'AGENTS.md');
+    fs.writeFileSync(agentsPath, appendAgentsSection(agentsPath, LABELS_SECTION, buildLabelSeed(repoLabels)), 'utf8');
+  }
+
   if (!options.noInstall && applied.length) {
     for (const cmd of plan.postApply) {
       if (FORBIDDEN_POST_APPLY.test(cmd)) continue;
@@ -497,7 +537,7 @@ export function applyLayers(options) {
     }
   }
 
-  return { ...planResult, applied, labels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
+  return { ...planResult, applied, labels: repoLabels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
 }
 
 /**

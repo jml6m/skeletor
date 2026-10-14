@@ -41,5 +41,4 @@ npm run health:full
 ## Tooling scripts
 
 - `npm run npm:reinstall` — clean node_modules + lock then fresh install
-- `npm run prompt:gen` — build prompt.md for AI context (respects excludes)
 - `npm run health:*` — quality gates

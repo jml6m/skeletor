@@ -37,7 +37,7 @@ const logger = {
     }
   },
   http(msg, meta) {
-    console.log(`[HTTP] ${msg}${formatMeta(meta)}`);
+    console.info(`[HTTP] ${msg}${formatMeta(meta)}`);
   },
 };
 

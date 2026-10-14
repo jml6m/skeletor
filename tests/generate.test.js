@@ -76,6 +76,19 @@ function runCommands(projectDir, commands) {
   }
 }
 
+// JS/TS scaffolds must be warning-clean: lint fails on any warning, and knip on unused code and configuration hints.
+const STRICT_LINT = 'npm run lint -- --max-warnings 0';
+
+function strictVerifyCommands(tmpl, commands, { knipHints = true } = {}) {
+  if (!['javascript', 'typescript'].includes(tmpl.language)) return commands;
+  const knip = knipHints ? 'npx knip --treat-config-hints-as-errors' : 'npx knip';
+  return [...new Set([...commands.map((cmd) => (cmd === 'npm run lint' ? STRICT_LINT : cmd)), knip])];
+}
+
+// library-publishing's package.json entries point at lib/, which isn't ignored or built yet, and knip's
+// tsup plugin repeats the src/index.ts entry, so knip prints configuration hints for it.
+const KNIP_HINT_EXEMPT_LAYERS = ['library-publishing'];
+
 function listFilesRecursive(dir) {
   const results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -90,14 +103,14 @@ function listFilesRecursive(dir) {
   return results;
 }
 
-// Maps template id to the expected unsuffixed manifest file in the generated project.
+// Maps template id to the expected unsuffixed manifest file in the generated project
+// (csharp names its projects after the project, so its block below checks them).
 const expectedManifest = {
   javascript: 'package.json',
   typescript: 'package.json',
   python: 'pyproject.toml',
   rust: 'Cargo.toml',
   java: 'pom.xml',
-  csharp: 'Project.csproj',
   go: 'go.mod',
 };
 
@@ -123,6 +136,7 @@ const optionalCases = [
       shard: layerShard(tmpl.id),
       tmpl,
       opts: { withRecommended: true, withLayers: [id] },
+      layers: [id],
       extra: loadLayerById(id).verifyCommands || [],
     })),
   ),
@@ -131,6 +145,7 @@ const optionalCases = [
     shard: bundleShard(def.template),
     tmpl: jsTsTemplates.find((t) => t.id === def.template),
     opts: { bundle },
+    layers: def.layers,
     extra: [],
   })),
 ];
@@ -227,9 +242,17 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         if (tmpl.id === 'csharp') {
-          const program = fs.readFileSync(path.join(targetDir, 'Program.cs'), 'utf8');
-          expect(program).toContain(`namespace ${name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase())};`);
-          expect(program).not.toContain('{{');
+          const ns = name.replace(/(?:^|-)(.)/g, (_, c) => c.toUpperCase());
+          expect(fs.existsSync(path.join(targetDir, `${ns}.slnx`))).toBe(true);
+          const program = fs.readFileSync(path.join(targetDir, 'src', ns, 'Program.cs'), 'utf8');
+          expect(program).toContain(`namespace ${ns};`);
+          // Test packages belong to the test project only, so they never ship with the app.
+          const appProject = fs.readFileSync(path.join(targetDir, 'src', ns, `${ns}.csproj`), 'utf8');
+          expect(appProject).not.toContain('PackageReference');
+          const testProject = fs.readFileSync(path.join(targetDir, 'tests', `${ns}.Tests`, `${ns}.Tests.csproj`), 'utf8');
+          expect(testProject).toContain('Include="xunit"');
+          expect(testProject).toContain(`<ProjectReference Include="..\\..\\src\\${ns}\\${ns}.csproj" />`);
+          expect(fs.readFileSync(path.join(targetDir, 'tests', `${ns}.Tests`, 'ProgramTests.cs'), 'utf8')).toContain(`namespace ${ns}.Tests;`);
         }
 
         if (tmpl.id === 'go') {
@@ -246,6 +269,15 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         expect(fs.readFileSync(path.join(targetDir, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md');
+
+        // Agents work through branches and PRs; what's protected is the default branch, not `git push`.
+        const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+        expect(agents).not.toMatch(/git push[^\n]*prohibited/i);
+        expect(agents).toContain('push the branch and open a pull request');
+        const never = (agents.match(/\*\*Never\*\*:(?:.+\n)+/)?.[0] ?? '').replace(/\s+/g, ' ');
+        for (const rule of ['force-push the default branch', 'delete a protected branch', 'skip a required check', 'move a published tag']) {
+          expect(never).toContain(rule);
+        }
         // Stale-issue bots are deliberately never emitted (2026-06 repo-hygiene convention).
         expect(allFiles.some((f) => /(^|[\\/])stale\.ya?ml$/.test(f))).toBe(false);
 
@@ -296,7 +328,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
-          runVerifyCommands(targetDir, tmpl.verifyCommands);
+          runVerifyCommands(targetDir, strictVerifyCommands(tmpl, tmpl.verifyCommands));
         }
       } finally {
         cleanup(tempRoot);
@@ -377,7 +409,7 @@ describe('non-default template layouts', () => {
 });
 
 describe('optional layers and bundles', () => {
-  optionalCases.filter(inShard).forEach(({ label, tmpl, opts, extra }) => test(`${label} scaffolds and verifies`, async () => {
+  optionalCases.filter(inShard).forEach(({ label, tmpl, opts, layers, extra }) => test(`${label} scaffolds and verifies`, async () => {
     const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -388,7 +420,8 @@ describe('optional layers and bundles', () => {
       }
       if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
         // Strict knip on top of the (report-only) health:dead script: layers must ship dead-code-clean.
-        runVerifyCommands(targetDir, [...new Set([...tmpl.verifyCommands, ...extra, 'npx knip'])]);
+        const knipHints = !layers.some((id) => KNIP_HINT_EXEMPT_LAYERS.includes(id));
+        runVerifyCommands(targetDir, strictVerifyCommands(tmpl, [...tmpl.verifyCommands, ...extra], { knipHints }));
       }
     } finally {
       cleanup(targetDir);

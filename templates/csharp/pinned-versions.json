@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "status": "active",
   "statusMessage": null,
-  "lastReviewed": "2026-10-09",
+  "lastReviewed": "2026-10-10",
   "runtime": {
     "dotnet": { "version": "10.0", "policy": "major" }
   },
