@@ -16,8 +16,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: {{PIN_ACTION_CHECKOUT}}
+      - uses: {{PIN_ACTION_SETUP_NODE}}
         with:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org

@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: {{PIN_ACTION_CHECKOUT}}
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: {{PIN_ACTION_SETUP_JAVA}}
         with:
           distribution: temurin
           java-version: '{{PIN_RUNTIME_JAVA}}'

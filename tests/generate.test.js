@@ -401,7 +401,7 @@ describe('non-default template layouts', () => {
       expect(pyproject).toContain(`requires-python = ">=${pinnedPython}"`);
       expect(pyproject).toContain(`target-version = "py${pinnedPython.replace('.', '')}"`);
       const ci = fs.readFileSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'), 'utf8');
-      expect(ci).toContain(`python-version: '${pinnedPython}'`);
+      expect(ci).toContain('python-version-file: .python-version');
     } finally {
       cleanup(targetDir);
     }
