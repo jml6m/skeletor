@@ -13,6 +13,7 @@ This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) a
   - no `console.log`: use the logger
   - no template literals in logger messages (warning): pass dynamic values as metadata, `logger.info('Event', { key: value })`
 - Knip (dead code), jscpd (dupes), madge (circular) via `npm run health:full`
+- Husky pre-commit hook: lint-staged runs Prettier on staged files; ESLint runs in `npm run lint` and CI
 - Custom `release.js` (one bump per PR, major gates via GitHub issue labels `vN-required`)
 - AGENTS.md as the Single Source of Truth for coding standards + AI agent protocols
 - Native Node subpath imports (`import logger from '#utils/logger.js'`): `tsconfig.json` `paths` resolves them to `src/` for type-checking and Jest, and `package.json` `imports` resolves them to the compiled `dist/` at runtime
@@ -36,7 +37,7 @@ npm run health:full
 
 - Open PR → run `npm run release:patch` **once** at PR creation
 - `npm run release:minor` only for substantial features (coordinate)
-- Majors are human-only and gated by open issues labeled `vX-required`
+- Majors are human-only and gated by open issues labeled `vN-required`, where N is the next major version
 
 ## Tooling scripts
 

@@ -41,6 +41,7 @@ import {
   gatherLayerPrompts,
   layerPromptDefaults,
   layerTokenDefaults,
+  labelCreateCommand,
   validateLayerManifests,
   writeDocsPolicyAllowlist,
 } from './layers.js';
@@ -318,10 +319,17 @@ function resolveTemplateLayout(templateInfo, layout) {
   return { layoutId, sourceDir: path.join(templateInfo.dir, layouts[layoutId].dir) };
 }
 
+/** The template's (or layout's) post-scaffold commands, adjusted for prompt answers such as uv. */
+function templateVerifyCommands(templateInfo, layoutId, vars) {
+  const commands = templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [];
+  return adjustVerifyCommandsForAnswers([...commands], vars);
+}
+
 function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   const { layoutId, sourceDir } = resolveTemplateLayout(templateInfo, layout);
   copyAndRender(sourceDir, targetDir, vars);
 
+  const sharedVars = { ...vars, VERIFY_COMMANDS: templateVerifyCommands(templateInfo, layoutId, vars).join('\n') };
   const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md', 'docs/GITHUB-SETUP.md'];
   for (const file of shared) {
     const dest = path.join(targetDir, file);
@@ -329,7 +337,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
     const templateSrc = path.join(templateInfo.dir, file);
     const globalSrc = path.join(SHARED_TEMPLATES_DIR, file);
     const src = fs.existsSync(templateSrc) ? templateSrc : fs.existsSync(globalSrc) ? globalSrc : null;
-    if (src) copyAndRender(src, dest, vars);
+    if (src) copyAndRender(src, dest, sharedVars);
   }
 
   insertTemplateAgentsSection(path.join(targetDir, 'AGENTS.md'), path.join(templateInfo.dir, 'AGENTS.snippet.md'), vars);
@@ -670,12 +678,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const verifyCommandsBase = adjustVerifyCommandsForAnswers(
-    [...(templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [])],
-    vars,
-  );
-
-  let verifyCommands = [...verifyCommandsBase];
+  let verifyCommands = templateVerifyCommands(templateInfo, layoutId, vars);
   let repoLabels = [];
 
   if (layerIds.length) {
@@ -726,12 +729,19 @@ async function runNew(opts) {
   }
 
   if (!opts.github && repoLabels.length) {
-    const names = repoLabels.map((l) => l.name).join(', ');
-    p.log.info(`Layers expect these labels on GitHub: ${names} — created automatically with --github, otherwise run the commands under "Issue labels" in AGENTS.md.`);
+    p.log.info(labelHint(repoLabels));
   }
 
   p.outro('✅ Done!');
   printPostScaffoldSteps(name, verifyCommands);
+}
+
+/** The labels applied layers expect, with the commands that create them when --github didn't. */
+function labelHint(labels) {
+  const unique = [...new Map(labels.map((l) => [l.name, l])).values()];
+  const commands = unique.map((l) => `  ${labelCreateCommand(l)}`);
+  const names = unique.map((l) => l.name).join(', ');
+  return [`Layers expect these labels on GitHub: ${names}. --github creates them; otherwise run:`, ...commands].join('\n');
 }
 
 /**
@@ -858,6 +868,7 @@ export {
   copyAndRender,
   runNew,
   printPostScaffoldSteps,
+  labelHint,
   collectLayerIds,
   getRecommendedLayers,
   USAGE,
