@@ -1,0 +1,1 @@
+`npm run test:e2e` runs the Playwright specs in `tests/e2e/` (one Chromium project, configured in `playwright.config`). Run `npx playwright install` once to download the browsers. `npm test` (Jest) does not run them.

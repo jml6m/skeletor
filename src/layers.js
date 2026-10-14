@@ -305,17 +305,31 @@ function addGitignoreEntries(projectDir, layerName, entries) {
 }
 
 /**
- * The package.json merge keeps a key the template already has. `patch.packageJsonOverride` lists
- * top-level keys a layer must replace instead (a library's `main`), with `null` removing the key
- * (`private`).
- * @param {Record<string, unknown>} pkg
- * @param {Record<string, unknown> | undefined} override
+ * The package.json merge keeps a value the template already has. `patch.packageJsonOverride` lists
+ * key paths (`main`, `scripts.start`) whose value in the layer's patch replaces the template's
+ * instead; a `null` value removes the key (`private`). Paths the patch doesn't set are skipped.
+ * @param {Record<string, any>} pkg merged package.json, updated in place
+ * @param {Record<string, any>} patch the layer's package.json patch for this language
+ * @param {string[]} [paths]
+ * @returns {string[]} the paths applied, whose merge conflicts they settle
  */
-function applyPackageJsonOverride(pkg, override) {
-  for (const [key, value] of Object.entries(override || {})) {
-    if (value === null) delete pkg[key];
-    else pkg[key] = value;
+export function applyPackageJsonOverride(pkg, patch, paths = []) {
+  const applied = [];
+  for (const dotPath of paths) {
+    const keys = dotPath.split('.');
+    const last = keys.pop();
+    const source = keys.reduce((obj, key) => obj?.[key], patch);
+    if (!source || typeof source !== 'object' || !(last in source)) continue;
+    let target = pkg;
+    for (const key of keys) {
+      if (!target[key] || typeof target[key] !== 'object') target[key] = {};
+      target = target[key];
+    }
+    if (source[last] === null) delete target[last];
+    else target[last] = source[last];
+    applied.push(dotPath);
   }
+  return applied;
 }
 
 /**
@@ -524,8 +538,8 @@ export function applyLayers(options) {
       const target = JSON.parse(raw);
       const conflicts = [];
       const merged = mergePackageJson(target, layerPlan.packageJsonPatch, conflicts);
-      allConflicts.push(...conflicts);
-      applyPackageJsonOverride(merged, layer.patch?.packageJsonOverride);
+      const overridden = applyPackageJsonOverride(merged, layerPlan.packageJsonPatch, layer.patch?.packageJsonOverride);
+      allConflicts.push(...conflicts.filter((c) => !overridden.some((p) => c.path === p || c.path.startsWith(`${p}.`))));
       fs.writeFileSync(pkgPath, serializePackageJson(merged, indent), 'utf8');
     }
 
@@ -625,8 +639,23 @@ export function validateLayerManifests() {
     }
 
     const override = layer.patch?.packageJsonOverride;
-    if (override !== undefined && (typeof override !== 'object' || override === null || Array.isArray(override))) {
-      errors.push(`${layer.id}: patch.packageJsonOverride must be an object of top-level package.json keys`);
+    if (override !== undefined) {
+      if (!Array.isArray(override) || !override.every((p) => typeof p === 'string' && /^[^.]+(\.[^.]+)*$/.test(p))) {
+        errors.push(`${layer.id}: patch.packageJsonOverride must be an array of package.json key paths`);
+      } else {
+        const patchFiles = typeof patchSpec === 'object' && patchSpec ? Object.values(patchSpec) : patchSpec ? [patchSpec] : [];
+        if (!patchFiles.length) errors.push(`${layer.id}: patch.packageJsonOverride needs patch.packageJson`);
+        for (const rel of patchFiles.filter((f) => fs.existsSync(path.join(layer.dir, f)))) {
+          const patch = JSON.parse(fs.readFileSync(path.join(layer.dir, rel), 'utf8'));
+          for (const dotPath of override) {
+            const keys = dotPath.split('.');
+            const parent = keys.slice(0, -1).reduce((obj, key) => obj?.[key], patch);
+            if (!parent || typeof parent !== 'object' || !(keys.at(-1) in parent)) {
+              errors.push(`${layer.id}: patch.packageJsonOverride path "${dotPath}" is not set in ${rel}`);
+            }
+          }
+        }
+      }
     }
 
     const defaults = layer.defaults;

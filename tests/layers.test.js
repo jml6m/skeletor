@@ -24,6 +24,7 @@ import {
   appendAgentsSection,
   buildLabelSeed,
   layerTokenDefaults,
+  applyPackageJsonOverride,
 } from '../src/layers.js';
 import { gatherTemplatePrompts, templatePromptDefaults } from '../src/template-prompts.js';
 
@@ -55,6 +56,32 @@ describe('layer manifests', () => {
   test('every layer.json passes contract validation', () => {
     const errors = validateLayerManifests();
     expect(errors).toEqual([]);
+  });
+});
+
+describe('packageJsonOverride', () => {
+  test('replaces nested and top-level values from the patch, and null removes a key', () => {
+    const pkg = { private: true, main: 'dist/index.js', scripts: { start: 'node src/index.js', test: 'jest' } };
+    const patch = { private: null, main: './lib/index.cjs', scripts: { start: 'node --env-file-if-exists=.env src/index.js' } };
+    const applied = applyPackageJsonOverride(pkg, patch, ['private', 'main', 'scripts.start', 'scripts.lint']);
+    expect(applied).toEqual(['private', 'main', 'scripts.start']);
+    expect(pkg).toEqual({ main: './lib/index.cjs', scripts: { start: 'node --env-file-if-exists=.env src/index.js', test: 'jest' } });
+  });
+
+  test('settles the merge conflicts of the paths it overrides', () => {
+    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-override-'));
+    try {
+      fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify({ name: 'x', private: true, main: 'dist/index.js', scripts: { start: 'node dist/index.js' } }));
+      const result = applyLayers({ projectDir: targetDir, template: 'typescript', language: 'typescript', layerIds: ['library-publishing', 'env-example'], vars: {}, noInstall: true });
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.private).toBeUndefined();
+      expect(pkg.main).toBe('./lib/index.cjs');
+      expect(pkg.scripts.start).toBe('node --env-file-if-exists=.env dist/index.js');
+      const settled = result.conflicts.map((c) => c.path).filter((p) => ['private', 'main', 'scripts.start'].includes(p));
+      expect(settled).toEqual([]);
+    } finally {
+      cleanup(targetDir);
+    }
   });
 });
 
@@ -97,6 +124,76 @@ describe('layer application', () => {
         expect(fs.existsSync(path.join(targetDir, '.github', 'ISSUE_TEMPLATE', f))).toBe(true);
       }
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Issue labels');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test('express-api bundle ships an Express server that npm start runs on PORT', async () => {
+    const name = makeName('layer-express');
+    const targetDir = path.resolve(process.cwd(), name);
+    try {
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, bundle: 'express-api' });
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.dependencies.express).toBeDefined();
+      expect(pkg.scripts.start).toBe('node --env-file-if-exists=.env src/index.js');
+      expect(pkg.scripts['free-port']).toBe('node scripts/free-port.cjs');
+      expect(fs.readFileSync(path.join(targetDir, 'scripts', 'free-port.cjs'), 'utf8')).toContain("process.loadEnvFile('.env')");
+      expect(fs.readFileSync(path.join(targetDir, 'src', 'index.js'), 'utf8')).toContain('createApp().listen(port');
+      expect(fs.existsSync(path.join(targetDir, 'src', 'app.js'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'tests', 'app.test.js'))).toBe(true);
+      expect(fs.readFileSync(path.join(targetDir, '.env.example'), 'utf8')).toContain('PORT=3000');
+    } finally {
+      cleanup(targetDir);
+    }
+  });
+
+  test.each([
+    ['javascript', 'src/index.js'],
+    ['typescript', 'dist/index.js'],
+  ])('%s: only env-example makes npm start load .env', async (template, entry) => {
+    const plain = makeName(`layer-env-plain-${template}`);
+    const withEnv = makeName(`layer-env-${template}`);
+    const start = (name) => JSON.parse(fs.readFileSync(path.resolve(process.cwd(), name, 'package.json'), 'utf8')).scripts.start;
+    try {
+      await runNew({ command: 'new', name: plain, template, owner: 'acme', auto: true, git: false, withLayers: ['governance'] });
+      await runNew({ command: 'new', name: withEnv, template, owner: 'acme', auto: true, git: false, withLayers: ['env-example'] });
+      expect(start(plain)).toBe(`node ${entry}`);
+      expect(start(withEnv)).toBe(`node --env-file-if-exists=.env ${entry}`);
+    } finally {
+      cleanup(path.resolve(process.cwd(), plain));
+      cleanup(path.resolve(process.cwd(), withEnv));
+    }
+  });
+
+  test.each(['javascript', 'typescript'])('test harnesses emit %s files, an example test, and AGENTS sections', async (template) => {
+    const name = makeName(`layer-harness-${template}`);
+    const targetDir = path.resolve(process.cwd(), name);
+    const ext = template === 'typescript' ? 'ts' : 'js';
+    const other = ext === 'ts' ? 'js' : 'ts';
+    try {
+      await runNew({
+        command: 'new',
+        name,
+        template,
+        owner: 'acme',
+        auto: true,
+        git: false,
+        withLayers: ['test-harness:playwright', 'test-harness:mongo-memory'],
+      });
+      for (const rel of [`playwright.config.${ext}`, `tests/e2e/example.spec.${ext}`, `tests/support/mongo-memory.${ext}`, `tests/example.mongo.test.${ext}`]) {
+        expect({ rel, exists: fs.existsSync(path.join(targetDir, rel)) }).toEqual({ rel, exists: true });
+        const twin = rel.replace(new RegExp(`\\.${ext}$`), `.${other}`);
+        expect({ twin, exists: fs.existsSync(path.join(targetDir, twin)) }).toEqual({ twin, exists: false });
+      }
+      const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+      expect(pkg.scripts['test:mongo']).toContain('--testPathPatterns=mongo.test');
+      expect(pkg.scripts['test:mongo']).not.toContain('--passWithNoTests');
+      expect(pkg.devDependencies['mongodb-memory-server']).toMatch(/^\^11\./);
+      const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
+      expect(agents).toContain('## End-to-end tests');
+      expect(agents).toContain('npm run test:e2e');
+      expect(agents).toContain('## Database tests');
     } finally {
       cleanup(targetDir);
     }

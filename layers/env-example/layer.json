@@ -1,11 +1,18 @@
 {
   "id": "env-example",
   "name": "Environment example file",
-  "description": "Ships a comprehensive .env.example with documented variables.",
+  "description": "Ships a .env.example listing the variables the config reads; npm start loads .env when it exists.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["javascript", "typescript"],
     "templates": ["javascript", "typescript"]
   },
-  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" }
+  "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "patch": {
+    "packageJson": {
+      "javascript": "patch/package.javascript.json",
+      "typescript": "patch/package.typescript.json"
+    },
+    "packageJsonOverride": ["scripts.start"]
+  }
 }

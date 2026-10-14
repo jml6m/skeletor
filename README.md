@@ -63,7 +63,8 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 | `dependabot` | all | yes | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions, matching the account-wide baseline |
 | `docs-lint` | javascript, typescript | yes | Pinned docs-lint CI matching the account baseline: lychee 0.24.2 link/anchor checking + markdownlint-cli2 |
 | `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job; offers *.md as a CODEOWNERS path |
-| `env-example` | javascript, typescript | yes | Ships a comprehensive .env.example with documented variables |
+| `env-example` | javascript, typescript | yes | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists |
+| `express-server` | javascript |  | Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route |
 | `free-port` | javascript, typescript |  | Zero-dependency cross-platform port freeing script with prestart hook and port registry |
 | `governance` | all | yes | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md |
 | `issue-labels` | all |  | Opt-in label conventions for repos with CI/release process: a chore label, the area: prefix rule, and criteria for gate labels |
@@ -72,8 +73,8 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 | `log-table` | javascript, typescript |  | cli-table3 + string-width log table utility with display-width truncation and config defaults |
 | `logger-winston` | javascript, typescript |  | Replaces the console logger stub with Winston (levels, file transports, env-aware default level) |
 | `quality-gates` | javascript, typescript | yes | Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull |
-| `test-harness:mongo-memory` | javascript, typescript |  | Jest harness with mongodb-memory-server, per-worker isolation, and shared seed helpers |
-| `test-harness:playwright` | javascript, typescript |  | Playwright config with mock/real project split, fixtures, and screenshot helper stubs |
+| `test-harness:mongo-memory` | javascript, typescript |  | mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script |
+| `test-harness:playwright` | javascript, typescript |  | Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts |
 | `zod-config` | javascript, typescript | yes | Zod-validated env.config + config/index pattern; never read process.env in feature code |
 
 `skeletor new --github` also creates the labels that the chosen layers expect (for example `epic`), right after it creates the repo.

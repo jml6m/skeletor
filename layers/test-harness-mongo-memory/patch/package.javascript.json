@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "mongodb": "^6.21.0",
+    "mongodb-memory-server": "^11.3.0"
+  },
+  "scripts": {
+    "test:mongo": "jest --verbose --testPathPatterns=mongo.test"
+  }
+}

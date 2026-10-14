@@ -1,7 +1,7 @@
 {
   "id": "test-harness:mongo-memory",
   "name": "MongoDB Memory Server test harness",
-  "description": "Jest harness with mongodb-memory-server, per-worker isolation, and shared seed helpers.",
+  "description": "mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": [
@@ -19,14 +19,19 @@
     "onConflict": "skip"
   },
   "patch": {
-    "packageJson": "patch/package.json.json"
+    "packageJson": {
+      "javascript": "patch/package.javascript.json",
+      "typescript": "patch/package.typescript.json"
+    }
   },
-  "knip": {
-    "entry": [
-      "tests/support/mongo-memory.{js,ts}"
-    ]
+  "docs": {
+    "agents": {
+      "section": "Database tests",
+      "append": "docs/AGENTS.snippet.md"
+    }
   },
   "verifyCommands": [
-    "npm install"
+    "npm install",
+    "npm run test:mongo"
   ]
 }

@@ -5,7 +5,7 @@
   },
   "express-api": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "docs-lint", "zod-config", "logger-winston", "env-example", "free-port"]
+    "layers": ["governance", "quality-gates", "docs-lint", "zod-config", "logger-winston", "env-example", "free-port", "express-server"]
   },
   "cli-report": {
     "template": "javascript",

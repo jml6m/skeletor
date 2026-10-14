@@ -1,0 +1,16 @@
+{
+  "id": "express-server",
+  "name": "Minimal Express server",
+  "description": "Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route.",
+  "version": "1.0.0",
+  "appliesTo": {
+    "languages": ["javascript"],
+    "templates": ["javascript"]
+  },
+  "files": { "dir": "files", "overwrite": true, "onConflict": "replace" },
+  "patch": { "packageJson": "patch/package.json.json" },
+  "docs": {
+    "agents": { "section": "HTTP server", "append": "docs/AGENTS.snippet.md" }
+  },
+  "verifyCommands": ["npm install", "npm test"]
+}

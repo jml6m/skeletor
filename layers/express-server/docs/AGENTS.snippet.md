@@ -1,0 +1,1 @@
+`src/app.js` builds the Express app (middleware and routes) and exports `createApp()`; `src/index.js` only starts it on `config.system.server.port` (`PORT`, default 3000). Add routes in `src/app.js` or modules it mounts, and test them against `createApp()` on an ephemeral port, as `tests/app.test.js` does.

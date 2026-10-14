@@ -1,7 +1,7 @@
 {
   "id": "test-harness:playwright",
   "name": "Playwright E2E harness",
-  "description": "Playwright config with mock/real project split, fixtures, and screenshot helper stubs.",
+  "description": "Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["javascript", "typescript"],
@@ -10,5 +10,8 @@
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
   "gitignore": ["/playwright-report/", "/test-results/", "/blob-report/", "/playwright/.cache/"],
   "patch": { "packageJson": "patch/package.json.json" },
+  "docs": {
+    "agents": { "section": "End-to-end tests", "append": "docs/AGENTS.snippet.md" }
+  },
   "verifyCommands": ["npm install"]
 }
