@@ -8,7 +8,7 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseArgs, UsageError } from './args.js';
+import { checkFlagCombinations, parseArgs, UsageError } from './args.js';
 import { checkTokens, scaffoldChecks } from './checks.js';
 import { detectGithubOwners } from './detect-owner.js';
 import { escaperForFile, normalizeDescription } from './escape.js';
@@ -487,6 +487,9 @@ async function resolveProjectName(name, isInteractive) {
 
 async function runNew(opts) {
   const { git, auto } = opts;
+  // parseArgs rejects these for the CLI; runNew is also called directly.
+  const combination = checkFlagCombinations(opts);
+  if (combination) fail(combination);
   if (!auto && !process.stdout.isTTY) {
     logError('❌ This is not an interactive terminal: run with --auto and --template <id> or --bundle <name>.');
     process.exit(1);
