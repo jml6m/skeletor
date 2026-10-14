@@ -48,9 +48,9 @@ describe('skeletor CLI pure functions', () => {
     expect(result.uv).toBe(true);
   });
 
-  test('parseArgs handles --codeowners', () => {
+  test('parseArgs has no --codeowners option', () => {
     const result = parseArgs(['node', 'skeletor', 'new', 'demo', '--template', 'go', '--auto', '--codeowners']);
-    expect(result.codeowners).toBe(true);
+    expect(result).not.toHaveProperty('codeowners');
   });
 
   test('renderPathSegment substitutes tokens in paths', () => {
