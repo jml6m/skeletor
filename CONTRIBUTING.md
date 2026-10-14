@@ -63,7 +63,7 @@ deliberate choice, and CI still runs everything.
 ## PR conventions
 
 - Open the PR against `main`. Its description has a line starting with `Relates to #N` for the
-  issue it serves.
+  issue it serves. That issue must be open and in a milestone; the `issue-link` check enforces both.
 - Keep a PR to one change. PRs are squash-merged.
 - Don't bump the version in `package.json`.
 
