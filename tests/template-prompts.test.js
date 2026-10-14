@@ -3,6 +3,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { adjustVerifyCommandsForAnswers, gatherTemplatePrompts } from '../src/template-prompts.js';
 
+process.env.SKELETOR_CLI_TEST = '1';
+const { buildRenderVars, getAvailableTemplates } = await import('../src/index.js');
+
 const TEMPLATES_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates');
 
 describe('adjustVerifyCommandsForAnswers', () => {
@@ -43,5 +46,17 @@ describe('gatherTemplatePrompts', () => {
   test('csharp target framework defaults to the pinned .NET runtime', () => {
     const prompt = gatherTemplatePrompts('csharp', { PIN_TARGET_FRAMEWORK: 'net10.0' }).find((pr) => pr.id === 'targetFramework');
     expect(prompt.default).toBe('net10.0');
+  });
+
+  test('no template asks for author, package manager, Go layout or Rust crate type', () => {
+    const removed = ['author', 'authorEmail', 'packageManager', 'goLayout', 'rustCrateType'];
+    for (const id of getAvailableTemplates()) {
+      const ids = gatherTemplatePrompts(id).map((pr) => pr.id);
+      expect({ id, asked: ids.filter((pid) => removed.includes(pid)) }).toEqual({ id, asked: [] });
+    }
+    const vars = buildRenderVars({ name: 'my-app', owner: 'acme' });
+    for (const token of ['AUTHOR', 'AUTHOR_EMAIL', 'PACKAGE_MANAGER', 'GO_LAYOUT', 'RUST_CRATE_TYPE']) {
+      expect(Object.hasOwn(vars, token)).toBe(false);
+    }
   });
 });

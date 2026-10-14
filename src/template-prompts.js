@@ -1,5 +1,5 @@
 /**
- * Template-specific interactive prompts (license, author, stack choices).
+ * Template-specific interactive prompts (license, stack choices).
  */
 
 import * as p from '@clack/prompts';
@@ -15,43 +15,9 @@ const COMMON_PROMPTS = [
     // A layer can change the default (library-publishing: MIT, so the package is publishable).
     defaultFrom: 'LICENSE',
   },
-  {
-    id: 'author',
-    token: 'AUTHOR',
-    message: 'Author name (optional)',
-    type: 'text',
-    optional: true,
-    default: '',
-  },
-  {
-    id: 'authorEmail',
-    token: 'AUTHOR_EMAIL',
-    message: 'Author email (optional)',
-    type: 'text',
-    optional: true,
-    default: '',
-  },
 ];
 
 const TEMPLATE_PROMPTS = {
-  javascript: [
-    {
-      id: 'packageManager',
-      token: 'PACKAGE_MANAGER',
-      message: 'Package manager',
-      options: ['npm', 'pnpm', 'bun'],
-      default: 'npm',
-    },
-  ],
-  typescript: [
-    {
-      id: 'packageManager',
-      token: 'PACKAGE_MANAGER',
-      message: 'Package manager',
-      options: ['npm', 'pnpm', 'bun'],
-      default: 'npm',
-    },
-  ],
   python: [
     {
       id: 'pythonVersion',
@@ -68,24 +34,6 @@ const TEMPLATE_PROMPTS = {
       message: 'Dependency workflow',
       options: ['pip', 'uv'],
       default: 'pip',
-    },
-  ],
-  go: [
-    {
-      id: 'goLayout',
-      token: 'GO_LAYOUT',
-      message: 'Project layout',
-      options: ['binary', 'library'],
-      default: 'binary',
-    },
-  ],
-  rust: [
-    {
-      id: 'rustCrateType',
-      token: 'RUST_CRATE_TYPE',
-      message: 'Crate type',
-      options: ['bin', 'lib'],
-      default: 'bin',
     },
   ],
   java: [
@@ -145,7 +93,7 @@ export async function promptForTemplateVars(prompts) {
         message: pr.message,
         defaultValue: pr.default ? String(pr.default) : undefined,
         validate(value) {
-          if (!pr.optional && (!value || !String(value).trim())) return 'A value is required.';
+          if (!value || !String(value).trim()) return 'A value is required.';
         },
       });
     } else if (pr.options?.length) {
