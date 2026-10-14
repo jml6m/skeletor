@@ -1,6 +1,6 @@
 {
   "name": "@jml6m/skeletor",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "description": "Multi-language project scaffolding: templates with lint, format, test, health and release defaults, composable layers, and an AGENTS.md in every project.",
   "repository": {
