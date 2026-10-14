@@ -43,5 +43,5 @@ Relates to #
 - [ ] Code follows project conventions (see [AGENTS.md](../AGENTS.md))
 - [ ] No hardcoded secrets or API keys
 - [ ] No `.tmpl` files leak into generated projects (covered by existing tests)
-- [ ] If a template gained a new tool, its output paths are in that template's `.gitignore`
+- [ ] If a template gained a new tool, its output paths are in that tool's feature in `src/features.js`
 - [ ] Changes are minimal and focused on the issue

@@ -29,6 +29,17 @@ describe('features registry', () => {
     expect(buildGitignore(['go'], { PROJECT_NAME: 'my-app' }).split('\n')).toEqual(expect.arrayContaining(['/my-app', 'bin/']));
   });
 
+  test('buildGitignore dedupes patterns but keeps one heading and a blank line per section', () => {
+    const out = buildGitignore(['node', 'jest', 'jscpd']);
+    const blocks = out.trimEnd().split('\n\n');
+    expect(blocks.every((block) => block.startsWith('# ') && !block.includes('\n\n'))).toBe(true);
+    const headings = blocks.map((block) => block.split('\n')[0]);
+    expect(new Set(headings).size).toBe(headings.length);
+    const patterns = out.split('\n').filter((line) => line && !line.startsWith('#'));
+    expect(new Set(patterns).size).toBe(patterns.length);
+    expect(patterns).toEqual(expect.arrayContaining(['report/', 'reports/', '.jscpd/']));
+  });
+
   test('buildKnipConfig respects language', () => {
     const js = buildKnipConfig(['knip'], { language: 'javascript' });
     const ts = buildKnipConfig(['knip'], { language: 'typescript' });
@@ -59,6 +70,49 @@ describe('features registry', () => {
     expect(outputDirs).toEqual(expect.arrayContaining(['dist/', 'coverage/', 'report/', 'reports/', '.jscpd/']));
     for (const dir of outputDirs) {
       expect({ dir, ignored: eslintConfig.includes(`'${dir}**'`) }).toEqual({ dir, ignored: true });
+    }
+  });
+});
+
+// Patterns from the per-template .gitignore.tmpl files that the feature registry replaced. Each one
+// must still be in the template's generated .gitignore, or have a recorded reason for being dropped.
+const FORMER_TEMPLATE_GITIGNORES = {
+  csharp: ['bin/', 'obj/', 'TestResults/', '*.user', '*.suo', '*.userosscache', '*.sln.docstates', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
+  go: ['*.exe', '*.exe~', '*.dll', '*.so', '*.dylib', '/my-app', '*.test', 'bin/', 'dist/', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
+  java: ['target/', '*.class', '*.jar', '*.war', '*.ear', 'hs_err_pid*', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
+  javascript: ['node_modules/', 'dist/', 'build/', 'coverage/', 'report/', 'reports/', '.env', '.env.*', '!.env.example', '*.local', '*.log', 'logs/', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/', '*.swp'],
+  python: ['__pycache__/', '*.py[cod]', '*.pyo', '.pytest_cache/', '.mypy_cache/', '.ruff_cache/', '.venv/', 'venv/', 'env/', 'dist/', 'build/', '*.egg-info/', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
+  rust: ['/target/', '**/*.rs.bk', '*.pdb', 'Cargo.lock', '.env', '.env.*', '!.env.example', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/'],
+  typescript: ['node_modules/', 'dist/', 'build/', 'coverage/', 'report/', 'reports/', '.env', '.env.*', '!.env.example', '*.local', '*.log', 'logs/', '.DS_Store', 'Thumbs.db', '.idea/', '.vscode/', '*.swp'],
+};
+
+const DROPPED_TEMPLATE_GITIGNORE_PATTERNS = {
+  'python:*.pyo': '*.py[cod] already matches it',
+  // Only the rust "single" layout listed it, and that file never reached a scaffold.
+  'rust:Cargo.lock': 'Cargo recommends committing Cargo.lock, for binaries and libraries alike',
+};
+
+describe('generated .gitignore', () => {
+  const templates = getTemplatesWithManifests();
+
+  test('every template declares features, and none ships its own .gitignore', () => {
+    for (const tmpl of templates) {
+      expect({ id: tmpl.id, features: tmpl.features?.length > 0 }).toEqual({ id: tmpl.id, features: true });
+    }
+    const shipped = fs.readdirSync('templates', { recursive: true }).filter((rel) => /(^|[\\/])\.gitignore(\.tmpl)?$/.test(rel));
+    expect(shipped).toEqual([]);
+  });
+
+  test('covers every template', () => {
+    expect(Object.keys(FORMER_TEMPLATE_GITIGNORES).sort()).toEqual(templates.map((t) => t.id).sort());
+  });
+
+  test.each(Object.entries(FORMER_TEMPLATE_GITIGNORES))('%s keeps the patterns its .gitignore.tmpl had', (id, patterns) => {
+    const tmpl = templates.find((t) => t.id === id);
+    const lines = buildGitignore(tmpl.features, { PROJECT_NAME: 'my-app' }).split('\n');
+    for (const pattern of patterns) {
+      const dropped = DROPPED_TEMPLATE_GITIGNORE_PATTERNS[`${id}:${pattern}`];
+      expect({ pattern, kept: lines.includes(pattern) }).toEqual({ pattern, kept: !dropped });
     }
   });
 });
