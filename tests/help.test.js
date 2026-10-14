@@ -65,14 +65,21 @@ describe('without an interactive terminal', () => {
   });
   afterEach(() => fs.rmSync(cwd, { recursive: true, force: true }));
 
+  const NEEDS_AUTO = 'This is not an interactive terminal: run with --auto and --template <id> or --bundle <name>.';
+
+  // Whatever else is passed or missing, a run without --auto gets the same error, before owner detection.
   test.each([
-    [['new', 'my-app', '--owner', 'my-org', '--no-git'], 'not an interactive terminal'],
-    [['new', 'my-app', '--owner', 'my-org', '--template', 'go', '--no-git'], '--template requires --auto'],
-    [['new', 'my-app', '--owner', 'my-org', '--auto', '--no-git'], '--auto requires --template <id> or --bundle <name>'],
+    [['new', 'my-app', '--owner', 'my-org', '--no-git'], NEEDS_AUTO],
+    [['new', 'my-app', '--owner', 'my-org', '--template', 'go', '--no-git'], NEEDS_AUTO],
+    [['new', 'my-app', '--template', 'go', '--no-git'], NEEDS_AUTO],
+    [['new', 'my-app', '--bundle', 'ts-library', '--owner', 'my-org', '--no-git'], NEEDS_AUTO],
+    [['new', 'my-app', '--owner', 'my-org', '--auto', '--no-git'], '--auto requires --template <id> or --bundle <name>.'],
+    [['new', 'my-app', '--auto', '--no-git'], '--auto requires --template <id> or --bundle <name>.'],
   ])('%j exits 1 and writes nothing', (args, message) => {
     const { status, stderr } = runCli(args, cwd);
     expect(status).toBe(1);
     expect(stderr).toContain(message);
+    expect(stderr).not.toMatch(/owner/i);
     expect(fs.readdirSync(cwd)).toEqual([]);
   });
 });

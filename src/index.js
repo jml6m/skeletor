@@ -436,7 +436,7 @@ async function resolveOwnerForNew(opts, isInteractive) {
   }
 
   if (candidates.length === 0) {
-    logError('❌ --auto requires --owner when GitHub owner cannot be detected.');
+    logError('❌ The GitHub owner could not be detected: pass --owner <user>.');
     logError('   Detection checks git remote origin, package.json repository, and gh CLI.');
     process.exit(1);
   }
@@ -470,7 +470,15 @@ async function resolveProjectName(name, isInteractive) {
 
 async function runNew(opts) {
   const { git, auto } = opts;
-  const isInteractive = !auto && process.stdout.isTTY;
+  if (!auto && !process.stdout.isTTY) {
+    logError('❌ This is not an interactive terminal: run with --auto and --template <id> or --bundle <name>.');
+    process.exit(1);
+  }
+  if (auto && !opts.template && !opts.bundle) {
+    logError('❌ --auto requires --template <id> or --bundle <name>.');
+    process.exit(1);
+  }
+  const isInteractive = !auto;
   const name = await resolveProjectName(opts.name, isInteractive);
 
   const allTemplates = getTemplatesWithManifests();
@@ -491,20 +499,8 @@ async function runNew(opts) {
   let finalOwner = await resolveOwnerForNew(opts, isInteractive);
   const finalDesc = opts.description || DEFAULT_DESCRIPTION;
 
-  if (!chosenTemplateId) {
-    if (auto) {
-      logError('❌ --auto requires --template <id> or --bundle <name>.');
-      process.exit(1);
-    }
-    if (!process.stdout.isTTY) {
-      logError('❌ No --template provided and this is not an interactive terminal.');
-      process.exit(1);
-    }
-    chosenTemplateId = await chooseTemplateInteractively(allTemplates);
-  } else if (!process.stdout.isTTY && !auto) {
-    logError('❌ --template requires --auto when not running in an interactive terminal.');
-    process.exit(1);
-  }
+  // Runs without a terminal have --auto and a template or bundle (checked above).
+  chosenTemplateId ||= await chooseTemplateInteractively(allTemplates);
 
   const templateInfo = allTemplates.find((t) => t.id === chosenTemplateId);
   if (!templateInfo) fail(unknownIdMessage('template', chosenTemplateId, templateIds, { label: 'Templates' }));
@@ -649,9 +645,13 @@ async function runNew(opts) {
   let hasRepo = false;
   let repoCreated = false;
   if (git) {
+    let step = 'git';
     try {
       const env = gitEnv();
-      const run = (args) => execFileSync('git', args, { cwd: targetDir, env, stdio: 'ignore' });
+      const run = (args) => {
+        step = `git ${args[0]}`;
+        execFileSync('git', args, { cwd: targetDir, env, stdio: 'pipe' });
+      };
       run(['init', '-q', '-b', 'main']);
       run(['add', '-A']);
       hasRepo = true;
@@ -660,16 +660,24 @@ async function runNew(opts) {
       if (opts.github) {
         repoCreated = createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels, env);
       }
-    } catch {
-      p.log.warn('Git init skipped (git not available or failed)');
+    } catch (e) {
+      const detail = e.code === 'ENOENT' ? 'git is not installed or not on PATH' : (e.stderr?.toString() || e.message || String(e)).trim();
+      p.log.warn(`${step} failed: ${detail}`);
+      if (opts.github) p.log.warn('--github skipped: the GitHub repository needs the initial commit.');
     }
   }
 
-  if (!opts.github && repoLabels.length) {
+  if (!repoCreated && repoLabels.length) {
     p.log.info(labelHint(repoLabels));
   }
 
-  p.outro('✅ Done!');
+  if (opts.github && !repoCreated) {
+    p.log.error(`--github was requested, but the GitHub repository was not created. The project is in ${name}/.`);
+    process.exitCode = 1;
+    p.outro('Done, without the GitHub repository.');
+  } else {
+    p.outro('✅ Done!');
+  }
   // Only once --github has created the repository they apply to.
   const githubSetup = repoCreated ? githubSetupLines({ repo: `${finalOwner}/${name}`, ...collectPullRequestChecks(targetDir) }) : [];
   printPostScaffoldSteps(name, hasRepo ? [...checks.commands, ...checks.needRepo] : checks.commands, hasRepo ? [] : checks.needRepo, githubSetup);
