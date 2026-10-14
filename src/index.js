@@ -331,7 +331,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   }
 
   if (Array.isArray(templateInfo.features) && templateInfo.features.length > 0) {
-    applyFeatureConfigs(targetDir, templateInfo);
+    applyFeatureConfigs(targetDir, templateInfo, vars);
   }
 
   if (templateInfo.language === 'python') {

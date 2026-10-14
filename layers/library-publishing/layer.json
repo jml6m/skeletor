@@ -9,6 +9,7 @@
   },
   "recommends": ["quality-gates"],
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "gitignore": ["/lib/"],
   "patch": { "packageJson": "patch/package.json.json" },
   "verifyCommands": ["npm install", "npm run build", "npm run publish:dry"]
 }

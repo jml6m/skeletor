@@ -8,6 +8,7 @@
     "templates": ["javascript", "typescript"]
   },
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
+  "gitignore": ["/playwright-report/", "/test-results/", "/blob-report/", "/playwright/.cache/"],
   "patch": { "packageJson": "patch/package.json.json" },
   "verifyCommands": ["npm install"]
 }
