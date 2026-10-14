@@ -58,7 +58,7 @@ jobs:
         if: steps.changed.outputs.relevant == 'true'
         uses: {{PIN_ACTION_SETUP_NODE}}
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
 
       - name: Install markdownlint-cli2
         if: steps.changed.outputs.relevant == 'true'

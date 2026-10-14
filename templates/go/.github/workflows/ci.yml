@@ -23,6 +23,6 @@ jobs:
       - name: Setup Go
         uses: {{PIN_ACTION_SETUP_GO}}
         with:
-          go-version: '{{PIN_RUNTIME_GO}}'
+          go-version-file: go.mod
 
 {{CI_CHECK_STEPS}}

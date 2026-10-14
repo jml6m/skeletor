@@ -3,7 +3,8 @@ import { MongoClient } from 'mongodb';
 import { startMongoMemory, stopMongoMemory } from './support/mongo-memory.js';
 
 describe('MongoDB memory server', () => {
-  let client: MongoClient;
+  // Undefined if beforeAll failed, so afterAll doesn't hide that failure.
+  let client: MongoClient | undefined;
 
   // The first run can be slow while mongodb-memory-server starts its MongoDB binary.
   beforeAll(async () => {
@@ -11,11 +12,12 @@ describe('MongoDB memory server', () => {
   }, 60_000);
 
   afterAll(async () => {
-    await client.close();
+    await client?.close();
     await stopMongoMemory();
   });
 
   it('stores and reads back a document', async () => {
+    if (!client) throw new Error('MongoDB client is not connected');
     const items = client.db('test').collection('items');
 
     await items.insertOne({ name: 'example' });
