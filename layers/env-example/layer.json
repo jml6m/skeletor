@@ -7,6 +7,5 @@
     "languages": ["javascript", "typescript"],
     "templates": ["javascript", "typescript"]
   },
-  "recommends": ["zod-config"],
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" }
 }

@@ -68,7 +68,7 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 | `governance` | all | yes | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md |
 | `issue-labels` | all |  | Opt-in label conventions for repos with CI/release process: a chore label, the area: prefix rule, and criteria for gate labels |
 | `issue-templates` | all | yes | Minimal repo-agnostic issue forms: bug report, feature request, epic (native sub-issues), and blank issues disabled |
-| `library-publishing` | typescript |  | Turns a TS template into a dual ESM/CJS npm library with tsup, exports map, prepublishOnly gate, and OIDC publish workflow |
+| `library-publishing` | typescript |  | Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow |
 | `log-table` | javascript, typescript |  | cli-table3 + string-width log table utility with display-width truncation and config defaults |
 | `logger-winston` | javascript, typescript |  | Replaces the console logger stub with Winston (levels, file transports, env-aware default level) |
 | `quality-gates` | javascript, typescript | yes | Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull |

@@ -1,22 +1,30 @@
 {
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "types": "./lib/index.d.cts",
   "exports": {
     ".": {
-      "types": "./lib/index.d.ts",
-      "import": "./lib/index.js",
-      "require": "./lib/index.cjs"
+      "import": {
+        "types": "./lib/index.d.ts",
+        "default": "./lib/index.js"
+      },
+      "require": {
+        "types": "./lib/index.d.cts",
+        "default": "./lib/index.cjs"
+      }
     }
   },
   "files": ["lib"],
   "publishConfig": { "access": "public" },
   "scripts": {
     "build:lib": "tsup",
-    "prepublishOnly": "npm run audit:ci && npm test",
+    "check:package": "attw --pack .",
+    "prepack": "npm run build:lib",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test",
     "publish:dry": "npm publish --dry-run"
   },
   "devDependencies": {
-    "tsup": "^8.0.0"
+    "@arethetypeswrong/cli": "^0.18.2",
+    "tsup": "^8.5.0"
   }
 }

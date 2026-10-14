@@ -142,6 +142,19 @@ export function gatherLayerPrompts(layerIds, ctx) {
   return { errors: [], prompts };
 }
 
+/**
+ * Token defaults the resolved layers set through `defaults` in layer.json (e.g. library-publishing
+ * defaults LICENSE to MIT). They change only a scaffold prompt's default; an explicit answer wins.
+ * @param {string[]} layerIds
+ * @param {{ template: string, language: string }} ctx
+ * @returns {Record<string, string>}
+ */
+export function layerTokenDefaults(layerIds, ctx) {
+  const { order, errors } = resolveLayerOrder(layerIds, ctx);
+  if (errors.length) return {};
+  return Object.assign({}, ...order.map((id) => loadLayerById(id).defaults || {}));
+}
+
 /** Build token defaults for non-interactive layer prompts. */
 export function layerPromptDefaults(prompts) {
   const vars = {};
@@ -289,6 +302,20 @@ function addGitignoreEntries(projectDir, layerName, entries) {
   if (!missing.length) return;
   const prefix = existing ? `${existing.trimEnd()}\n\n` : '';
   fs.writeFileSync(ignorePath, `${prefix}# ${layerName}\n${missing.join('\n')}\n`, 'utf8');
+}
+
+/**
+ * The package.json merge keeps a key the template already has. `patch.packageJsonOverride` lists
+ * top-level keys a layer must replace instead (a library's `main`), with `null` removing the key
+ * (`private`).
+ * @param {Record<string, unknown>} pkg
+ * @param {Record<string, unknown> | undefined} override
+ */
+function applyPackageJsonOverride(pkg, override) {
+  for (const [key, value] of Object.entries(override || {})) {
+    if (value === null) delete pkg[key];
+    else pkg[key] = value;
+  }
 }
 
 /**
@@ -498,6 +525,7 @@ export function applyLayers(options) {
       const conflicts = [];
       const merged = mergePackageJson(target, layerPlan.packageJsonPatch, conflicts);
       allConflicts.push(...conflicts);
+      applyPackageJsonOverride(merged, layer.patch?.packageJsonOverride);
       fs.writeFileSync(pkgPath, serializePackageJson(merged, indent), 'utf8');
     }
 
@@ -594,6 +622,21 @@ export function validateLayerManifests() {
       if (!label?.name || !/^[0-9A-Fa-f]{6}$/.test(label.color || '')) {
         errors.push(`${layer.id}: labels need a name and a 6-digit hex color`);
       }
+    }
+
+    const override = layer.patch?.packageJsonOverride;
+    if (override !== undefined && (typeof override !== 'object' || override === null || Array.isArray(override))) {
+      errors.push(`${layer.id}: patch.packageJsonOverride must be an object of top-level package.json keys`);
+    }
+
+    const defaults = layer.defaults;
+    if (defaults !== undefined && (typeof defaults !== 'object' || defaults === null || !Object.entries(defaults).every(([k, v]) => /^[A-Z][A-Z0-9_]*$/.test(k) && typeof v === 'string'))) {
+      errors.push(`${layer.id}: defaults must map TOKEN names to string values`);
+    }
+
+    // Layers either work alone or declare `requires`, which is auto-applied; a soft dependency is never read.
+    if ('recommends' in layer) {
+      errors.push(`${layer.id}: "recommends" is not supported; use "requires" for a layer this one can't work without`);
     }
 
     const ignores = layer.gitignore;

@@ -1,15 +1,21 @@
 {
   "id": "library-publishing",
   "name": "Publishable TS library (tsup + OIDC publish)",
-  "description": "Turns a TS template into a dual ESM/CJS npm library with tsup, exports map, prepublishOnly gate, and OIDC publish workflow.",
+  "description": "Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow.",
   "version": "1.0.0",
   "appliesTo": {
     "languages": ["typescript"],
     "templates": ["typescript"]
   },
-  "recommends": ["quality-gates"],
+  "defaults": { "LICENSE": "MIT" },
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
   "gitignore": ["/lib/"],
-  "patch": { "packageJson": "patch/package.json.json" },
-  "verifyCommands": ["npm install", "npm run build", "npm run publish:dry"]
+  "patch": {
+    "packageJson": "patch/package.json.json",
+    "packageJsonOverride": { "private": null, "main": "./lib/index.cjs" }
+  },
+  "docs": {
+    "agents": { "section": "Publishing", "append": "docs/AGENTS.snippet.md" }
+  },
+  "verifyCommands": ["npm install", "npm run build:lib", "npx eslint . --max-warnings 0", "npx prettier --check .", "npm run publish:dry", "npm run check:package"]
 }
