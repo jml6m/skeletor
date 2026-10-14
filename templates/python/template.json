@@ -1,29 +1,28 @@
 {
   "id": "python",
   "name": "Python",
-  "description": "Modern Python with best-practice defaults: pyproject.toml, ruff (lint + format), pytest, mypy, and an AGENTS.md contract. Flat layout (scripts at the repo root, no packaging) by default; --layout src for an installable src/ package.",
+  "description": "Modern Python with best-practice defaults: uv, pyproject.toml, ruff (lint + format), pytest, mypy, and an AGENTS.md contract. Flat layout (scripts at the repo root, no packaging) by default; --layout src for an installable src/ package.",
   "language": "python",
   "defaultLayout": "flat",
   "layouts": {
     "flat": {
       "dir": "layouts/flat",
       "verifyCommands": [
-        "python -m pip install --upgrade \"pip>=25.1\" --quiet",
-        "python -m pip install --group dev --quiet",
-        "python -m ruff format --check .",
-        "python -m ruff check .",
-        "python -m pytest -q",
-        "python -m mypy ."
+        "uv sync",
+        "uv run ruff format --check .",
+        "uv run ruff check .",
+        "uv run pytest -q",
+        "uv run mypy ."
       ]
     },
     "src": {
       "dir": "layouts/src",
       "verifyCommands": [
-        "python -m pip install -e \".[dev]\" --quiet",
-        "python -m ruff format --check .",
-        "python -m ruff check .",
-        "python -m pytest -q",
-        "python -m mypy src"
+        "uv sync",
+        "uv run ruff format --check .",
+        "uv run ruff check .",
+        "uv run pytest -q",
+        "uv run mypy src"
       ]
     }
   },
@@ -36,11 +35,11 @@
     "python"
   ],
   "verifyCommands": [
-    "python -m pip install --upgrade \"pip>=25.1\" --quiet",
-    "python -m pip install --group dev --quiet",
-    "python -m ruff format --check .",
-    "python -m ruff check .",
-    "python -m pytest -q",
-    "python -m mypy ."
-  ]
+    "uv sync",
+    "uv run ruff format --check .",
+    "uv run ruff check .",
+    "uv run pytest -q",
+    "uv run mypy ."
+  ],
+  "agentsBuildAndTest": "This project uses uv only: `uv sync` installs the locked environment and every tool runs through `uv run` (`uv run pytest`, `uv run ruff check .`). Add dependencies with `uv add` and commit `uv.lock`. Don't use pip or add `requirements*.txt` files."
 }

@@ -18,7 +18,7 @@ Run `skeletor new my-project` for an interactive selector, or pass `--template <
 |----------|-------|
 | `javascript` | CJS — Prettier, ESLint, aliases, health tools, husky, AGENTS.md |
 | `typescript` | ESM + strict TS, flat ESLint, build, quality gates, AGENTS.md |
-| `python` | pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
+| `python` | uv, pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
 | `go` | Standard module + tests |
 | `rust` | Cargo — `--layout single\|lib\|workspace` |
 | `java` | Maven + JUnit 6 |
@@ -61,6 +61,7 @@ skeletor sets these itself instead of asking. Change them in the generated proje
 |---|---|
 | License | `UNLICENSED` (no `LICENSE` file, nothing granted) without `--github` or with `--private`. A public `--github` repo is asked: MIT, Apache-2.0 or UNLICENSED; `--auto` picks MIT. With `library-publishing`, MIT unless a public repo's prompt picks another |
 | Python version | the template's pinned runtime (`pinned-versions.json`) |
+| Python dependency workflow | uv (`uv sync`, `uv run`); commit the `uv.lock` the first `uv sync` creates |
 | .NET target framework | the template's pinned framework (`pinned-versions.json`) |
 | Maven groupId | `io.github.<owner>` |
 | Server port (`free-port`) | `3000`, overridable at runtime with `PORT`; the JS/TS server defaults to the same port |

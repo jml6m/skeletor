@@ -44,7 +44,6 @@ export const FEATURE_REGISTRY = {
       { heading: 'Coverage', patterns: ['.coverage', 'htmlcov/'] },
     ],
   },
-  'python-uv': { gitignore: [] },
   go: {
     gitignore: [
       { heading: 'Binaries', patterns: ['/{{PROJECT_NAME}}', '*.exe', '*.exe~', '*.dll', '*.so', '*.dylib'] },
@@ -82,8 +81,7 @@ export const VERIFY_COMMAND_RULES = [
   { test: (cmd) => cmd.startsWith('npm test'), features: ['jest'] },
   { test: (cmd) => cmd.includes('npm run build'), features: ['node'] },
   { test: (cmd) => cmd.includes('npm run health:full'), features: ['knip', 'jscpd', 'madge'] },
-  { test: (cmd) => cmd.includes('python -m pip'), features: ['python'] },
-  { test: (cmd) => cmd.startsWith('uv sync'), features: ['python', 'python-uv'] },
+  { test: (cmd) => cmd.startsWith('uv '), features: ['python'] },
   { test: (cmd) => cmd.includes('ruff'), features: ['python'] },
   { test: (cmd) => cmd.includes('pytest'), features: ['python'] },
   { test: (cmd) => cmd.includes('mypy'), features: ['python'] },

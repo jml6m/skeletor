@@ -10,7 +10,7 @@ runs the checks on every pull request.
 
 ```bash
 {{VERIFY_COMMANDS}}
-```
+```{{AGENTS_BUILD_AND_TEST}}
 
 ## GitHub repo setup
 

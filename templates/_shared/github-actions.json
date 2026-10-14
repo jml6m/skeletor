@@ -9,6 +9,7 @@
     "actions/setup-java": { "version": "v6.0.1", "sha": "de7274f081f381c8f8158605e0321c36c376e2e6" },
     "actions/setup-dotnet": { "version": "v6.0.0", "sha": "a98b56852c35b8e3190ac28c8c2271da59106c68" },
     "dtolnay/rust-toolchain": { "version": "v1 (2026-10-09)", "sha": "e2a55d2ffb04f378e9626c28d38b36d230d1e12f" },
-    "lycheeverse/lychee-action": { "version": "v2.9.0", "sha": "e7477775783ea5526144ba13e8db5eec57747ce8" }
+    "lycheeverse/lychee-action": { "version": "v2.9.0", "sha": "e7477775783ea5526144ba13e8db5eec57747ce8" },
+    "astral-sh/setup-uv": { "version": "v10.3.0", "sha": "1c37ad07a6a961277cf70c0d37d6f313000f5884" }
   }
 }

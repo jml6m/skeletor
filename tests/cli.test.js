@@ -34,18 +34,11 @@ describe('skeletor CLI pure functions', () => {
     expect(result).not.toHaveProperty('withRecommended');
   });
 
-  test('parseArgs handles --github --private and --uv', () => {
-    const result = parseArgs([
-      'node', 'skeletor', 'new', 'demo',
-      '--template', 'python',
-      '--auto',
-      '--github',
-      '--private',
-      '--uv',
-    ]);
+  test('parseArgs handles --github --private', () => {
+    const result = parseArgs(['node', 'skeletor', 'new', 'demo', '--template', 'python', '--auto', '--github', '--private']);
     expect(result.github).toBe(true);
     expect(result.githubPrivate).toBe(true);
-    expect(result.uv).toBe(true);
+    expect(result).not.toHaveProperty('uv');
   });
 
   test('parseArgs has no --codeowners option', () => {
@@ -79,6 +72,13 @@ describe('skeletor CLI pure functions', () => {
 
   test('buildRenderVars requires owner', () => {
     expect(() => buildRenderVars({ name: 'app' })).toThrow('owner is required');
+  });
+
+  test('buildRenderVars defines no tokens for removed prompts', () => {
+    const vars = buildRenderVars({ name: 'my-app', owner: 'acme' });
+    for (const token of ['AUTHOR', 'AUTHOR_EMAIL', 'PACKAGE_MANAGER', 'GO_LAYOUT', 'RUST_CRATE_TYPE', 'PYTHON_PACKAGE_MANAGER']) {
+      expect(Object.hasOwn(vars, token)).toBe(false);
+    }
   });
 
   test('buildRenderVars includes REPO_URL', () => {

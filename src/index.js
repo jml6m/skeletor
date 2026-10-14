@@ -17,12 +17,6 @@ import {
 } from './interactive-prompts.js';
 import { applyFeatureConfigs } from './features.js';
 import {
-  adjustVerifyCommandsForAnswers,
-  gatherTemplatePrompts,
-  promptForTemplateVars,
-  templatePromptDefaults,
-} from './template-prompts.js';
-import {
   loadPinnedVersions,
   validatePinnedVersionsManifest,
   buildPinTokens,
@@ -70,11 +64,11 @@ new options:
   --no-git              Skip git init
   --github              Create GitHub remote via gh CLI (after git init)
   --private             Use --private with --github (default: public)
-  --uv                  Python: use uv sync instead of pip install (non-interactive)
   --allow-deprecated-template  Allow scaffolding templates marked deprecated in pinned-versions.json
 
-Fixed defaults (not prompted): pinned Python and .NET versions, Maven groupId io.github.<owner>,
-port 3000 (override with PORT), logs/ for log files, initial branch main.
+Fixed defaults (not prompted): pinned Python and .NET versions, uv for Python dependencies,
+Maven groupId io.github.<owner>, port 3000 (override with PORT), logs/ for log files,
+initial branch main.
 License: UNLICENSED unless --github creates a public repo, which is asked (MIT under --auto),
 or library-publishing is applied (MIT).
 
@@ -108,7 +102,6 @@ function parseArgs(argv) {
     git: true,
     github: false,
     githubPrivate: false,
-    uv: false,
     allowDeprecatedTemplate: false,
   };
 
@@ -132,7 +125,6 @@ function parseArgs(argv) {
       else if (a === '--no-git') result.git = false;
       else if (a === '--github') result.github = true;
       else if (a === '--private') result.githubPrivate = true;
-      else if (a === '--uv') result.uv = true;
       else if (a === '--allow-deprecated-template') result.allowDeprecatedTemplate = true;
       else if (!a.startsWith('-') && !result.name) result.name = a;
     }
@@ -176,15 +168,14 @@ function sanitizeIdentifierSegment(value) {
 const DEPENDABOT_ECOSYSTEM_BY_LANGUAGE = {
   javascript: 'npm',
   typescript: 'npm',
-  python: 'pip',
+  python: 'uv',
   go: 'gomod',
   rust: 'cargo',
   java: 'maven',
   csharp: 'nuget',
 };
 
-function dependabotEcosystemFor(language, pythonPackageManager) {
-  if (language === 'python' && pythonPackageManager === 'uv') return 'uv';
+function dependabotEcosystemFor(language) {
   return DEPENDABOT_ECOSYSTEM_BY_LANGUAGE[language] || 'npm';
 }
 
@@ -224,7 +215,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     GO_MODULE: `github.com/${repoOwner}/${name}`,
     REPO_URL: `https://github.com/${repoOwner}/${name}`,
     LICENSE: UNLICENSED,
-    PYTHON_PACKAGE_MANAGER: 'pip',
+    AGENTS_BUILD_AND_TEST: '',
     ...extra,
   };
   return { ...vars, PYPROJECT_LICENSE: pyprojectLicense(vars.LICENSE) };
@@ -300,16 +291,15 @@ function resolveTemplateLayout(templateInfo, layout) {
 }
 
 /** The template's (or layout's) post-scaffold commands, adjusted for prompt answers such as uv. */
-function templateVerifyCommands(templateInfo, layoutId, vars) {
-  const commands = templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [];
-  return adjustVerifyCommandsForAnswers([...commands], vars);
+function templateVerifyCommands(templateInfo, layoutId) {
+  return [...(templateInfo.layouts?.[layoutId]?.verifyCommands || templateInfo.verifyCommands || [])];
 }
 
 function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   const { layoutId, sourceDir } = resolveTemplateLayout(templateInfo, layout);
   copyAndRender(sourceDir, targetDir, vars);
 
-  const sharedVars = { ...vars, VERIFY_COMMANDS: templateVerifyCommands(templateInfo, layoutId, vars).join('\n') };
+  const sharedVars = { ...vars, VERIFY_COMMANDS: templateVerifyCommands(templateInfo, layoutId).join('\n') };
   const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md', 'docs/GITHUB-SETUP.md'];
   for (const file of shared) {
     const dest = path.join(targetDir, file);
@@ -414,7 +404,6 @@ async function chooseTemplateInteractively(templates) {
 }
 
 const DEFAULT_DESCRIPTION = 'A skeletor project.';
-
 async function resolveOwnerForNew(opts, isInteractive) {
   if (opts.owner?.trim()) {
     const ownerError = validateGithubOwner(opts.owner);
@@ -556,17 +545,6 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId);
-  let templateVars = templatePromptDefaults(templatePromptDefs);
-  if (opts.uv && chosenTemplateId === 'python') {
-    templateVars.PYTHON_PACKAGE_MANAGER = 'uv';
-  }
-  if (isInteractive) {
-    const prompted = await promptForTemplateVars(templatePromptDefs);
-    if (p.isCancel(prompted)) { p.cancel('Cancelled.'); process.exit(0); }
-    templateVars = { ...templateVars, ...prompted };
-  }
-
   const license = await resolveLicense(opts, isInteractive, layerOrder);
   if (p.isCancel(license)) { p.cancel('Cancelled.'); process.exit(0); }
 
@@ -604,16 +582,13 @@ async function runNew(opts) {
 
   const pinTokens = buildPinTokens(pinned, templateInfo);
 
-  const dependabotEcosystem = dependabotEcosystemFor(
-    templateInfo.language || chosenTemplateId,
-    templateVars.PYTHON_PACKAGE_MANAGER,
-  );
+  const dependabotEcosystem = dependabotEcosystemFor(templateInfo.language || chosenTemplateId);
   const vars = buildRenderVars({
     name,
     owner: finalOwner,
     description: finalDesc,
     extra: {
-      ...templateVars,
+      ...(templateInfo.agentsBuildAndTest ? { AGENTS_BUILD_AND_TEST: `\n\n${templateInfo.agentsBuildAndTest}` } : {}),
       LICENSE: license,
       ...pinTokens,
       DEPENDABOT_ECOSYSTEM: dependabotEcosystem,
@@ -631,7 +606,7 @@ async function runNew(opts) {
   }
   applyLicense(targetDir, vars);
 
-  let verifyCommands = templateVerifyCommands(templateInfo, layoutId, vars);
+  let verifyCommands = templateVerifyCommands(templateInfo, layoutId);
   let repoLabels = [];
 
   if (layerIds.length) {
