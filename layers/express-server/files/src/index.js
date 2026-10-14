@@ -10,7 +10,11 @@ const { port } = config.system.server;
 
 createApp().listen(port, (error) => {
   if (error) {
-    logger.error('Server failed to start', { port, error: error.message, stack: error.stack });
+    logger.error('Server failed to start', {
+      port,
+      error: error.message,
+      stack: error.stack,
+    });
     process.exitCode = 1;
     return;
   }

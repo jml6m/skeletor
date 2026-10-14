@@ -17,7 +17,9 @@ console.log('▶ Fetching all remotes (prune branches + tags)...');
 try {
   git(['fetch', '--all', '--prune', '--prune-tags', '--tags']);
 } catch {
-  console.error('✖ git fetch failed — see git output above (missing git, auth, or a bad remote).');
+  console.error(
+    '✖ git fetch failed — see git output above (missing git, auth, or a bad remote).'
+  );
   process.exit(1);
 }
 
@@ -26,7 +28,9 @@ try {
   git(['pull', '--ff-only']);
 } catch {
   // git already printed the specific reason (no upstream, diverged, etc.) above.
-  console.error(`✖ Could not fast-forward ${branch} — see git's message above (e.g. no upstream configured, or the branch has diverged). Resolve manually.`);
+  console.error(
+    `✖ Could not fast-forward ${branch} — see git's message above (e.g. no upstream configured, or the branch has diverged). Resolve manually.`
+  );
   process.exit(1);
 }
 

@@ -343,6 +343,13 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
           expect(readme).toMatch(/lint-staged runs Prettier on staged files/);
           expect(readme.match(/v[A-Z]-required/g).every((label) => label === 'vN-required')).toBe(true);
+          // Prettier at its defaults, and a scaffold that is format-clean as generated: the first check after installing.
+          expect(JSON.parse(fs.readFileSync(path.join(targetDir, '.prettierrc.json'), 'utf8'))).toEqual({
+            singleQuote: true,
+            trailingComma: 'es5',
+            plugins: ['prettier-plugin-organize-imports', 'prettier-plugin-pkg'],
+          });
+          expect(readme).not.toMatch(/printWidth|\b165\b/);
         } else {
           expect(agents).not.toContain('## Code conventions');
         }
@@ -352,6 +359,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         const templateChecks = tmpl.layouts?.[tmpl.defaultLayout]?.verifyCommands || tmpl.verifyCommands;
         const own = scaffoldChecks(tmpl, tmpl.defaultLayout, getBaselineLayers(tmpl).map(loadLayerById));
         expect(checks.slice(0, templateChecks.length)).toEqual(templateChecks);
+        if (['javascript', 'typescript'].includes(tmpl.id)) expect(checks.slice(0, 2)).toEqual(['npm install', 'npm run format:check']);
         expect(checks).toEqual([...own.commands, ...own.needRepo]);
         expect(agents).not.toMatch(/git push[^\n]*prohibited/i);
         expect(agents).toContain('push the branch and open a pull request');
@@ -369,7 +377,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 
         const dependabot = fs.readFileSync(path.join(targetDir, '.github', 'dependabot.yml'), 'utf8');
         const ecosystem = { javascript: 'npm', typescript: 'npm', python: 'uv', go: 'gomod', rust: 'cargo', java: 'maven', csharp: 'nuget' }[tmpl.id];
-        expect(dependabot).toContain(`package-ecosystem: "${ecosystem}"`);
+        expect(dependabot).toContain(`package-ecosystem: '${ecosystem}'`);
         expect(dependabot).not.toMatch(/^\s*labels:/m);
         expect(dependabot.includes('ignore:')).toBe(ecosystem === 'npm');
         expect(fs.existsSync(path.join(targetDir, '.python-version'))).toBe(tmpl.language === 'python');

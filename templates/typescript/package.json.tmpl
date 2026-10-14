@@ -1,27 +1,41 @@
 {
   "name": "{{PROJECT_NAME}}",
   "version": "0.1.0",
-  "private": true,
-  "description": "{{DESCRIPTION}}",
-  "main": "dist/index.js",
   "type": "module",
+  "description": "{{DESCRIPTION}}",
   "license": "{{LICENSE}}",
+  "private": true,
+  "engines": {
+    "node": "{{PIN_RUNTIME_NODE_ENGINES}}"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "{{PIN_RUNTIME_NODE_ENGINES}}",
+      "onFail": "error"
+    }
+  },
+  "main": "dist/index.js",
+  "imports": {
+    "#*": "./dist/*"
+  },
   "scripts": {
-    "format": "prettier --write .",
-    "lint": "eslint . --max-warnings 0",
-    "prepare": "husky",
-    "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "health:circular": "madge --circular --extensions ts src",
+    "health:dead": "knip --treat-config-hints-as-errors",
+    "lint": "eslint . --max-warnings 0",
+    "npm:reinstall": "node scripts/reinstall.js",
+    "prepare": "husky",
+    "release:major": "node release.js major",
+    "release:minor": "node release.js minor",
+    "release:patch": "node release.js patch",
+    "report:dupes": "jscpd src",
     "start": "node dist/index.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --verbose",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage --verbose",
-    "release:patch": "node release.js patch",
-    "release:minor": "node release.js minor",
-    "release:major": "node release.js major",
-    "npm:reinstall": "node scripts/reinstall.js",
-    "health:dead": "knip --treat-config-hints-as-errors",
-    "health:circular": "madge --circular --extensions ts src",
-    "report:dupes": "jscpd src"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "{{PIN_ESLINT_JS}}",
@@ -44,20 +58,7 @@
     "typescript": "{{PIN_TYPESCRIPT}}",
     "typescript-eslint": "{{PIN_TYPESCRIPT_ESLINT}}"
   },
-  "imports": {
-    "#*": "./dist/*"
-  },
   "lint-staged": {
     "*.{ts,js,cjs,json,md,yml,yaml}": "prettier --write"
-  },
-  "engines": {
-    "node": "{{PIN_RUNTIME_NODE_ENGINES}}"
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": "{{PIN_RUNTIME_NODE_ENGINES}}",
-      "onFail": "error"
-    }
   }
 }

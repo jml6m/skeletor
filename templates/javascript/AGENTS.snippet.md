@@ -2,8 +2,8 @@
 
 What the tooling enforces. [CI](./.github/workflows/ci.yml) runs every Build & Test check on every PR.
 
-- **Gates**: `npm run lint` (ESLint, fails on any warning), `npm test` (Jest). The pre-commit hook runs Prettier on
-  staged files; `npm run format` formats the whole tree.
+- **Gates**: `npm run format:check` (Prettier), `npm run lint` (ESLint, fails on any warning), `npm test` (Jest).
+  The pre-commit hook runs Prettier on staged files; `npm run format` formats the whole tree.
 - **Imports**: no parent imports (`../`) in `import` or `require()`. Use the `@` aliases (`@config`, `@utils`,
   `@src/...`) or sibling imports (`./`). An alias lives in three places, kept in step: `_moduleAliases` in
   `package.json` (runtime), [jsconfig.json](./jsconfig.json) (ESLint) and [jest.config.js](./jest.config.js).

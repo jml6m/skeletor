@@ -1,11 +1,12 @@
 // @ts-check
 import eslint from '@eslint/js';
-import { defineConfig } from 'eslint/config';
-import tseslint from 'typescript-eslint';
 import unusedImports from 'eslint-plugin-unused-imports';
+import { defineConfig } from 'eslint/config';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-const PARENT_IMPORT_MESSAGE = 'Do not use parent imports. Use subpath imports (e.g. #utils/logger.js, #config/index.js) or sibling imports (./).';
+const PARENT_IMPORT_MESSAGE =
+  'Do not use parent imports. Use subpath imports (e.g. #utils/logger.js, #config/index.js) or sibling imports (./).';
 
 export default defineConfig([
   {
@@ -55,12 +56,16 @@ export default defineConfig([
       'no-restricted-syntax': [
         'warn',
         {
-          selector: "CallExpression[callee.object.name='logger'][callee.property.name=/^(info|warn|error|debug|http|log)$/] > TemplateLiteral:first-child",
+          selector:
+            "CallExpression[callee.object.name='logger'][callee.property.name=/^(info|warn|error|debug|http|log)$/] > TemplateLiteral:first-child",
           message:
             "Avoid template literals in logger messages. Use a static string and pass variables as metadata: logger.info('Event description', { key: value })",
         },
       ],
-      'no-restricted-imports': ['error', { patterns: [{ group: ['../*'], message: PARENT_IMPORT_MESSAGE }] }],
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['../*'], message: PARENT_IMPORT_MESSAGE }] },
+      ],
       'no-restricted-properties': [
         'error',
         {
@@ -71,14 +76,22 @@ export default defineConfig([
         {
           object: 'process',
           property: 'env',
-          message: 'Use #config (or equivalent) instead of process.env directly.',
+          message:
+            'Use #config (or equivalent) instead of process.env directly.',
         },
       ],
 
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'error',
-      'unused-imports/no-unused-vars': ['warn', { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'unused-imports/no-unused-vars': [
+        'warn',
+        {
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
     },
   },
   {

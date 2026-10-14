@@ -20,9 +20,14 @@ function npmAudit(extraArgs) {
   return new Promise((resolve) => {
     // npm audit exits non-zero when vulns exist; capture stdout/stderr regardless.
     // shell:true on Windows so the npm.cmd shim spawns (Node blocks bare .cmd).
-    execFile('npm', ['audit', '--json', ...extraArgs], { maxBuffer: 64 * 1024 * 1024, shell: isWin }, (err, stdout, stderr) => {
-      resolve({ err, out: stdout || '', errOut: stderr || '' });
-    });
+    execFile(
+      'npm',
+      ['audit', '--json', ...extraArgs],
+      { maxBuffer: 64 * 1024 * 1024, shell: isWin },
+      (err, stdout, stderr) => {
+        resolve({ err, out: stdout || '', errOut: stderr || '' });
+      }
+    );
   });
 }
 
@@ -40,7 +45,9 @@ function parse({ err, out, errOut }) {
 // `npm audit` couldn't run at all → always a hard failure.
 function failIfSpawnError(res, label) {
   if (res.spawnError) {
-    console.error(`✖ Could not run the audit gate (${label}): npm failed to start (${res.spawnError}).`);
+    console.error(
+      `✖ Could not run the audit gate (${label}): npm failed to start (${res.spawnError}).`
+    );
     process.exit(1);
   }
 }
@@ -50,7 +57,9 @@ function bailOnNoData(res, label) {
   if (res.unparseable || res.data?.error) {
     const reason = `npm audit produced no usable output (${label}: offline, registry, or malformed data)`;
     if (inCI) {
-      console.error(`✖ ${reason}. Failing because CI is set (the gate must run in CI).`);
+      console.error(
+        `✖ ${reason}. Failing because CI is set (the gate must run in CI).`
+      );
       process.exit(1);
     }
     console.warn(`⚠ ${reason}. Skipping audit gate (local run).`);

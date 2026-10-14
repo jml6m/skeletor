@@ -1,6 +1,9 @@
+import {
+  DEFAULT_LOG_TABLE_SETTINGS,
+  type LogTableSettings,
+} from '#config/logTable.config.js';
 import Table from 'cli-table3';
 import stringWidth from 'string-width';
-import { DEFAULT_LOG_TABLE_SETTINGS, type LogTableSettings } from '#config/logTable.config.js';
 
 const CLI_TABLE_HORIZONTAL_PADDING = 2;
 
@@ -15,7 +18,11 @@ interface ColumnSpec {
 export function resolveTerminalWidth(settings: Partial<LogTableSettings> = {}) {
   const cfg: LogTableSettings = { ...DEFAULT_LOG_TABLE_SETTINGS, ...settings };
 
-  if (cfg.terminalWidth !== undefined && Number.isFinite(cfg.terminalWidth) && cfg.terminalWidth > 0) {
+  if (
+    cfg.terminalWidth !== undefined &&
+    Number.isFinite(cfg.terminalWidth) &&
+    cfg.terminalWidth > 0
+  ) {
     return clampTerminalWidth(cfg.terminalWidth, cfg);
   }
 
@@ -23,7 +30,10 @@ export function resolveTerminalWidth(settings: Partial<LogTableSettings> = {}) {
   // eslint-disable-next-line no-restricted-properties
   const envColumns = Number.parseInt(process.env.COLUMNS || '', 10);
   const stdoutColumns = process.stdout.isTTY ? process.stdout.columns : null;
-  const detected = stdoutColumns || (Number.isFinite(envColumns) ? envColumns : null) || cfg.defaultTerminalWidth;
+  const detected =
+    stdoutColumns ||
+    (Number.isFinite(envColumns) ? envColumns : null) ||
+    cfg.defaultTerminalWidth;
 
   return clampTerminalWidth(detected, cfg);
 }
@@ -64,7 +74,7 @@ export function computeColumnWidths(
   columns: ColumnSpec[],
   rows: Record<string, unknown>[],
   terminalWidth: number,
-  settings: Partial<LogTableSettings> = {},
+  settings: Partial<LogTableSettings> = {}
 ) {
   const cfg = { ...DEFAULT_LOG_TABLE_SETTINGS, ...settings };
   const globalMax = cfg.maxCellWidth;
@@ -72,17 +82,24 @@ export function computeColumnWidths(
   const colWidthBudget = terminalWidth - tableFrameOverhead(columns.length);
   const budget = Math.max(
     columns.reduce((sum) => sum + globalMin, 0),
-    colWidthBudget - columns.length * CLI_TABLE_HORIZONTAL_PADDING,
+    colWidthBudget - columns.length * CLI_TABLE_HORIZONTAL_PADDING
   );
 
   const specs = columns.map((col) => {
     const headerWidth = cellDisplayWidth(col.header);
     const contentWidth = rows.reduce(
       (max, row) => Math.max(max, cellDisplayWidth(row[col.key])),
-      headerWidth,
+      headerWidth
     );
-    const minWidth = Math.max(globalMin, col.minWidth ?? Math.min(contentWidth, headerWidth));
-    const maxWidth = Math.min(globalMax, col.maxWidth ?? globalMax, Math.max(minWidth, contentWidth));
+    const minWidth = Math.max(
+      globalMin,
+      col.minWidth ?? Math.min(contentWidth, headerWidth)
+    );
+    const maxWidth = Math.min(
+      globalMax,
+      col.maxWidth ?? globalMax,
+      Math.max(minWidth, contentWidth)
+    );
     const ideal = Math.max(minWidth, Math.min(maxWidth, contentWidth));
 
     return {
@@ -95,7 +112,9 @@ export function computeColumnWidths(
     };
   });
 
-  const widths: Record<string, number> = Object.fromEntries(specs.map((s) => [s.key, s.minWidth]));
+  const widths: Record<string, number> = Object.fromEntries(
+    specs.map((s) => [s.key, s.minWidth])
+  );
   const idealSum = specs.reduce((sum, s) => sum + s.ideal, 0);
 
   if (idealSum <= budget) {
@@ -119,7 +138,9 @@ export function computeColumnWidths(
   }
 
   let remaining = budget - specs.reduce((sum, s) => sum + s.minWidth, 0);
-  const sorted = [...specs.filter((s) => !s.fixed)].sort((a, b) => b.weight - a.weight || b.ideal - a.ideal);
+  const sorted = [...specs.filter((s) => !s.fixed)].sort(
+    (a, b) => b.weight - a.weight || b.ideal - a.ideal
+  );
 
   for (const spec of sorted) {
     const extra = Math.min(spec.ideal - spec.minWidth, remaining);
@@ -134,14 +155,25 @@ export function computeColumnWidths(
 export function buildLogTable(
   columns: ColumnSpec[],
   rows: Record<string, unknown>[],
-  options: { settings?: Partial<LogTableSettings>; style?: Record<string, string[]>; tableOptions?: object } = {},
+  options: {
+    settings?: Partial<LogTableSettings>;
+    style?: Record<string, string[]>;
+    tableOptions?: object;
+  } = {}
 ) {
   const settings = options.settings || DEFAULT_LOG_TABLE_SETTINGS;
   const terminalWidth = resolveTerminalWidth(settings);
-  const contentWidths = computeColumnWidths(columns, rows, terminalWidth, settings);
+  const contentWidths = computeColumnWidths(
+    columns,
+    rows,
+    terminalWidth,
+    settings
+  );
 
   const table = new Table({
-    head: columns.map((col) => truncateCell(col.header, contentWidths[col.key])),
+    head: columns.map((col) =>
+      truncateCell(col.header, contentWidths[col.key])
+    ),
     colWidths: columns.map((col) => toColWidth(contentWidths[col.key])),
     wordWrap: false,
     style: { head: ['cyan'], ...(options.style || {}) },
@@ -149,7 +181,9 @@ export function buildLogTable(
   });
 
   rows.forEach((row) => {
-    table.push(columns.map((col) => truncateCell(row[col.key], contentWidths[col.key])));
+    table.push(
+      columns.map((col) => truncateCell(row[col.key], contentWidths[col.key]))
+    );
   });
 
   return table.toString();
@@ -158,7 +192,11 @@ export function buildLogTable(
 export function printLogTable(
   columns: ColumnSpec[],
   rows: Record<string, unknown>[],
-  options: { settings?: Partial<LogTableSettings>; style?: Record<string, string[]>; tableOptions?: object } = {},
+  options: {
+    settings?: Partial<LogTableSettings>;
+    style?: Record<string, string[]>;
+    tableOptions?: object;
+  } = {}
 ) {
   const output = buildLogTable(columns, rows, options);
   if (output) process.stdout.write(`${output}\n`);

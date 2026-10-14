@@ -20,6 +20,8 @@ describe('MongoDB memory server', () => {
 
     await items.insertOne({ name: 'example' });
 
-    await expect(items.findOne({ name: 'example' }, { projection: { _id: 0 } })).resolves.toEqual({ name: 'example' });
+    await expect(
+      items.findOne({ name: 'example' }, { projection: { _id: 0 } })
+    ).resolves.toEqual({ name: 'example' });
   });
 });

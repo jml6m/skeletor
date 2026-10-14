@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { formatConfigJson } from './features.js';
 import {
   mergePackageJson,
   detectJsonIndent,
@@ -240,7 +241,7 @@ function addKnipEntries(projectDir, entries) {
   if (!fs.existsSync(knipPath)) return;
   const knip = JSON.parse(fs.readFileSync(knipPath, 'utf8'));
   knip.entry = [...new Set([...(knip.entry || []), ...entries])];
-  fs.writeFileSync(knipPath, `${JSON.stringify(knip, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(knipPath, formatConfigJson(knip), 'utf8');
 }
 
 /**

@@ -1,24 +1,35 @@
 {
   "name": "{{PROJECT_NAME}}",
   "version": "0.1.0",
-  "private": true,
   "description": "{{DESCRIPTION}}",
-  "main": "src/index.js",
   "license": "{{LICENSE}}",
+  "private": true,
+  "engines": {
+    "node": "{{PIN_RUNTIME_NODE_ENGINES}}"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "{{PIN_RUNTIME_NODE_ENGINES}}",
+      "onFail": "error"
+    }
+  },
+  "main": "src/index.js",
   "scripts": {
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "health:circular": "madge --circular --extensions js src",
+    "health:dead": "knip --treat-config-hints-as-errors",
     "lint": "eslint . --max-warnings 0",
+    "npm:reinstall": "node scripts/reinstall.js",
     "prepare": "husky",
+    "release:major": "node release.js major",
+    "release:minor": "node release.js minor",
+    "release:patch": "node release.js patch",
+    "report:dupes": "jscpd src",
     "start": "node src/index.js",
     "test": "jest --verbose",
-    "test:coverage": "jest --coverage --verbose",
-    "release:patch": "node release.js patch",
-    "release:minor": "node release.js minor",
-    "release:major": "node release.js major",
-    "npm:reinstall": "node scripts/reinstall.js",
-    "health:dead": "knip --treat-config-hints-as-errors",
-    "health:circular": "madge --circular --extensions js src",
-    "report:dupes": "jscpd src"
+    "test:coverage": "jest --coverage --verbose"
   },
   "dependencies": {
     "module-alias": "{{PIN_MODULE_ALIAS}}"
@@ -52,15 +63,5 @@
   },
   "lint-staged": {
     "*.{js,json,md,yml,yaml}": "prettier --write"
-  },
-  "engines": {
-    "node": "{{PIN_RUNTIME_NODE_ENGINES}}"
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": "{{PIN_RUNTIME_NODE_ENGINES}}",
-      "onFail": "error"
-    }
   }
 }

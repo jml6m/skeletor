@@ -10,11 +10,13 @@ const fs = require('fs');
 const defaultSystem = {
   platform: process.platform,
   /** @param {string} command */
-  exec: (command) => execSync(command, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }),
+  exec: (command) =>
+    execSync(command, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }),
   /** @param {number} pid @param {NodeJS.Signals} signal */
   kill: (pid, signal) => process.kill(pid, signal),
   /** Blocks without spinning a CPU core, so free-port stays synchronous for `prestart`. */
-  sleep: (/** @type {number} */ ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms),
+  sleep: (/** @type {number} */ ms) =>
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms),
 };
 
 /**
@@ -37,7 +39,9 @@ class LookupToolMissing extends Error {
 
 /** @param {unknown} error */
 function isCommandMissing(error) {
-  const { status, code } = /** @type {{ status?: number, code?: string }} */ (error);
+  const { status, code } = /** @type {{ status?: number, code?: string }} */ (
+    error
+  );
   return status === 127 || code === 'ENOENT';
 }
 
@@ -68,7 +72,8 @@ function parseSsOutput(output, port) {
     const cols = line.trim().split(/\s+/);
     if (cols[0] !== 'LISTEN' || !cols[3]?.endsWith(`:${port}`)) continue;
     const found = [...line.matchAll(/pid=(\d+)/g)].map((m) => Number(m[1]));
-    if (found.length === 0) throw new Error(`port ${port} is in use by a process ss can't identify`);
+    if (found.length === 0)
+      throw new Error(`port ${port} is in use by a process ss can't identify`);
     for (const pid of found) pids.add(pid);
   }
   return [...pids];
@@ -88,7 +93,9 @@ function findPidsOnPort(port, system) {
 
   if (sys.platform === 'win32') {
     const portPattern = new RegExp(`:${port}\\s`);
-    for (const line of run(sys, 'netstat -ano -p tcp', ['netstat']).split(/\r?\n/)) {
+    for (const line of run(sys, 'netstat -ano -p tcp', ['netstat']).split(
+      /\r?\n/
+    )) {
       if (!line.includes('LISTENING') || !portPattern.test(line)) continue;
       const pid = Number(line.trim().split(/\s+/).pop());
       if (Number.isInteger(pid) && pid > 0) pids.add(pid);
@@ -190,7 +197,9 @@ if (require.main === module) {
 
   const port = Number(process.argv[2] || process.env.PORT || 3000);
   if (!Number.isInteger(port) || port <= 0) {
-    console.error('Usage: node scripts/free-port.cjs [port] (defaults to $PORT, then 3000)');
+    console.error(
+      'Usage: node scripts/free-port.cjs [port] (defaults to $PORT, then 3000)'
+    );
     process.exit(1);
   }
 
@@ -200,16 +209,21 @@ if (require.main === module) {
   } catch (error) {
     if (error instanceof LookupToolMissing) {
       // Port-freeing is a convenience: don't block `npm start` on machines without the tools.
-      console.warn(`free-port: can't check port ${port} (${error.message}); skipping`);
+      console.warn(
+        `free-port: can't check port ${port} (${error.message}); skipping`
+      );
       process.exit(0);
     }
-    const message = error instanceof Error ? error.message.trim() : String(error);
+    const message =
+      error instanceof Error ? error.message.trim() : String(error);
     console.error(`Could not check port ${port}: ${message}`);
     process.exit(1);
   }
 
   if (!result.free) {
-    console.error(`Port ${port} is still in use; could not free it automatically`);
+    console.error(
+      `Port ${port} is still in use; could not free it automatically`
+    );
     process.exit(1);
   } else if (result.alreadyFree) {
     console.log(`Port ${port} is already free`);
@@ -220,4 +234,10 @@ if (require.main === module) {
   }
 }
 
-module.exports = { freePort, findPidsOnPort, killPid, parseSsOutput, LookupToolMissing };
+module.exports = {
+  freePort,
+  findPidsOnPort,
+  killPid,
+  parseSsOutput,
+  LookupToolMissing,
+};

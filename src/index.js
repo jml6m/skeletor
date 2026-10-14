@@ -143,7 +143,7 @@ const NPM_HELD_MAJORS = ['typescript', '@types/node', 'eslint', '@eslint/js'];
 function dependabotIgnoreFor(ecosystem) {
   if (ecosystem !== 'npm') return '';
   const entries = NPM_HELD_MAJORS.map(
-    (dep) => `      - dependency-name: "${dep}"\n        update-types: ["version-update:semver-major"]`,
+    (dep) => `      - dependency-name: '${dep}'\n        update-types: ['version-update:semver-major']`,
   );
   return ['', '    # Majors need a deliberate toolchain bump, not a grouped Dependabot PR.', '    ignore:', ...entries].join('\n');
 }

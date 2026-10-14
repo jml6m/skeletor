@@ -51,5 +51,5 @@ tokens, API keys or credentials.
 
 Do **not** commit GitHub App IDs, installation IDs, client IDs/secrets, private keys,
 PATs, tokens, webhook secrets, or Actions secret/variable **values**. Refer to apps by
-slug/name, never by numeric ID. Workflows may reference secret *names* only
+slug/name, never by numeric ID. Workflows may reference secret _names_ only
 (e.g. `${{ secrets.APP_ID }}`).

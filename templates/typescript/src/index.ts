@@ -11,6 +11,8 @@ import logger from '#utils/logger.js';
 // Demonstrate alias + structured logging (no console.log in prod paths)
 logger.info('Application starting', { nodeVersion: process.version });
 
-logger.info('Hello from {{PROJECT_NAME}} (replace me)');
+logger.info('Hello (replace me)', {
+  app: '{{PROJECT_NAME}}',
+});
 
 logger.info('Bootstrap complete');
