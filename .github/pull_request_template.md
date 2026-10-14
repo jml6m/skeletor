@@ -15,8 +15,9 @@ Relates to #
 <!--
   Describe the approach taken to implement these changes.
   Call out anything touching:
-    - src/index.js (generator: parseArgs, copyAndRender, render, manifest loading)
+    - src/args.js (flag parsing) or src/index.js (generator: copyAndRender, render, manifest loading)
     - templates/<language>/ (per-template files, *.tmpl rendering, template.json)
+    - layers/<id>/ (layer.json, emitted files) or bundles.json
     - AGENTS.md (contract changes)
 -->
 
@@ -36,7 +37,7 @@ Relates to #
 
 - [ ] Tests pass (`npm test`)
 - [ ] For any template touched: generated a project and ran its `verifyCommands`
-- [ ] Manual smoke test: `skeletor new <name> --template <lang> --yes --no-git`
+- [ ] Manual smoke test: `node src/index.js new my-app --auto --template <lang> --no-git`
 
 ## Checklist
 

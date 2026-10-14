@@ -1,38 +1,28 @@
 ---
 name: Bug report
-about: Report a defect in the skeletor CLI, a template, or a generated project
+about: Report a defect in the skeletor CLI, a template, a layer, or a generated project
 title: '[BUG] '
 labels: bug
 assignees: ''
 ---
 
+<!--
+  Describe the problem on its own terms: what skeletor did and what it should have done.
+  Reproduce it with a neutral project name (my-app) so anyone can run the same command.
+-->
+
 **Overview**
 A clear and concise description of the failure.
-
-**Environment**
-
-- **skeletor version:** (e.g., 0.1.0-alpha.3 — check `package.json` or `npm ls @jml6m/skeletor`)
-- **Node version:** (e.g., v20.19.0 — `node --version`)
-- **OS:** (e.g., Windows 11, macOS 14, Ubuntu 24.04)
-- **Shell:** (e.g., PowerShell 7, bash, zsh)
-
-**Where does the bug occur?**
-
-- [ ] CLI (`skeletor new`, `skeletor --help`, argument parsing, interactive prompts)
-- [ ] Generator (file copy, `{{TOKEN}}` rendering, `.tmpl` suffix stripping)
-- [ ] A specific template — which one? <!-- e.g. javascript, typescript, python -->
-- [ ] A generated project's `verifyCommands` (install / lint / test / health / build)
-- [ ] Docs / AGENTS.md
 
 **Command run**
 
 ```bash
-# The exact command that triggered the bug
-skeletor new my-app --template typescript --yes --no-git
+# The exact command that triggered the bug, with a neutral project name
+npx @jml6m/skeletor new my-app --auto --template typescript --no-git
 ```
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+What you expected to happen.
 
 **Actual behavior**
 What actually happened.
@@ -43,22 +33,30 @@ What actually happened.
 Paste the relevant stdout / stderr here.
 ```
 
-**Reproduction steps**
+**Reproduction steps** (if the command alone doesn't show it)
 
 1. ...
 2. ...
-3. ...
 
-**Test Context (if applicable)**
-_If this defect was caught by a test suite:_
+**Environment**
 
-- **Failing Test Suite:** (e.g., `tests/generate.test.js`)
-- **Command Run:** `npm test`
-- **Error Output:**
+- **skeletor version:** (e.g., 0.7.0, from `npx @jml6m/skeletor --version`)
+- **Node version:** (e.g., v24.10.0, from `node --version`; skeletor needs Node 22 or later)
+- **OS:** (e.g., Windows 11, macOS 15, Ubuntu 24.04)
+- **Shell:** (e.g., PowerShell 7, bash, zsh)
 
-```text
-Paste the relevant test run output here
-```
+**Where does the bug occur?**
+
+- [ ] CLI (`skeletor new`, `--help`, argument parsing, interactive prompts)
+- [ ] Generator (file copy, `{{TOKEN}}` rendering, `.tmpl` suffix stripping)
+- [ ] A specific template — which one? <!-- e.g. javascript, typescript, python -->
+- [ ] A layer or bundle — which one? <!-- e.g. zod-config, ts-library -->
+- [ ] A generated project's `verifyCommands` (install / lint / test / health / build)
+- [ ] Docs (README.md, AGENTS.md, a generated project's docs)
+
+**Test context (if applicable)**
+_If a skeletor test caught it:_ the failing suite (e.g., `tests/generate.test.js`), the command
+(`npm test`), and its output.
 
 **Additional context**
-<!-- e.g. tree of the generated project, diff between expected and actual file contents, related PRs -->
+<!-- e.g. tree of the generated project, diff between expected and actual file contents -->

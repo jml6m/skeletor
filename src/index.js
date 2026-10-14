@@ -58,18 +58,19 @@ Usage:
   <name> is lowercase kebab-case, starting with a letter (e.g. my-api), at most 64 characters.
 
 new options:
-  --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
-  --layout <name>       Template layout: rust single|lib|workspace, python flat|src
-  --with <id[,id...]>   Feature layers to add (the template's baseline layers are always applied)
-  --bundle <name>       Named feature-layer preset (see bundles.json)
-  --owner <user>        GitHub owner/org (skips auto-detection)
-  --description <text>  Project description (optional)
-  --auto                Non-interactive; requires --template (or a --bundle, which names one)
-  --no-git              Skip git init
-  --github              Create GitHub remote via gh CLI (after git init)
-  --private             Use --private with --github (default: public)
+  -t, --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
+  --layout <name>           Template layout: rust single|lib|workspace, python flat|src
+  --with <id[,id...]>       Feature layers to add, repeatable (baseline layers always apply)
+  --bundle <name>           Named feature-layer preset (listed below)
+  -o, --owner <user>        GitHub owner/org (skips auto-detection)
+  -d, --description <text>  Project description (optional)
+  --auto                    Non-interactive; requires --template (or a --bundle, which names one).
+                            Without a terminal, --auto is required.
+  --no-git                  Skip git init
+  --github                  Create GitHub remote via gh CLI (after git init)
+  --private                 Use --private with --github (default: public)
   --allow-deprecated-template
-                        Allow scaffolding templates marked deprecated in pinned-versions.json
+                            Allow scaffolding templates marked deprecated in pinned-versions.json
 
 Unknown options are rejected. Value options also accept --option=value.
 
@@ -488,7 +489,7 @@ async function runNew(opts) {
 
   if (!chosenTemplateId) {
     if (auto) {
-      logError('❌ --auto requires --template <id>.');
+      logError('❌ --auto requires --template <id> or --bundle <name>.');
       process.exit(1);
     }
     if (!process.stdout.isTTY) {

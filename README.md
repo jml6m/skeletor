@@ -41,18 +41,30 @@ npx @jml6m/skeletor new my-service --auto --template go --owner acme-corp
 
 The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`), at most 64 characters. It becomes the directory, package and repository name, so it is valid for every template. Other names are rejected with a suggestion: interactive runs ask again, `--auto` exits 1.
 
-### Common flags
+### Commands and flags
 
-- `--template <id>` — stack to scaffold
-- `--with <layers>` / `--bundle <name>` — feature layers, on top of the template's baseline layers
-- `--owner <user>` — skips GitHub owner auto-detection
-- `--description <text>` — optional (generic default when omitted)
-- `--auto` — non-interactive; requires `--template`
+```text
+skeletor new <name> [options]
+skeletor --help | -h
+skeletor --version | -v
+```
+
+`skeletor new` options:
+
+- `--template <id>` / `-t` — stack to scaffold
+- `--layout <id>` — template layout: rust `single|lib|workspace`, python `flat|src`
+- `--with <layers>` — comma-separated feature layers, on top of the template's baseline layers; can be repeated
+- `--bundle <name>` — a named set of feature layers (see [Bundles](#bundles)); it also names the template
+- `--owner <user>` / `-o` — skips GitHub owner auto-detection
+- `--description <text>` / `-d` — optional (generic default when omitted)
+- `--auto` — non-interactive; requires `--template` or `--bundle`
 - `--no-git` — skip `git init`. The printed next steps then leave out commands that need a repository and list them separately
 - `--github` / `--private` — create the GitHub repo with `gh`, push the initial commit, seed layer labels, and print the repository's one-time settings (rulesets, merge button). Visibility also sets the license (see [Fixed defaults](#fixed-defaults)). `--github` needs git, and `--private` needs `--github`
-- `--version` / `-v` — print the skeletor version
+- `--allow-deprecated-template` — scaffold a template whose pins are marked `deprecated` in `pinned-versions.json`
 
-Unknown options, removed options (`--with-recommended`, `--codeowners`, `--uv`) and options that don't fit the template (such as `--layout` on a template without layouts, or a layer that doesn't apply to it) are errors. Errors for an unknown template, layout, layer or bundle list the valid ids and suggest the closest one.
+Value options also accept `--option=value`.
+
+Without an interactive terminal (CI, a pipe), `skeletor new` needs `--auto`, or it exits 1. Unknown options, removed options (`--with-recommended`, `--codeowners`, `--uv`) and options that don't fit the template (such as `--layout` on a template without layouts, or a layer that doesn't apply to it) are errors. Errors for an unknown template, layout, layer or bundle list the valid ids and suggest the closest one.
 
 Interactive prompts use **select lists** with `(recommended)` labels.
 
@@ -76,7 +88,7 @@ skeletor sets these itself instead of asking. Change them in the generated proje
 Applied at scaffold time only. Skeletor is a one-shot generator: it writes a project once and leaves nothing of its own behind to track or manage afterward.
 
 - **Baseline layers** are applied to every scaffold of the templates they fit (`baselineLayers` in `template.json`): `governance`, `dependabot` and `issue-templates` everywhere, plus `quality-gates` and `docs-lint` on javascript and typescript.
-- **Feature layers** are opt-in, via `--with` or a `--bundle` (see [Common flags](#common-flags) above). Bundles list feature layers only. Interactive runs without either flag offer a picker of the feature layers that fit the template.
+- **Feature layers** are opt-in, via `--with` or a `--bundle` (see [Commands and flags](#commands-and-flags) above). Bundles list feature layers only. Interactive runs without either flag offer a picker of the feature layers that fit the template.
 
 | Layer | Applies to | Baseline | What it adds |
 |---|---|---|---|
@@ -99,6 +111,18 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 
 `skeletor new --github` also creates the labels that the chosen layers expect (for example `epic`), right after it creates the repo.
 
+### Bundles
+
+A bundle is a named set of feature layers for one template, defined in [bundles.json](./bundles.json). `--bundle` picks the template too, so `--template` is optional with it; if you pass both, they must match.
+
+| Bundle | Template | Feature layers |
+|---|---|---|
+| `node-cli` | javascript | `zod-config`, `logger-winston`, `env-example`, `log-table` |
+| `express-api` | javascript | `zod-config`, `logger-winston`, `env-example`, `free-port`, `express-server` |
+| `cli-report` | javascript | `log-table` |
+| `ts-library` | typescript | `library-publishing` |
+| `ts-native` | typescript | `test-harness:playwright` |
+
 ## Rich interactive CLI
 
 `@clack/prompts` drives template selection, owner detection (git remote → package.json → gh CLI), the few remaining choices, and confirmations.
@@ -113,7 +137,7 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 ## Development
 
 ```bash
-npm install
+npm ci
 npm test                  # fast — generation + contract checks
 npm run test:verify       # full — runs each template's verifyCommands (needs toolchains)
 npm run lint:encoding
