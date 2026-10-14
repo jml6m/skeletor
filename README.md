@@ -28,6 +28,21 @@ Each template declares `verifyCommands` in `template.json`: the scaffold's check
 
 Every check a scaffold emits fails CI when it finds a problem, comes with a layer you opt into (then it's a gate too), or is an on-demand report that never runs in CI (`npm run report:dupes`). The `verify-templates` job runs each template's, layer's and bundle's checks.
 
+## Prerequisites
+
+skeletor runs on Node 22 or later. It uses git for the initial commit (`--no-git` skips it) and an authenticated [GitHub CLI](https://cli.github.com/) (`gh`) for `--github`.
+
+A scaffold's checks need its stack's toolchain:
+
+| Template                   | Toolchain                                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `javascript`, `typescript` | Node 24.15 or later: the scaffold's `engines` and `devEngines` require it, and skeletor warns on an older Node |
+| `python`                   | [uv](https://docs.astral.sh/uv/), which installs the pinned Python                                             |
+| `go`                       | Go 1.27 or later                                                                                               |
+| `rust`                     | Rust stable, with rustfmt and clippy                                                                           |
+| `java`                     | JDK 25 and Maven                                                                                               |
+| `csharp`                   | .NET 10 SDK                                                                                                    |
+
 ## Quick start
 
 ```bash
@@ -61,7 +76,8 @@ skeletor --version | -v
 - `--description <text>` / `-d` — optional (generic default when omitted)
 - `--auto` — non-interactive; requires `--template` or `--bundle`
 - `--no-git` — skip `git init`. The printed next steps then leave out commands that need a repository and list them separately
-- `--github` / `--private` — create the GitHub repo with `gh`, push the initial commit, seed layer labels, and print the repository's one-time settings (rulesets, merge button). Visibility also sets the license (see [Fixed defaults](#fixed-defaults)). `--github` needs git, and `--private` needs `--github`
+- `--github` — create the GitHub repository with `gh`, push the initial commit, seed layer labels, and print the repository's one-time settings (rulesets, merge button). Needs git. Visibility also sets the license (see [Fixed defaults](#fixed-defaults))
+- `--private` — make the `--github` repository private (default: public); needs `--github`
 - `--allow-deprecated-template` — scaffold a template whose pins are marked `deprecated` in `pinned-versions.json`
 
 Value options also accept `--option=value`.

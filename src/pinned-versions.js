@@ -232,6 +232,24 @@ export function checkTemplateGenerationAllowed(pinned, opts = {}) {
 }
 
 /**
+ * A warning when the running Node is older than the floor of the template's pinned engines range
+ * (`>=X.Y.Z`): the scaffold's package.json enforces it, so its first `npm install` would fail.
+ * @param {object|null} pinned
+ * @param {string} templateName
+ * @param {string} [current] the running Node version
+ * @returns {string | null}
+ */
+export function nodeVersionWarning(pinned, templateName, current = process.versions.node) {
+  const floor = pinned?.runtime?.node?.engines?.match(/^>=\s*(\d+(?:\.\d+){0,2})$/)?.[1];
+  if (!floor) return null;
+  const parts = (v) => [...v.split('.').map(Number), 0, 0].slice(0, 3);
+  const [want, have] = [parts(floor), parts(current)];
+  const i = want.findIndex((n, j) => n !== have[j]);
+  if (i === -1 || have[i] > want[i]) return null;
+  return `${templateName} scaffolds need Node ${pinned.runtime.node.engines} (their package.json engines); this is Node ${current}, so npm install fails until you switch.`;
+}
+
+/**
  * Find {{PIN_*}} tokens in template tree and ensure they are defined.
  * @param {string} templateDir
  * @param {object} pinned

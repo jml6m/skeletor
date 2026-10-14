@@ -8,6 +8,7 @@ import {
   buildPinTokens,
   checkTemplateGenerationAllowed,
   formatPinnedSpec,
+  nodeVersionWarning,
   packageNameToToken,
   validatePinnedVersionsManifest,
   validatePinTokenCoverage,
@@ -95,6 +96,28 @@ describe('pinned-versions', () => {
     } finally {
       if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true });
     }
+  });
+
+  test('a Node older than the pinned engines floor gets a warning', () => {
+    const pinned = { runtime: { node: { engines: '>=24.15.0' } } };
+    expect(nodeVersionWarning(pinned, 'TypeScript', '22.20.0')).toBe(
+      'TypeScript scaffolds need Node >=24.15.0 (their package.json engines); this is Node 22.20.0, so npm install fails until you switch.'
+    );
+    expect(nodeVersionWarning(pinned, 'TypeScript', '24.14.9')).toMatch(/this is Node 24\.14\.9/);
+    for (const version of ['24.15.0', '24.21.0', '25.0.0']) expect(nodeVersionWarning(pinned, 'TypeScript', version)).toBeNull();
+    expect(nodeVersionWarning({ runtime: { go: { version: '1.27.0' } } }, 'Go', '22.0.0')).toBeNull();
+  });
+
+  test("README's prerequisites name the pinned toolchains", () => {
+    const readme = fs.readFileSync(path.join(path.dirname(templates[0].dir), '..', 'README.md'), 'utf8');
+    const section = readme.slice(readme.indexOf('## Prerequisites'), readme.indexOf('## Quick start'));
+    const runtime = (id) => JSON.parse(fs.readFileSync(path.join(templates.find((t) => t.id === id).dir, 'pinned-versions.json'), 'utf8')).runtime;
+    for (const id of ['javascript', 'typescript']) {
+      expect(section).toContain(`Node ${runtime(id).node.engines.match(/>=(\d+\.\d+)/)[1]} or later`);
+    }
+    expect(section).toContain(`Go ${runtime('go').go.version.split('.').slice(0, 2).join('.')} or later`);
+    expect(section).toContain(`JDK ${runtime('java').java.version} and Maven`);
+    expect(section).toContain(`.NET ${runtime('csharp').dotnet.version.split('.')[0]} SDK`);
   });
 
   test('runtime pin tokens take major.minor from the pinned runtimes', () => {

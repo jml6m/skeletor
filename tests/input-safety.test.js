@@ -168,7 +168,10 @@ describe('description', () => {
 const describePosix = process.platform === 'win32' ? describe.skip : describe;
 
 describePosix('--github', () => {
-  test('passes owner/name to gh as one argument, without a shell', () => {
+  test.each([
+    [[], 'public'],
+    [['--private'], 'private'],
+  ])('passes owner/name to gh as one argument, without a shell (%j)', (flags, visibility) => {
     const root = tempDir('skeletor-gh-');
     const bin = path.join(root, 'bin');
     const log = path.join(root, 'gh.log');
@@ -185,8 +188,9 @@ describePosix('--github', () => {
     });
     fs.writeFileSync(env.GIT_CONFIG_GLOBAL, '');
     try {
-      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--owner', 'my-org', '--auto', '--github'], root, env);
+      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--owner', 'my-org', '--auto', '--github', ...flags], root, env);
       expect(status).toBe(0);
+      expect(output).toContain(`GitHub repository created: my-org/my-app (${visibility})`);
       // The repository exists, so the one-time settings print in full, requiring the scaffold's CI job.
       expect(output).toContain('One-time GitHub settings for my-org/my-app.');
       expect(output).toContain('{ "context": "ci" }');
@@ -195,7 +199,7 @@ describePosix('--github', () => {
         .split('---\n')
         .filter(Boolean)
         .map((c) => c.trimEnd().split('\n'));
-      expect(calls).toContainEqual(['repo', 'create', 'my-org/my-app', '--public', '--source=.', '--remote=origin']);
+      expect(calls).toContainEqual(['repo', 'create', 'my-org/my-app', `--${visibility}`, '--source=.', '--remote=origin']);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
@@ -246,6 +250,19 @@ describePosix('--github', () => {
       expect(output).toContain('gh repo create failed: HTTP 403');
       expect(output).toContain('the GitHub repository was not created');
       expect(output).toContain('Layers expect these labels on GitHub: epic.');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('under --auto, a detected owner is printed with where it came from', () => {
+    const root = tempDir('skeletor-owner-');
+    const env = ghStubEnv(root, 'exit 1', '');
+    try {
+      fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ repository: 'https://github.com/pkg-owner/x' }));
+      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--auto', '--no-git'], root, env);
+      expect(status).toBe(0);
+      expect(output).toContain(`Owner: pkg-owner (from package.json in ${fs.realpathSync(root)})`);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

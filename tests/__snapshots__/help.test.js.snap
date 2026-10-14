@@ -20,8 +20,9 @@ new options:
   --auto                    Non-interactive; requires --template (or a --bundle, which names one).
                             Without a terminal, --auto is required.
   --no-git                  Skip git init
-  --github                  Create GitHub remote via gh CLI (after git init)
-  --private                 Use --private with --github (default: public)
+  --github                  Create the GitHub repository with gh, push the initial commit,
+                            seed layer labels and print the one-time repository settings
+  --private                 Make the --github repository private (default: public)
   --allow-deprecated-template
                             Allow scaffolding templates marked deprecated in pinned-versions.json
 
