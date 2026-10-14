@@ -38,6 +38,7 @@ import { appendReadmeLicense, pyprojectLicense, removeSpdxLicenseFields, resolve
 import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
 import { parseArgs, UsageError } from './args.js';
 import { unknownIdMessage } from './suggest.js';
+import { collectPullRequestChecks, githubSetupLines } from './github-setup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -266,7 +267,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   copyAndRender(sourceDir, targetDir, vars);
 
   const sharedVars = { ...vars, VERIFY_COMMANDS: templateVerifyCommands(templateInfo, layoutId).join('\n') };
-  const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md', 'docs/GITHUB-SETUP.md'];
+  const shared = ['AGENTS.md', 'CLAUDE.md', 'README.md'];
   for (const file of shared) {
     const dest = path.join(targetDir, file);
     if (fs.existsSync(dest)) continue;
@@ -634,6 +635,7 @@ async function runNew(opts) {
   }
 
   let hasRepo = false;
+  let repoCreated = false;
   if (git) {
     try {
       const env = gitEnv();
@@ -644,7 +646,7 @@ async function runNew(opts) {
       run(['commit', '-q', '-m', 'chore: initial commit from skeletor']);
       p.log.success('Git repository initialized');
       if (opts.github) {
-        createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels, env);
+        repoCreated = createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels, env);
       }
     } catch {
       p.log.warn('Git init skipped (git not available or failed)');
@@ -656,11 +658,14 @@ async function runNew(opts) {
   }
 
   p.outro('✅ Done!');
-  if (hasRepo) {
-    printPostScaffoldSteps(name, [...new Set([...verifyCommands, ...gitVerifyCommands])]);
-  } else {
-    printPostScaffoldSteps(name, verifyCommands, gitVerifyCommands);
-  }
+  // Only once --github has created the repository they apply to.
+  const githubSetup = repoCreated ? githubSetupLines({ repo: `${finalOwner}/${name}`, ...collectPullRequestChecks(targetDir) }) : [];
+  printPostScaffoldSteps(
+    name,
+    hasRepo ? [...new Set([...verifyCommands, ...gitVerifyCommands])] : verifyCommands,
+    hasRepo ? [] : gitVerifyCommands,
+    githubSetup,
+  );
 }
 
 /** The labels applied layers expect, with the commands that create them when --github didn't. */
@@ -688,7 +693,7 @@ function createGithubRemote(targetDir, name, owner, isPrivate, labels, env) {
     execFileSync('gh', ['--version'], { stdio: 'ignore' });
   } catch {
     p.log.warn('gh CLI not available — skipping --github remote creation');
-    return;
+    return false;
   }
   const visibility = isPrivate ? '--private' : '--public';
   try {
@@ -705,9 +710,11 @@ function createGithubRemote(targetDir, name, owner, isPrivate, labels, env) {
       p.log.warn('Remote created but push failed — run: git push -u origin HEAD');
     }
     seedGithubLabels(targetDir, `${owner}/${name}`, labels, env);
+    return true;
   } catch (e) {
     const msg = e.stderr?.toString() || e.message || String(e);
     p.log.warn(`gh repo create failed: ${msg.trim()}`);
+    return false;
   }
 }
 
@@ -737,8 +744,9 @@ function seedGithubLabels(targetDir, repo, labels, env) {
  * @param {string} projectName
  * @param {string[]} verifyCommands commands that work in the generated project as it is
  * @param {string[]} [needRepo] commands that need a git repository, for a scaffold without one
+ * @param {string[]} [githubSetup] the one-time GitHub settings, after --github created the repository
  */
-function printPostScaffoldSteps(projectName, verifyCommands, needRepo = []) {
+function printPostScaffoldSteps(projectName, verifyCommands, needRepo = [], githubSetup = []) {
   console.log(`   cd ${projectName}`);
   const steps = Array.isArray(verifyCommands) && verifyCommands.length
     ? verifyCommands
@@ -749,6 +757,7 @@ function printPostScaffoldSteps(projectName, verifyCommands, needRepo = []) {
     console.log('   Once the project is a git repository (git init && git add -A):');
     needRepo.forEach((cmd) => console.log(`     ${cmd}`));
   }
+  if (githubSetup.length) console.log(`\n${githubSetup.join('\n')}`);
   console.log('\n   Edit AGENTS.md (or equivalent) to customize the AI contract.');
   console.log('   Happy scaffolding. Your rules, your choice of stack.\n');
 }

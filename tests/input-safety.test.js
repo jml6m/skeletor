@@ -187,8 +187,11 @@ describePosix('--github', () => {
     });
     fs.writeFileSync(env.GIT_CONFIG_GLOBAL, '');
     try {
-      const { status } = runCli(['new', 'my-app', '--template', 'go', '--owner', 'my-org', '--auto', '--github'], root, env);
+      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--owner', 'my-org', '--auto', '--github'], root, env);
       expect(status).toBe(0);
+      // The repository exists, so the one-time settings print in full, requiring the scaffold's CI job.
+      expect(output).toContain('One-time GitHub settings for my-org/my-app.');
+      expect(output).toContain('{ "context": "ci" }');
       const calls = fs.readFileSync(log, 'utf8').split('---\n').filter(Boolean).map((c) => c.trimEnd().split('\n'));
       expect(calls).toContainEqual(['repo', 'create', 'my-org/my-app', '--public', '--source=.', '--remote=origin']);
     } finally {

@@ -99,8 +99,8 @@ function listFilesRecursive(dir) {
   return results;
 }
 
-// A scaffold's Markdown is README, AGENTS and CLAUDE, plus forms and setup notes; anything else is a doc to keep true by hand (#94).
-const SCAFFOLD_MARKDOWN = /^(README|AGENTS|CLAUDE)\.md$|^docs\/GITHUB-SETUP\.md$|^\.github\/ISSUE_TEMPLATE\/[\w-]+\.md$/;
+// A scaffold's Markdown is README, AGENTS and CLAUDE, plus issue forms; anything else is a doc to keep true by hand (#94).
+const SCAFFOLD_MARKDOWN = /^(README|AGENTS|CLAUDE)\.md$|^\.github\/ISSUE_TEMPLATE\/[\w-]+\.md$/;
 
 function expectLeanDocs(targetDir, allFiles) {
   const markdown = allFiles.map((f) => f.split(path.sep).join('/')).filter((f) => f.endsWith('.md'));
@@ -244,6 +244,8 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         expect(fs.existsSync(path.join(targetDir, 'template.json'))).toBe(false);
         expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
         expect(fs.existsSync(path.join(targetDir, '.github', 'CODEOWNERS'))).toBe(false);
+        // Repository settings are printed by skeletor, not committed where they would drift.
+        expect(allFiles.filter((f) => /GITHUB-SETUP/.test(f) || /GITHUB-SETUP/.test(fs.readFileSync(path.join(targetDir, f), 'utf8')))).toEqual([]);
 
         // Assert the expected unsuffixed manifest exists for this template.
         const manifest = expectedManifest[tmpl.id];

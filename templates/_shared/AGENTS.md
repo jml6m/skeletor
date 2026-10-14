@@ -12,12 +12,6 @@ runs the checks on every pull request.
 {{VERIFY_COMMANDS}}
 ```{{AGENTS_BUILD_AND_TEST}}
 
-## GitHub repo setup
-
-Branch ruleset, merge-button config, and tag protection are GitHub.com settings —
-skeletor doesn't touch them. See [docs/GITHUB-SETUP.md](./docs/GITHUB-SETUP.md)
-for a one-time checklist to run after your first push.
-
 ## Branch & ref hygiene
 
 - Squash-merge PRs and let GitHub delete merged branches automatically.
