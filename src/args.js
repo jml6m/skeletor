@@ -37,7 +37,8 @@ export const REMOVED_FLAGS = {
 const HELP_FLAGS = ['--help', '-h'];
 const VERSION_FLAGS = ['--version', '-v'];
 const COMMANDS = ['new'];
-const KNOWN_FLAGS = [...Object.keys(VALUE_FLAGS), ...Object.keys(BOOLEAN_FLAGS), ...HELP_FLAGS, ...VERSION_FLAGS];
+/** Every flag `skeletor new` accepts, aliases included, plus --help and --version. */
+export const KNOWN_FLAGS = [...Object.keys(VALUE_FLAGS), ...Object.keys(BOOLEAN_FLAGS), ...HELP_FLAGS, ...VERSION_FLAGS];
 
 function parseCommaList(value) {
   return value.split(',').map((s) => s.trim()).filter(Boolean);

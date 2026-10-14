@@ -29,4 +29,3 @@ ignores:
   # still checked by lychee, which does not honor this list.
   - 'AGENTS.md'
   - 'CLAUDE.md'
-  - '.github/copilot-instructions.md'
