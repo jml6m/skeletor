@@ -1,11 +1,11 @@
 // `skeletor --help` is the CLI's own list of commands and flags; README must document each of them.
 process.env.SKELETOR_CLI_TEST = '1';
 
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execFileSync } from 'child_process';
 import { KNOWN_FLAGS } from '../src/args.js';
 import { getTemplatesWithManifests } from '../src/index.js';
 import { getLayersWithManifests, loadBundles } from '../src/layers.js';
@@ -52,12 +52,7 @@ describe('skeletor --help', () => {
   });
 
   test('every command, template, layer and bundle in --help is documented in README', () => {
-    const ids = [
-      'skeletor new',
-      ...getTemplatesWithManifests().map((t) => t.id),
-      ...getLayersWithManifests().map((l) => l.id),
-      ...Object.keys(loadBundles()),
-    ];
+    const ids = ['skeletor new', ...getTemplatesWithManifests().map((t) => t.id), ...getLayersWithManifests().map((l) => l.id), ...Object.keys(loadBundles())];
     for (const id of ids) expect(help).toContain(id);
     expect(ids.filter((id) => !readmeMentions(id))).toEqual([]);
   });
@@ -65,7 +60,9 @@ describe('skeletor --help', () => {
 
 describe('without an interactive terminal', () => {
   let cwd;
-  beforeEach(() => { cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-help-')); });
+  beforeEach(() => {
+    cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-help-'));
+  });
   afterEach(() => fs.rmSync(cwd, { recursive: true, force: true }));
 
   test.each([

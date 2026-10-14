@@ -63,10 +63,7 @@ const full = parse(await npmAudit([]));
 failIfSpawnError(full, 'full');
 bailOnNoData(full, 'full audit');
 const all = full.data?.metadata?.vulnerabilities || {};
-console.log(
-  `All advisories — critical: ${all.critical || 0}, high: ${all.high || 0}, ` +
-    `moderate: ${all.moderate || 0}, low: ${all.low || 0}.`
-);
+console.log(`All advisories — critical: ${all.critical || 0}, high: ${all.high || 0}, ` + `moderate: ${all.moderate || 0}, low: ${all.low || 0}.`);
 
 // Production-only audit — this is what gates the build.
 const prod = parse(await npmAudit(['--omit=dev']));
@@ -75,10 +72,7 @@ bailOnNoData(prod, 'production audit');
 const pv = prod.data?.metadata?.vulnerabilities || {};
 const critical = pv.critical || 0;
 const high = pv.high || 0;
-console.log(
-  `Production dependencies — critical: ${critical}, high: ${high} ` +
-    `(only these gate the build; dev-only advisories above are reported, not gated).`
-);
+console.log(`Production dependencies — critical: ${critical}, high: ${high} ` + `(only these gate the build; dev-only advisories above are reported, not gated).`);
 
 if (critical + high > 0) {
   console.error(

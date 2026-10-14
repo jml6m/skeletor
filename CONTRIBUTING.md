@@ -32,6 +32,11 @@ npm ci
 npm test               # generation + manifest contract checks
 npm run test:verify    # full: runs each template's verifyCommands (needs the toolchains)
 SKELETOR_VERIFY_SHARD=go npm run test:verify   # one shard: a template id, or <javascript|typescript>-<layers|bundles>
+npm run lint           # ESLint; any warning fails
+npm run format:check   # Prettier (npm run format writes)
+npm run typecheck      # tsc with checkJs (jsconfig.json)
+npm run health:dead    # knip: unused files, exports and dependencies
+npm run health:circular   # madge: circular imports in src/
 npm run lint:encoding
 npm run lint:agents    # AGENTS.md and CLAUDE.md length cap
 npm run lint:docs      # markdownlint
@@ -39,13 +44,21 @@ npm run audit:ci       # dependency security audit (mirrors the Audit CI workflo
 ```
 
 CI runs `npm run lint:encoding` and `npm test` on Node 22 and 24, and the template verify suite
-(`npm run test:verify`, sharded by the templates a change touches) on Node 24 only. It also runs a
-dependency security audit and the docs checks: links, Markdown format, the AGENTS.md and CLAUDE.md
-length cap, and the Markdown allowlist.
+(`npm run test:verify`, sharded by the templates a change touches) on Node 24 only. Its `checks`
+job runs lint, format, typecheck, knip and madge on Node 24. It also runs a dependency security
+audit and the docs checks: links, Markdown format, the AGENTS.md and CLAUDE.md length cap, and the
+Markdown allowlist. `templates/` and `layers/` are fixtures: these checks skip them, and the verify
+suite checks the projects they generate.
 
-In a clone, `npm ci` enables a pre-push hook ([`.husky/pre-push`](./.husky/pre-push)) that
-runs `npm run lint` and `npm test`. `git push --no-verify` skips it; that's a deliberate choice, and
-CI still runs everything.
+ESLint uses the recommended rules with Node and Jest globals, and fails on unused variables (an
+`_` prefix marks one as intended) and on `todo`/`fixme`/`xxx`/`hack` comments (file an issue
+instead). Inline `eslint-disable` comments are turned off; a rule that needs an exception is
+narrowed in [eslint.config.js](./eslint.config.js).
+
+In a clone, `npm ci` enables two hooks. Pre-commit ([`.husky/pre-commit`](./.husky/pre-commit))
+runs ESLint and Prettier on staged files. Pre-push ([`.husky/pre-push`](./.husky/pre-push)) runs
+lint, typecheck, knip and the unit tests. madge runs in CI only. `--no-verify` skips a hook; that's a
+deliberate choice, and CI still runs everything.
 
 ## PR conventions
 

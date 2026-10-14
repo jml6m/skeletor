@@ -3,14 +3,14 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { LIMITS } from '../scripts/check-agent-file-length.mjs';
+import { bundleShard, layerShard, listShards, selectedShard, shardsForChanges } from '../scripts/verify-shards.mjs';
+import { scaffoldChecks } from '../src/checks.js';
+import { getBaselineLayers, getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
+import { loadBundles, loadLayerById } from '../src/layers.js';
 
 // We import the enriched template discovery (pure + side-effect guarded)
 process.env.SKELETOR_CLI_TEST = '1';
-import { getBaselineLayers, getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
-import { scaffoldChecks } from '../src/checks.js';
-import { loadBundles, loadLayerById } from '../src/layers.js';
-import { bundleShard, layerShard, listShards, selectedShard, shardsForChanges } from '../scripts/verify-shards.mjs';
-import { LIMITS } from '../scripts/check-agent-file-length.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,12 +71,11 @@ function runCommands(projectDir, commands) {
         env,
         stdio: 'pipe',
         timeout: 300000,
-        shell: true,
       });
     } catch (e) {
       const output = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
       // Re-throw with context so the test failure is informative
-      throw new Error(`Command failed: ${cmd}\n${output}`);
+      throw new Error(`Command failed: ${cmd}\n${output}`, { cause: e });
     }
   }
 }
@@ -184,10 +183,20 @@ const templateCases = allTemplates.map((tmpl) => ({ label: `${tmpl.id} template`
 const layoutCases = allTemplates.flatMap((tmpl) =>
   Object.entries(tmpl.layouts || {})
     .filter(([id]) => id !== (tmpl.defaultLayout || Object.keys(tmpl.layouts)[0]))
-    .map(([id, layout]) => ({ label: `${tmpl.id} --layout ${id}`, shard: tmpl.id, tmpl, id, layout })),
+    .map(([id, layout]) => ({ label: `${tmpl.id} --layout ${id}`, shard: tmpl.id, tmpl, id, layout }))
 );
 
-const OPTIONAL_LAYERS = ['free-port', 'express-server', 'log-table', 'logger-winston', 'test-harness:mongo-memory', 'test-harness:playwright', 'library-publishing', 'docs-policy', 'issue-labels'];
+const OPTIONAL_LAYERS = [
+  'free-port',
+  'express-server',
+  'log-table',
+  'logger-winston',
+  'test-harness:mongo-memory',
+  'test-harness:playwright',
+  'library-publishing',
+  'docs-policy',
+  'issue-labels',
+];
 const jsTsTemplates = allTemplates.filter((t) => ['javascript', 'typescript'].includes(t.id));
 
 const optionalCases = [
@@ -197,7 +206,7 @@ const optionalCases = [
       shard: layerShard(tmpl.id),
       tmpl,
       opts: { withLayers: [id] },
-    })),
+    }))
   ),
   ...Object.entries(loadBundles()).map(([bundle, def]) => ({
     label: `bundle ${bundle}`,
@@ -227,7 +236,16 @@ describe('verify shards', () => {
 
   test('changed files map to the shards they affect', () => {
     expect(shardsForChanges(['README.md', 'docs/x.md', '.github/workflows/docs-lint.yml'])).toEqual([]);
-    for (const shared of ['src/index.js', 'layers/free-port/layer.json', 'templates/_shared/AGENTS.md', 'bundles.json', 'package-lock.json', 'scripts/run-verify-tests.mjs', 'tests/generate.test.js', '.github/workflows/ci.yml']) {
+    for (const shared of [
+      'src/index.js',
+      'layers/free-port/layer.json',
+      'templates/_shared/AGENTS.md',
+      'bundles.json',
+      'package-lock.json',
+      'scripts/run-verify-tests.mjs',
+      'tests/generate.test.js',
+      '.github/workflows/ci.yml',
+    ]) {
       expect(shardsForChanges(['README.md', shared])).toEqual(shards);
     }
     expect(shardsForChanges(['templates/go/go.mod.tmpl'])).toEqual(['go']);
@@ -436,7 +454,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
     let threw = false;
     try {
       runCli(`new "${name}" --auto --template go --no-git`, tempRoot);
-    } catch (e) {
+    } catch {
       threw = true;
     } finally {
       const stillThere = fs.existsSync(path.join(dir, 'existing.txt'));
@@ -454,32 +472,44 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
 });
 
 describe('non-default template layouts', () => {
-  layoutCases.filter(inShard).forEach(({ tmpl, id, layout }) => test(`generates and verifies ${tmpl.id} --layout ${id}`, async () => {
-    const name = makeTempProjectName(`gen-${tmpl.id}-${id}`);
-    const targetDir = path.resolve(process.cwd(), name);
-    try {
-      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', description: DESCRIPTION, auto: true, git: false, withLayers: [] });
-      const agents = expectLeanDocs(targetDir, listFilesRecursive(targetDir));
-      const checks = expectChecksAgree(targetDir, agents);
-      expect(checks).toEqual(layout.verifyCommands || tmpl.verifyCommands);
-      expect(fs.existsSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'))).toBe(true);
-      if (tmpl.id === 'rust') {
-        const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
-        expect(readme).not.toContain('binary crate');
-        expect(readme).toContain(id === 'lib' ? 'A library crate' : 'A Cargo workspace');
-        for (const cmd of tmpl.verifyCommands) expect(readme).toContain(cmd);
+  layoutCases.filter(inShard).forEach(({ tmpl, id, layout }) =>
+    test(`generates and verifies ${tmpl.id} --layout ${id}`, async () => {
+      const name = makeTempProjectName(`gen-${tmpl.id}-${id}`);
+      const targetDir = path.resolve(process.cwd(), name);
+      try {
+        await runNewProgrammatic({
+          command: 'new',
+          name,
+          template: tmpl.id,
+          layout: id,
+          owner: 'tbra-owner',
+          description: DESCRIPTION,
+          auto: true,
+          git: false,
+          withLayers: [],
+        });
+        const agents = expectLeanDocs(targetDir, listFilesRecursive(targetDir));
+        const checks = expectChecksAgree(targetDir, agents);
+        expect(checks).toEqual(layout.verifyCommands || tmpl.verifyCommands);
+        expect(fs.existsSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'))).toBe(true);
+        if (tmpl.id === 'rust') {
+          const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
+          expect(readme).not.toContain('binary crate');
+          expect(readme).toContain(id === 'lib' ? 'A library crate' : 'A Cargo workspace');
+          for (const cmd of tmpl.verifyCommands) expect(readme).toContain(cmd);
+        }
+        if (tmpl.id === 'python' && id === 'src') {
+          expect(fs.existsSync(path.join(targetDir, 'src', 'app', 'main.py'))).toBe(true);
+          expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(false);
+        }
+        if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
+          runVerifyCommands(targetDir, checks);
+        }
+      } finally {
+        cleanup(targetDir);
       }
-      if (tmpl.id === 'python' && id === 'src') {
-        expect(fs.existsSync(path.join(targetDir, 'src', 'app', 'main.py'))).toBe(true);
-        expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(false);
-      }
-      if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
-        runVerifyCommands(targetDir, checks);
-      }
-    } finally {
-      cleanup(targetDir);
-    }
-  }));
+    })
+  );
 
   test('python defaults to the flat layout (scripts at the repo root, no packaging)', async () => {
     const name = makeTempProjectName('gen-python-flat');
@@ -493,9 +523,7 @@ describe('non-default template layouts', () => {
       expect(pyproject).not.toContain('[build-system]');
       expect(pyproject).not.toMatch(/^license\b/m);
 
-      const pinnedPython = JSON.parse(
-        fs.readFileSync(path.join(ROOT, 'templates', 'python', 'pinned-versions.json'), 'utf8'),
-      ).runtime.python.version;
+      const pinnedPython = JSON.parse(fs.readFileSync(path.join(ROOT, 'templates', 'python', 'pinned-versions.json'), 'utf8')).runtime.python.version;
       expect(fs.readFileSync(path.join(targetDir, '.python-version'), 'utf8').trim()).toBe(pinnedPython);
       expect(pyproject).toContain(`requires-python = ">=${pinnedPython}"`);
       expect(pyproject).toContain(`target-version = "py${pinnedPython.replace('.', '')}"`);
@@ -538,31 +566,33 @@ describe('non-default template layouts', () => {
 });
 
 describe('optional layers and bundles', () => {
-  optionalCases.filter(inShard).forEach(({ label, tmpl, opts }) => test(`${label} scaffolds and verifies`, async () => {
-    const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
-    const targetDir = path.resolve(process.cwd(), name);
-    try {
-      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, owner: 'tbra-owner', auto: true, git: false, withLayers: [], ...opts });
-      const allFiles = listFilesRecursive(targetDir);
-      for (const rel of allFiles) {
-        expect({ rel, unresolved: fs.readFileSync(path.join(targetDir, rel), 'utf8').match(/\{\{[A-Z][A-Z0-9_]*\}\}/g) }).toEqual({ rel, unresolved: null });
+  optionalCases.filter(inShard).forEach(({ label, tmpl, opts }) =>
+    test(`${label} scaffolds and verifies`, async () => {
+      const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
+      const targetDir = path.resolve(process.cwd(), name);
+      try {
+        await runNewProgrammatic({ command: 'new', name, template: tmpl.id, owner: 'tbra-owner', auto: true, git: false, withLayers: [], ...opts });
+        const allFiles = listFilesRecursive(targetDir);
+        for (const rel of allFiles) {
+          expect({ rel, unresolved: fs.readFileSync(path.join(targetDir, rel), 'utf8').match(/\{\{[A-Z][A-Z0-9_]*\}\}/g) }).toEqual({ rel, unresolved: null });
+        }
+        const agents = expectLeanDocs(targetDir, allFiles);
+        const layers = opts.withLayers?.length ? opts.withLayers : loadBundles()[opts.bundle]?.layers || [];
+        if (layers.includes('log-table')) {
+          expect(agents).toContain('## Log tables');
+          expect(agents).toMatch(/display width[\s\S]*--json/i);
+        }
+        const checks = expectChecksAgree(targetDir, agents);
+        for (const id of layers) {
+          const layer = loadLayerById(id);
+          expect(checks).toEqual(expect.arrayContaining([...(layer.verifyCommands || []), ...(layer.gitVerifyCommands || [])]));
+        }
+        if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
+          runVerifyCommands(targetDir, checks);
+        }
+      } finally {
+        cleanup(targetDir);
       }
-      const agents = expectLeanDocs(targetDir, allFiles);
-      const layers = opts.withLayers?.length ? opts.withLayers : loadBundles()[opts.bundle]?.layers || [];
-      if (layers.includes('log-table')) {
-        expect(agents).toContain('## Log tables');
-        expect(agents).toMatch(/display width[\s\S]*--json/i);
-      }
-      const checks = expectChecksAgree(targetDir, agents);
-      for (const id of layers) {
-        const layer = loadLayerById(id);
-        expect(checks).toEqual(expect.arrayContaining([...(layer.verifyCommands || []), ...(layer.gitVerifyCommands || [])]));
-      }
-      if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
-        runVerifyCommands(targetDir, checks);
-      }
-    } finally {
-      cleanup(targetDir);
-    }
-  }));
+    })
+  );
 });

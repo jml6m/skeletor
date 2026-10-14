@@ -7,23 +7,23 @@ version: 2
 multi-ecosystem-groups:
   all-dependencies:
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     open-pull-requests-limit: 1
     labels:
-      - "dependencies"
+      - 'dependencies'
     assignees:
-      - "jml6m"
+      - 'jml6m'
 
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     patterns:
-      - "*"
-    multi-ecosystem-group: "all-dependencies"
-    versioning-strategy: "increase"
+      - '*'
+    multi-ecosystem-group: 'all-dependencies'
+    versioning-strategy: 'increase'
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     patterns:
-      - "*"
-    multi-ecosystem-group: "all-dependencies"
+      - '*'
+    multi-ecosystem-group: 'all-dependencies'

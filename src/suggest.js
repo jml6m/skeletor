@@ -4,7 +4,9 @@
 
 /** Case and punctuation don't count, so `test-harness-playwright` matches `test-harness:playwright`. */
 function normalize(value) {
-  return String(value).toLowerCase().replace(/[^a-z0-9]/g, '');
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
 /** Edits (insert, delete, substitute, swap two neighbours) that turn `a` into `b`. */

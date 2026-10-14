@@ -41,7 +41,7 @@ export const TAG_RULESET = {
   rules: [{ type: 'deletion' }, { type: 'non_fast_forward' }, { type: 'update' }],
 };
 
-export const MERGE_SETTINGS = {
+const MERGE_SETTINGS = {
   allow_merge_commit: false,
   allow_rebase_merge: false,
   allow_squash_merge: true,
@@ -95,7 +95,10 @@ export function pullRequestChecks(text) {
     let end = jobs.findIndex((l, j) => j > i && /^ {2}\S/.test(l) && !/^ {2}#/.test(l));
     if (end === -1) end = jobs.length;
     const body = jobs.slice(i + 1, end);
-    const name = body.map((l) => l.match(/^ {4}name:\s*(.+?)\s*$/)?.[1]).find(Boolean)?.replace(/^(['"])(.*)\1$/, '$2');
+    const name = body
+      .map((l) => l.match(/^ {4}name:\s*(.+?)\s*$/)?.[1])
+      .find(Boolean)
+      ?.replace(/^(['"])(.*)\1$/, '$2');
     const isMatrix = body.some((l) => /^ {6}matrix:/.test(l)) || /\$\{\{/.test(name || '');
     (isMatrix ? matrixJobs : checks).push(name || id);
   }
@@ -110,7 +113,10 @@ export function collectPullRequestChecks(projectDir) {
   const dir = path.join(projectDir, '.github', 'workflows');
   const result = { checks: [], matrixJobs: [] };
   if (!fs.existsSync(dir)) return result;
-  for (const file of fs.readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).sort()) {
+  for (const file of fs
+    .readdirSync(dir)
+    .filter((f) => /\.ya?ml$/.test(f))
+    .sort()) {
     const { checks, matrixJobs } = pullRequestChecks(fs.readFileSync(path.join(dir, file), 'utf8'));
     result.checks.push(...checks);
     result.matrixJobs.push(...matrixJobs);
@@ -163,9 +169,7 @@ export function formatJson(value, budget, indent = '', prefix = '', suffix = '')
   const isEmpty = !value || typeof value !== 'object' || Object.keys(value).length === 0;
   if (inline.length <= budget || isEmpty) return [inline];
   const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
-  const entries = Array.isArray(value)
-    ? value.map((v) => ['', v])
-    : Object.entries(value).map(([k, v]) => [`${JSON.stringify(k)}: `, v]);
+  const entries = Array.isArray(value) ? value.map((v) => ['', v]) : Object.entries(value).map(([k, v]) => [`${JSON.stringify(k)}: `, v]);
   return [
     `${indent}${prefix}${open}`,
     ...entries.flatMap(([key, v], i) => formatJson(v, budget, `${indent}  `, key, i < entries.length - 1 ? ',' : '')),
@@ -174,12 +178,7 @@ export function formatJson(value, budget, indent = '', prefix = '', suffix = '')
 }
 
 function createRuleset(repo, ruleset, budget) {
-  return [
-    `gh api repos/${repo}/rulesets \\`,
-    "  --method POST --input - <<'JSON'",
-    ...formatJson(ruleset, budget),
-    'JSON',
-  ];
+  return [`gh api repos/${repo}/rulesets \\`, "  --method POST --input - <<'JSON'", ...formatJson(ruleset, budget), 'JSON'];
 }
 
 /**
@@ -202,29 +201,26 @@ export function githubSetupLines({ repo, checks, matrixJobs = [], width }) {
   gap();
   para(
     'One approval: GitHub does not let authors approve their own pull requests, so this fits a ' +
-      'repository whose pull requests come from a bot, a GitHub App or another contributor.',
+      'repository whose pull requests come from a bot, a GitHub App or another contributor.'
   );
   gap();
   para(
     'Instead, code-owner review with 0 approvals (required_approving_review_count 0, ' +
       'require_code_owner_review true) suits a repository where only some paths need review, or an ' +
       'early-stage project that prefers speed to reviewing every change. It needs a .github/CODEOWNERS ' +
-      'file, which you add yourself; each line is a path and the users or teams that own it:',
+      'file, which you add yourself; each line is a path and the users or teams that own it:'
   );
   code(['.github/   @your-user', 'src/auth/  @your-org/your-team']);
   gap();
   para(
     checks.length
       ? `Required checks are job names, not workflow names: ${checks.join(', ')}.`
-      : 'Required checks are job names, not workflow names. Add them once CI runs on pull requests.',
+      : 'Required checks are job names, not workflow names. Add them once CI runs on pull requests.'
   );
   if (matrixJobs.length) {
     para(`Matrix jobs (${matrixJobs.join(', ')}) report one check per leg; require an aggregator job instead.`);
   }
-  para(
-    'For a matrix, add one aggregator job per workflow and require that, so the matrix can change ' +
-      'without renaming a required check:',
-  );
+  para('For a matrix, add one aggregator job per workflow and require that, so the matrix can change ' + 'without renaming a required check:');
   code([
     'jobs:',
     '  tests-passed:',
@@ -238,15 +234,12 @@ export function githubSetupLines({ repo, checks, matrixJobs = [], width }) {
   para(
     'if: always() makes it run when test fails or is cancelled. Without it the job is skipped, and ' +
       'GitHub counts a skipped job as passing. Require only checks that report on every pull request: ' +
-      'one that never reports blocks the merge.',
+      'one that never reports blocks the merge.'
   );
   gap();
   para('2. Merge button: squash merges only, and delete branches once merged.');
   gap();
-  code([
-    `gh api repos/${repo} --method PATCH \\`,
-    ...Object.entries(MERGE_SETTINGS).map(([k, v], i, all) => `  -F ${k}=${v}${i < all.length - 1 ? ' \\' : ''}`),
-  ]);
+  code([`gh api repos/${repo} --method PATCH \\`, ...Object.entries(MERGE_SETTINGS).map(([k, v], i, all) => `  -F ${k}=${v}${i < all.length - 1 ? ' \\' : ''}`)]);
   gap();
   para('3. Tag ruleset, if you publish versioned releases: release tags (v*) cannot be deleted or moved, by anyone.');
   gap();

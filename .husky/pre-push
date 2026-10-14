@@ -3,4 +3,6 @@
 # which would otherwise commit into this repository. Clear them first.
 unset $(git rev-parse --local-env-vars)
 npm run --silent lint
+npm run --silent typecheck
+npm run --silent health:dead
 npm test

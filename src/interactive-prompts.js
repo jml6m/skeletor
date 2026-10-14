@@ -30,7 +30,7 @@ export function buildConfirmOptions(recommendedYes = true) {
 }
 
 /**
- * @param {{ message: string, options: string[], recommended?: string }} opts
+ * @param {{ message?: string, options: string[], recommended?: string }} opts
  */
 export function buildSelectOptions(opts) {
   const recommended = opts.recommended ?? opts.options[0];
@@ -45,14 +45,16 @@ export function buildSelectOptions(opts) {
  */
 export async function promptConfirmRecommended(opts) {
   const recommended = opts.recommended !== false;
-  return p.select({
-    message: opts.message,
-    options: buildConfirmOptions(recommended),
-    initialValue: recommended ? 'yes' : 'no',
-  }).then((answer) => {
-    if (p.isCancel(answer)) return answer;
-    return answer === 'yes';
-  });
+  return p
+    .select({
+      message: opts.message,
+      options: buildConfirmOptions(recommended),
+      initialValue: recommended ? 'yes' : 'no',
+    })
+    .then((answer) => {
+      if (p.isCancel(answer)) return answer;
+      return answer === 'yes';
+    });
 }
 
 /**
@@ -93,6 +95,7 @@ export async function promptOwnerSelect(opts) {
     });
   }
 
+  /** @type {Array<{ value: string, label: string, hint?: string }>} */
   const selectOptions = candidates.map((c, index) => ({
     value: c.owner,
     label: index === 0 ? withRecommendedTag(c.owner) : c.owner,

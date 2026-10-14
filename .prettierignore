@@ -1,0 +1,4 @@
+# Emitted fixtures: each scaffold's own Prettier config checks them in the generated project.
+templates/
+layers/
+package-lock.json

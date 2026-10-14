@@ -2,33 +2,22 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 process.env.SKELETOR_CLI_TEST = '1';
 
+import { collectLayerIds, getBaselineLayers, getFeatureLayers, getTemplatesWithManifests, loadTemplateManifest, runNew } from '../src/index.js';
 import {
-  runNew,
-  collectLayerIds,
-  getBaselineLayers,
-  getFeatureLayers,
-  getTemplatesWithManifests,
-  loadTemplateManifest,
-} from '../src/index.js';
-import {
-  validateLayerManifests,
-  resolveLayerOrder,
-  expandBundle,
+  appendAgentsSection,
   applyLayers,
+  applyPackageJsonOverride,
+  buildLabelSeed,
+  expandBundle,
+  getLayersWithManifests,
   loadBundles,
   loadLayerById,
-  appendAgentsSection,
-  buildLabelSeed,
-  applyPackageJsonOverride,
-  getLayersWithManifests,
+  resolveLayerOrder,
+  validateLayerManifests,
 } from '../src/layers.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
 
 function makeName(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -70,8 +59,18 @@ describe('packageJsonOverride', () => {
   test('settles the merge conflicts of the paths it overrides', () => {
     const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-override-'));
     try {
-      fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify({ name: 'x', private: true, main: 'dist/index.js', scripts: { start: 'node dist/index.js' } }));
-      const result = applyLayers({ projectDir: targetDir, template: 'typescript', language: 'typescript', layerIds: ['library-publishing', 'env-example'], vars: {}, noInstall: true });
+      fs.writeFileSync(
+        path.join(targetDir, 'package.json'),
+        JSON.stringify({ name: 'x', private: true, main: 'dist/index.js', scripts: { start: 'node dist/index.js' } })
+      );
+      const result = applyLayers({
+        projectDir: targetDir,
+        template: 'typescript',
+        language: 'typescript',
+        layerIds: ['library-publishing', 'env-example'],
+        vars: {},
+        noInstall: true,
+      });
       const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
       expect(pkg.private).toBeUndefined();
       expect(pkg.main).toBe('./lib/index.cjs');
@@ -87,7 +86,7 @@ describe('packageJsonOverride', () => {
 describe('bundle expansion', () => {
   test('bundles resolve without conflicts for their template', () => {
     const bundles = loadBundles();
-    for (const [name, bundle] of Object.entries(bundles)) {
+    for (const bundle of Object.values(bundles)) {
       const ctx = { template: bundle.template, language: bundle.template };
       const { errors } = resolveLayerOrder(bundle.layers, ctx);
       expect(errors).toEqual([]);
@@ -208,9 +207,9 @@ describe('layer application', () => {
       expect(policy).toContain('  - AGENTS.md');
       expect(fs.existsSync(path.join(targetDir, '.github', 'CODEOWNERS'))).toBe(false);
       expect(fs.readFileSync(path.join(targetDir, '.github', 'scripts', 'check-docs-policy.sh'), 'utf8')).not.toContain('CODEOWNERS');
-      execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true });
+      execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe' });
       fs.writeFileSync(path.join(targetDir, 'NOTES.md'), '# notes\n');
-      expect(() => execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe', shell: true })).toThrow();
+      expect(() => execSync('git add -A && bash .github/scripts/check-docs-policy.sh', { cwd: targetDir, stdio: 'pipe' })).toThrow();
     } finally {
       cleanup(targetDir);
     }
@@ -269,7 +268,11 @@ describe('layer application', () => {
   });
 
   test('layers take no prompts', () => {
-    expect(getLayersWithManifests().filter((l) => l.prompts).map((l) => l.id)).toEqual([]);
+    expect(
+      getLayersWithManifests()
+        .filter((l) => l.prompts)
+        .map((l) => l.id)
+    ).toEqual([]);
   });
 
   test('free-port and logger-winston use fixed defaults: port 3000 (or $PORT) and logs/', async () => {
@@ -389,10 +392,7 @@ function expectSnippetsUnderHeadings(targetDir, layerIds) {
 }
 
 describe('AGENTS.md layer snippets', () => {
-  test.each([
-    [['governance', 'issue-labels']],
-    [['issue-labels', 'governance']],
-  ])('python + %j puts each snippet under its own heading', async (layerIds) => {
+  test.each([[['governance', 'issue-labels']], [['issue-labels', 'governance']]])('python + %j puts each snippet under its own heading', async (layerIds) => {
     const name = makeName('agents-py');
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -420,7 +420,7 @@ describe('AGENTS.md layer snippets', () => {
     try {
       fs.writeFileSync(agentsPath, '# Title\n\n## One\n\nFirst.\n\n```md\n## Not a heading\n```\n\n### Sub\n\nNested.\n\n## Two\n\nSecond.\n');
       expect(appendAgentsSection(agentsPath, 'One', 'Added.\n')).toBe(
-        '# Title\n\n## One\n\nFirst.\n\n```md\n## Not a heading\n```\n\n### Sub\n\nNested.\n\nAdded.\n\n## Two\n\nSecond.\n',
+        '# Title\n\n## One\n\nFirst.\n\n```md\n## Not a heading\n```\n\n### Sub\n\nNested.\n\nAdded.\n\n## Two\n\nSecond.\n'
       );
       expect(appendAgentsSection(agentsPath, 'Two', 'Added.')).toMatch(/## Two\n\nSecond\.\n\nAdded\.\n$/);
       expect(appendAgentsSection(agentsPath, 'Three', 'Added.')).toMatch(/Second\.\n\n## Three\n\nAdded\.\n$/);

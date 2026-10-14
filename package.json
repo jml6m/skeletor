@@ -1,49 +1,30 @@
 {
   "name": "@jml6m/skeletor",
   "version": "0.6.0",
-  "description": "Multi-language project scaffolding: templates with lint, format, test, health and release defaults, composable layers, and an AGENTS.md in every project.",
-  "main": "src/index.js",
   "type": "module",
-  "bin": {
-    "skeletor": "src/index.js"
-  },
-  "scripts": {
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
-    "test:verify": "node scripts/run-verify-tests.mjs",
-    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
-    "lint": "npm run lint:encoding",
-    "lint:encoding": "node scripts/check-encoding.mjs",
-    "lint:agents": "node scripts/check-agent-file-length.mjs",
-    "lint:docs":"npx --yes markdownlint-cli2@0.14.0 \"**/*.md\"",
-    "audit:ci": "node scripts/audit-ci.mjs",
-    "npm:reinstall": "node scripts/reinstall.mjs",
-    "git:pull": "node scripts/git-pull-all.mjs",
-    "release:patch": "npm version patch && git push --follow-tags",
-    "release:minor": "npm version minor && git push --follow-tags",
-    "release:major": "npm version major && git push --follow-tags",
-    "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags",
-    "publish:dry": "npm publish --dry-run",
-    "release:preflight": "node scripts/publish-preflight.mjs",
-    "pin:check": "node scripts/check-pin-updates.mjs",
-    "prepublishOnly": "npm run lint && npm run audit:ci && npm test",
-    "prepare": "husky"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
+  "description": "Multi-language project scaffolding: templates with lint, format, test, health and release defaults, composable layers, and an AGENTS.md in every project.",
   "repository": {
     "type": "git",
     "url": "https://github.com/jml6m/skeletor.git"
   },
+  "homepage": "https://github.com/jml6m/skeletor#readme",
   "bugs": {
     "url": "https://github.com/jml6m/skeletor/issues"
   },
-  "homepage": "https://github.com/jml6m/skeletor#readme",
+  "author": "Joseph Lewkovich",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "skeletor": "src/index.js"
+  },
+  "main": "src/index.js",
   "files": [
+    "bundles.json",
+    "layers",
     "src",
     "templates",
-    "layers",
-    "bundles.json",
     "README.md"
   ],
   "keywords": [
@@ -54,16 +35,59 @@
     "prettier",
     "knip"
   ],
+  "scripts": {
+    "audit:ci": "node scripts/audit-ci.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "git:pull": "node scripts/git-pull-all.mjs",
+    "health:circular": "madge --circular src",
+    "health:dead": "knip --treat-config-hints-as-errors",
+    "lint": "eslint . --max-warnings 0",
+    "lint:agents": "node scripts/check-agent-file-length.mjs",
+    "lint:docs": "npx --yes markdownlint-cli2@0.14.0 \"**/*.md\"",
+    "lint:encoding": "node scripts/check-encoding.mjs",
+    "npm:reinstall": "node scripts/reinstall.mjs",
+    "pin:check": "node scripts/check-pin-updates.mjs",
+    "prepare": "husky",
+    "prepublishOnly": "npm run lint && npm run lint:encoding && npm run audit:ci && npm test",
+    "publish:dry": "npm publish --dry-run",
+    "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags",
+    "release:major": "npm version major && git push --follow-tags",
+    "release:minor": "npm version minor && git push --follow-tags",
+    "release:patch": "npm version patch && git push --follow-tags",
+    "release:preflight": "node scripts/publish-preflight.mjs",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:verify": "node scripts/run-verify-tests.mjs",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "typecheck": "tsc -p jsconfig.json"
+  },
   "dependencies": {
     "@clack/prompts": "^1.8.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "husky": "^9.1.7",
     "jest": "^30.5.2",
-    "husky": "^9.1.7"
+    "knip": "^6.41.0",
+    "lint-staged": "^17.6.0",
+    "madge": "^8.0.0",
+    "prettier": "~3.9.10",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "prettier-plugin-pkg": "^0.22.1",
+    "typescript": "~5.9.3"
   },
-  "author": "Joseph Lewkovich",
-  "license": "MIT",
-  "engines": {
-    "node": ">=22"
+  "publishConfig": {
+    "access": "public"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs}": [
+      "eslint --config eslint.config.js --max-warnings 0 --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": "prettier --write"
   }
 }

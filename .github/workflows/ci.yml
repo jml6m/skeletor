@@ -31,13 +31,29 @@ jobs:
       - run: npm run lint:encoding
       - run: npm test
 
-  # One result for the whole Node matrix, so its legs can change without renaming a check.
+  # ESLint, Prettier, the typecheck, knip and madge over skeletor's own source.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run health:dead
+      - run: npm run health:circular
+
+  # One result for the Node test matrix and the source checks, so their jobs can change without renaming a check.
   tests-passed:
-    needs: [test]
+    needs: [test, checks]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - run: '[ "${{ needs.test.result }}" = "success" ]'
+      - run: '[ "${{ needs.test.result }}" = "success" ] && [ "${{ needs.checks.result }}" = "success" ]'
 
   # Picks the verify shards a change needs (scripts/verify-shards.mjs). Decided inside the run,
   # not with a `paths:` filter, so `verify-templates` below reports a result on every PR.

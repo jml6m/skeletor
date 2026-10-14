@@ -80,7 +80,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (process.argv.includes('--all')) {
     console.log(JSON.stringify(listShards()));
   } else {
-    const files = fs.readFileSync(0, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+    const files = fs
+      .readFileSync(0, 'utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
     console.log(JSON.stringify(shardsForChanges(files)));
   }
 }

@@ -2,23 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-export const PINNED_VERSIONS_FILENAME = 'pinned-versions.json';
+const PINNED_VERSIONS_FILENAME = 'pinned-versions.json';
 // GitHub Actions every emitted workflow uses, SHA-pinned; one list for all templates and layers.
-export const ACTION_PINS_PATH = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  'templates',
-  '_shared',
-  'github-actions.json',
-);
-export const VALID_STATUSES = ['active', 'needs-review', 'deprecated'];
-export const VALID_POLICIES = ['exact', 'major', 'minor', 'range'];
+const ACTION_PINS_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', '_shared', 'github-actions.json');
+const VALID_STATUSES = ['active', 'needs-review', 'deprecated'];
+const VALID_POLICIES = ['exact', 'major', 'minor', 'range'];
 
 /**
  * @param {string} name
  */
 export function packageNameToToken(name) {
-  const base = String(name).replace(/^@/, '').replace(/[/\-@.]/g, '_').toUpperCase();
+  const base = String(name)
+    .replace(/^@/, '')
+    .replace(/[/\-@.]/g, '_')
+    .toUpperCase();
   return `PIN_${base}`;
 }
 
@@ -94,7 +91,7 @@ export function loadPinnedVersions(templateDir) {
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch (e) {
-    throw new Error(`Invalid ${PINNED_VERSIONS_FILENAME} in ${templateDir}: ${e.message}`);
+    throw new Error(`Invalid ${PINNED_VERSIONS_FILENAME} in ${templateDir}: ${e.message}`, { cause: e });
   }
 }
 
@@ -141,7 +138,7 @@ export function validatePinnedVersionsManifest(pinned, templateId) {
 /**
  * Build render tokens from pinned-versions.json, plus the shared GitHub Action pins.
  * @param {object} pinned
- * @param {{ language?: string }} [templateInfo]
+ * @param {Record<string, any>} [templateInfo]
  */
 export function buildPinTokens(pinned, templateInfo = {}) {
   const tokens = buildActionTokens();

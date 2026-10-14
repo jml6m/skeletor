@@ -6,14 +6,9 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { checkFlagCombinations, parseArgs, REMOVED_FLAGS, UsageError } from '../src/args.js';
-import { closestMatch, unknownIdMessage } from '../src/suggest.js';
+import { checkTemplateOptions, getTemplatesWithManifests, printPostScaffoldSteps, runNew } from '../src/index.js';
 import { loadBundles } from '../src/layers.js';
-import {
-  checkTemplateOptions,
-  getTemplatesWithManifests,
-  printPostScaffoldSteps,
-  runNew,
-} from '../src/index.js';
+import { closestMatch, unknownIdMessage } from '../src/suggest.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src', 'index.js');
@@ -40,7 +35,9 @@ function captureLog(fn) {
   console.log = (...args) => lines.push(args.join(' '));
   return Promise.resolve()
     .then(fn)
-    .finally(() => { console.log = orig; })
+    .finally(() => {
+      console.log = orig;
+    })
     .then(() => lines.join('\n'));
 }
 
@@ -75,11 +72,7 @@ describe('parseArgs rejects what it does not recognize', () => {
 
   test('a single-value option given twice is an error; --with accumulates', () => {
     expect(() => parseArgs(argv('new', 'my-app', '--template', 'go', '-t', 'rust'))).toThrow('--template was given more than once.');
-    expect(parseArgs(argv('new', 'my-app', '--with', 'zod-config', '--with', 'free-port,log-table')).withLayers).toEqual([
-      'zod-config',
-      'free-port',
-      'log-table',
-    ]);
+    expect(parseArgs(argv('new', 'my-app', '--with', 'zod-config', '--with', 'free-port,log-table')).withLayers).toEqual(['zod-config', 'free-port', 'log-table']);
   });
 
   test('a second positional argument is an error', () => {
@@ -127,7 +120,7 @@ describe('closestMatch', () => {
 
   test('unknownIdMessage lists the valid ids', () => {
     expect(unknownIdMessage('template', 'pyhton', ['go', 'python'], { label: 'Templates' })).toBe(
-      'Unknown template "pyhton". Did you mean "python"?\n   Templates: go, python',
+      'Unknown template "pyhton". Did you mean "python"?\n   Templates: go, python'
     );
   });
 });
@@ -162,7 +155,7 @@ describe('options that depend on the template', () => {
 
   test('an unknown layout lists the layouts, with a suggestion', () => {
     expect(checkTemplateOptions({ layout: 'workspce' }, template('rust'))).toBe(
-      'Unknown layout "workspce". Did you mean "workspace"?\n   Layouts for rust: single, lib, workspace',
+      'Unknown layout "workspce". Did you mean "workspace"?\n   Layouts for rust: single, lib, workspace'
     );
   });
 
@@ -175,14 +168,12 @@ describe('options that depend on the template', () => {
 
   test('a layer that does not fit the template is an error', () => {
     expect(checkTemplateOptions({ withLayers: ['zod-config'] }, template('go'))).toBe(
-      'Layer "zod-config" doesn\'t apply to go.\n   Feature layers for go: docs-policy, issue-labels',
+      'Layer "zod-config" doesn\'t apply to go.\n   Feature layers for go: docs-policy, issue-labels'
     );
   });
 
   test('a bundle for another template is an error', () => {
-    expect(checkTemplateOptions({ bundle: 'ts-library' }, template('javascript'))).toMatch(
-      /^Bundle "ts-library" is for the typescript template, not javascript/,
-    );
+    expect(checkTemplateOptions({ bundle: 'ts-library' }, template('javascript'))).toMatch(/^Bundle "ts-library" is for the typescript template, not javascript/);
   });
 
   test('valid options pass', () => {
@@ -190,7 +181,7 @@ describe('options that depend on the template', () => {
     expect(checkTemplateOptions({ withLayers: ['zod-config', 'governance'], bundle: 'ts-library' }, template('typescript'))).toBeNull();
   });
 
-  test('every bundle and its feature layers pass for the bundle\'s template', () => {
+  test("every bundle and its feature layers pass for the bundle's template", () => {
     for (const [name, bundle] of Object.entries(loadBundles())) {
       expect({ name, error: checkTemplateOptions({ bundle: name, withLayers: bundle.layers }, template(bundle.template)) }).toEqual({ name, error: null });
     }
@@ -202,7 +193,9 @@ describe('options that depend on the template', () => {
 
 describe('the CLI', () => {
   let cwd;
-  beforeEach(() => { cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-cli-')); });
+  beforeEach(() => {
+    cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-cli-'));
+  });
   afterEach(() => fs.rmSync(cwd, { recursive: true, force: true }));
 
   test.each(['--version', '-v'])('%s prints the package version', (flag) => {
@@ -242,9 +235,7 @@ describe('next steps match the generated state', () => {
     const name = `next-steps-${git}-${Date.now()}`;
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      const out = await captureLog(() =>
-        runNew({ command: 'new', name, template: 'javascript', owner: 'my-org', auto: true, git, withLayers: [] }),
-      );
+      const out = await captureLog(() => runNew({ command: 'new', name, template: 'javascript', owner: 'my-org', auto: true, git, withLayers: [] }));
       const steps = out.split('Next steps:')[1].split('Once the project')[0];
       expect(steps).toContain('npm install');
       expect(steps).toContain('npm run audit:ci');

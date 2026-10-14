@@ -9,6 +9,7 @@ const XML_ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'
 const escapeQuoted = (value) => value.replace(/[\\"]/g, '\\$&');
 const escapeXml = (value) => value.replace(/[&<>"']/g, (c) => XML_ENTITIES[c]);
 
+/** @type {Array<[RegExp, (value: string) => string]>} */
 const ESCAPERS = [
   [/\.(json|toml)$/i, escapeQuoted],
   [/\.(xml|csproj|props|targets)$/i, escapeXml],
@@ -25,5 +26,5 @@ export function escaperForFile(filePath) {
 /** One line, no control characters, and no lone surrogates (invalid in JSON, TOML and XML files). */
 export function normalizeDescription(value) {
   const text = String(value ?? '');
-  return (text.toWellFormed?.() ?? text).replace(/[\s\u0000-\u001f\u007f\ufffe\uffff]+/g, ' ').trim();
+  return (text.toWellFormed?.() ?? text).replace(/[\s\p{Cc}\ufffe\uffff]+/gu, ' ').trim();
 }

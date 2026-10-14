@@ -41,7 +41,10 @@ const COMMANDS = ['new'];
 export const KNOWN_FLAGS = [...Object.keys(VALUE_FLAGS), ...Object.keys(BOOLEAN_FLAGS), ...HELP_FLAGS, ...VERSION_FLAGS];
 
 function parseCommaList(value) {
-  return value.split(',').map((s) => s.trim()).filter(Boolean);
+  return value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function looksLikeFlag(value) {

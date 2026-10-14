@@ -52,9 +52,7 @@ export function findForbiddenFiles(cwd = process.cwd(), deps = {}) {
  */
 export function checkFiles(files, deps = {}) {
   const cwd = deps.cwd ?? process.cwd();
-  const read =
-    deps.readFile ??
-    ((f) => readFileSync(path.isAbsolute(f) ? f : path.join(cwd, f), 'utf8'));
+  const read = deps.readFile ?? ((f) => readFileSync(path.isAbsolute(f) ? f : path.join(cwd, f), 'utf8'));
 
   const results = [];
   let ok = true;
@@ -75,19 +73,12 @@ export function checkFiles(files, deps = {}) {
   return { ok, results };
 }
 
-export function runCheck({
-  cwd = process.cwd(),
-  find = findAgentFiles,
-  findForbidden = findForbiddenFiles,
-  check = checkFiles,
-} = {}) {
+export function runCheck({ cwd = process.cwd(), find = findAgentFiles, findForbidden = findForbiddenFiles, check = checkFiles } = {}) {
   const forbidden = findForbidden(cwd);
   const { ok, results } = check(find(cwd), { cwd });
 
   const lines = results.map((r) =>
-    r.ok
-      ? `ok    ${r.file}: ${r.chars.toLocaleString('en-US')} / ${r.max.toLocaleString('en-US')} characters`
-      : `FAIL  ${r.file}: ${r.reason}`,
+    r.ok ? `ok    ${r.file}: ${r.chars.toLocaleString('en-US')} / ${r.max.toLocaleString('en-US')} characters` : `FAIL  ${r.file}: ${r.reason}`
   );
   for (const f of forbidden) {
     lines.push(`FAIL  ${f}: forbidden -- AGENTS.md is the single agent-instruction source`);
@@ -96,14 +87,10 @@ export function runCheck({
   process.stdout.write(`${lines.join('\n')}\n`);
 
   if (!ok || forbidden.length > 0) {
-    process.stderr.write(
-      'Over the cap: move detail into linked docs or the PR description, and keep these files dense.\n',
-    );
+    process.stderr.write('Over the cap: move detail into linked docs or the PR description, and keep these files dense.\n');
     process.exitCode = 1;
   }
 }
 
-const isMain =
-  process.argv[1] &&
-  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) runCheck();

@@ -13,9 +13,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATES_DIR = path.join(ROOT, 'templates');
 
 function listTemplates() {
-  return fs.readdirSync(TEMPLATES_DIR).filter((d) =>
-    fs.existsSync(path.join(TEMPLATES_DIR, d, 'template.json')),
-  );
+  return fs.readdirSync(TEMPLATES_DIR).filter((d) => fs.existsSync(path.join(TEMPLATES_DIR, d, 'template.json')));
 }
 
 function loadPinned(templateId) {

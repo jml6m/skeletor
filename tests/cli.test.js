@@ -1,18 +1,10 @@
 // IMPORTANT: set before importing src so the guard in src/index.js skips main() + process.exit
 process.env.SKELETOR_CLI_TEST = '1';
 
-import {
-  parseArgs,
-  render,
-  renderPathSegment,
-  buildRenderVars,
-  getAvailableTemplates,
-  printPostScaffoldSteps,
-  labelHint,
-} from '../src/index.js';
-import { buildLabelSeed } from '../src/layers.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildRenderVars, getAvailableTemplates, labelHint, parseArgs, printPostScaffoldSteps, render, renderPathSegment } from '../src/index.js';
+import { buildLabelSeed } from '../src/layers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -48,14 +40,7 @@ describe('skeletor CLI pure functions', () => {
   });
 
   test('parseArgs respects flags', () => {
-    const argv = [
-      'node', 'skeletor', 'new', 'demo',
-      '--template', 'typescript',
-      '--owner', 'acme',
-      '--description', 'A test project',
-      '--auto',
-      '--no-git'
-    ];
+    const argv = ['node', 'skeletor', 'new', 'demo', '--template', 'typescript', '--owner', 'acme', '--description', 'A test project', '--auto', '--no-git'];
     const result = parseArgs(argv);
     expect(result.name).toBe('demo');
     expect(result.template).toBe('typescript');
@@ -123,8 +108,13 @@ describe('skeletor CLI pure functions', () => {
       { name: 'epic', color: '3E4B9E', description: 'Tracks a set of child issues' },
       { name: 'chore', color: 'fef2c0', description: 'Maintenance / process work' },
     ];
-    const hintCommands = labelHint(labels).split('\n').slice(1).map((line) => line.trim());
-    const seedCommands = buildLabelSeed(labels).split('\n').filter((line) => line.startsWith('gh label create'));
+    const hintCommands = labelHint(labels)
+      .split('\n')
+      .slice(1)
+      .map((line) => line.trim());
+    const seedCommands = buildLabelSeed(labels)
+      .split('\n')
+      .filter((line) => line.startsWith('gh label create'));
     expect(hintCommands).toEqual(seedCommands);
   });
 

@@ -5,9 +5,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { buildRenderVars, render, runNew } from '../src/index.js';
 import { detectGithubOwners } from '../src/detect-owner.js';
 import { normalizeDescription } from '../src/escape.js';
+import { buildRenderVars, render, runNew } from '../src/index.js';
 import { suggestProjectName, validateGithubOwner, validateProjectName } from '../src/validate-input.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -15,6 +15,7 @@ const SRC = path.join(ROOT, 'src', 'index.js');
 const NASTY = 'x "quoted" & <b>bold</b> \'it\' \\N $& {{YEAR}}\nsecond\tline';
 
 function cliEnv(extra = {}) {
+  /** @type {NodeJS.ProcessEnv} */
   const env = { ...process.env, ...extra };
   delete env.JEST_WORKER_ID;
   delete env.SKELETOR_CLI_TEST;
@@ -36,8 +37,7 @@ function tempDir(prefix) {
 }
 
 const unescapeQuoted = (value) => value.replace(/\\(.)/g, '$1');
-const unescapeXml = (value) =>
-  value.replace(/&(amp|lt|gt|quot|apos);/g, (_m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[e]);
+const unescapeXml = (value) => value.replace(/&(amp|lt|gt|quot|apos);/g, (_m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[e]);
 
 describe('project name rule', () => {
   test.each(['my-app', 'a', 'app2', 'my-2nd-app', 'a'.repeat(64)])('accepts %j', (name) => {
@@ -90,12 +90,9 @@ describe('GitHub owner rule', () => {
     expect(validateGithubOwner(owner)).toBeNull();
   });
 
-  test.each(['-org', '--help', 'org-', 'my--org', 'my org', 'my/org', 'my-org;touch pwned', '$(id)', 'a'.repeat(40), ''])(
-    'rejects %j',
-    (owner) => {
-      expect(validateGithubOwner(owner)).not.toBeNull();
-    },
-  );
+  test.each(['-org', '--help', 'org-', 'my--org', 'my org', 'my/org', 'my-org;touch pwned', '$(id)', 'a'.repeat(40), ''])('rejects %j', (owner) => {
+    expect(validateGithubOwner(owner)).not.toBeNull();
+  });
 
   test('--owner with shell metacharacters exits 1', () => {
     const cwd = tempDir('skeletor-owner-');
@@ -147,6 +144,7 @@ describe('description', () => {
       expect(line).toMatch(/^description = "(?:[^"\\]|\\.)*"$/);
       return unescapeQuoted(line.slice('description = "'.length, -1));
     };
+    /** @type {Array<[string, string | undefined, string, (text: string) => string]>} */
     const cases = [
       ['javascript', undefined, 'package.json', (t) => JSON.parse(t).description],
       ['python', 'src', 'pyproject.toml', tomlValue],
@@ -192,7 +190,11 @@ describePosix('--github', () => {
       // The repository exists, so the one-time settings print in full, requiring the scaffold's CI job.
       expect(output).toContain('One-time GitHub settings for my-org/my-app.');
       expect(output).toContain('{ "context": "ci" }');
-      const calls = fs.readFileSync(log, 'utf8').split('---\n').filter(Boolean).map((c) => c.trimEnd().split('\n'));
+      const calls = fs
+        .readFileSync(log, 'utf8')
+        .split('---\n')
+        .filter(Boolean)
+        .map((c) => c.trimEnd().split('\n'));
       expect(calls).toContainEqual(['repo', 'create', 'my-org/my-app', '--public', '--source=.', '--remote=origin']);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });

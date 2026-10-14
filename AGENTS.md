@@ -11,7 +11,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - Every template **must** have a `template.json` with `id`, `name`, `description`, `language` and `verifyCommands`, the scaffold's checks; [src/checks.js](./src/checks.js) renders them and layers' into AGENTS.md, README and the CI job. Optional: `layouts`, `defaultLayout`, `baselineLayers`, `features`, `agentsBuildAndTest` (below).
   - Every template **must** have a `pinned-versions.json` beside `template.json`: the source of truth for runtime and dependency pins, which `.tmpl` files use as `{{PIN_*}}` tokens. Bump pins deliberately after validation; set `status` to `needs-review` or `deprecated` when an upstream major lands before the template is patched.
   - GitHub Actions in emitted workflows (templates and layers) are SHA-pinned from one list, [templates/_shared/github-actions.json](./templates/_shared/github-actions.json): write `uses: {{PIN_ACTION_<REPO>}}` (e.g. `{{PIN_ACTION_SETUP_NODE}}`), never a tag or branch. It holds the same SHAs as skeletor's own workflows; a test fails when they drift.
-  - Use the standard tokens in file *contents*: `{{PROJECT_NAME}}`, `{{REPO_OWNER}}`, `{{REPO_NAME}}`, `{{DESCRIPTION}}`, `{{YEAR}}`.
+  - Use the standard tokens in file _contents_: `{{PROJECT_NAME}}`, `{{REPO_OWNER}}`, `{{REPO_NAME}}`, `{{DESCRIPTION}}`, `{{YEAR}}`.
   - `template.json` may set `agentsBuildAndTest` (Markdown), a paragraph the shared AGENTS.md adds after the Build & Test commands, for a stack whose workflow agents must follow (python: uv only).
   - `{{DESCRIPTION}}` is collapsed to one line and escaped only in `.json`, `.toml` and XML (`.xml`, `.csproj`, `.props`, `.targets`) files ([src/escape.js](./src/escape.js)); put it inside a `"..."` string in `.json` and `.toml`. Elsewhere it goes in raw, so use it in README and AGENTS.md text, not in source comments or docstrings (use `{{PROJECT_NAME}}`). Project names and owners are validated up front ([src/validate-input.js](./src/validate-input.js)) and need no escaping. C# templates use `{{CSHARP_NAMESPACE}}`, the name in PascalCase.
   - **License**: `{{LICENSE}}` in `package.json` and `Cargo.toml`, `{{PYPROJECT_LICENSE}}` (a PEP 639 line) in `pyproject.toml`. [src/license.js](./src/license.js) picks it: MIT with `library-publishing` or for a public `--github` repo (asked interactively), else `UNLICENSED`, which isn't SPDX and gets no `LICENSE` file or pyproject/Cargo field.
@@ -22,9 +22,9 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - Don't add Markdown docs to a scaffold beyond `README.md`, `AGENTS.md` and `CLAUDE.md`; put the content in one of those. Template-specific AGENTS.md sections (e.g. the JS/TS code conventions) go in `AGENTS.snippet.md` at the template root: it is inserted after "Build & Test" and never copied as a file. A layer adds AGENTS.md text through `docs.agents`.
 
 - **When adding or modifying templates**
-  - Start with "standard main library" best practices for the language/ecosystem.
+  - Start from the ecosystem's standard-library defaults; the maintainer decides a stack's conventions.
   - A check a scaffold emits is a gate (fails CI: no `|| true` or `--no-exit-code`), comes with an opt-in layer, or is an on-demand `report:*` script kept out of CI.
-  - `tests/generate.test.js` discovers templates via `getTemplatesWithManifests()`, generates each and checks the manifest contract. After changes, **always run `npm test`**.
+  - `tests/generate.test.js` generates every template and checks the manifest contract. After changes, **always run `npm test`**.
 
 - **Layouts.** A template with `layouts` (rust, python) keeps each layout's files, including its `.github/` and `README.md`, under `layouts/<id>/`; `defaultLayout` is used without `--layout`. A layout can override `verifyCommands`.
 
@@ -43,15 +43,14 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - `--auto` must remain fully non-interactive for scripting; it requires `--template` (or a `--bundle`, which names its template).
   - `--owner` skips auto-detection (git remote → package.json → gh CLI); required in `--auto` when detection fails. No hardcoded default owner.
   - `--description` is optional (defaults to a generic string); no interactive description prompt.
-  - Interactive prompts use select lists with `(recommended)` labels where applicable.
+  - Interactive prompts use select lists with `(recommended)` labels.
   - Keep the generator itself (copyAndRender + render) dependency-free and simple.
-
-- **Don't commit** test artifacts (`gen-*` directories from previous runs) or `node_modules`.
 
 - **Testing the full flow**: `node src/index.js new my-test --auto --template <id>`, then run the checks its AGENTS.md lists.
 
-## Adding a brand new language/stack later
-Start from clean "standard library + modern defaults" (as done for go/rust/java/csharp); the maintainer decides a stack's specific conventions.
+## Checks on skeletor's own source
+
+`lint` (ESLint, any warning fails; no inline disables, so narrow a rule in [eslint.config.js](./eslint.config.js)), `format:check`, `typecheck` (checkJs), `health:dead` (knip) and `health:circular` (madge) gate CI with the tests ([CONTRIBUTING.md](./CONTRIBUTING.md#local-gates)).
 
 Update this file when the development process or conventions for skeletor itself change.
 

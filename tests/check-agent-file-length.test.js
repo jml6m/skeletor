@@ -1,13 +1,5 @@
 import path from 'path';
-import {
-  LIMITS,
-  checkFiles,
-  exceedsCap,
-  findAgentFiles,
-  findForbiddenFiles,
-  hasPointer,
-  runCheck,
-} from '../scripts/check-agent-file-length.mjs';
+import { LIMITS, checkFiles, exceedsCap, findAgentFiles, findForbiddenFiles, hasPointer, runCheck } from '../scripts/check-agent-file-length.mjs';
 
 describe('exceedsCap', () => {
   test('passes at the cap and fails one character over', () => {
@@ -39,10 +31,7 @@ describe('findAgentFiles / findForbiddenFiles', () => {
 
   test('returns only the files that exist at the root', () => {
     expect(findAgentFiles('/repo', { exists: present(['AGENTS.md']) })).toEqual(['AGENTS.md']);
-    expect(findAgentFiles('/repo', { exists: present(['AGENTS.md', 'CLAUDE.md']) })).toEqual([
-      'AGENTS.md',
-      'CLAUDE.md',
-    ]);
+    expect(findAgentFiles('/repo', { exists: present(['AGENTS.md', 'CLAUDE.md']) })).toEqual(['AGENTS.md', 'CLAUDE.md']);
     expect(findAgentFiles('/repo', { exists: () => false })).toEqual([]);
   });
 
@@ -54,10 +43,7 @@ describe('findAgentFiles / findForbiddenFiles', () => {
 
   test('reports forbidden files that exist', () => {
     expect(findForbiddenFiles('/repo', { exists: present(['GEMINI.md']) })).toEqual(['GEMINI.md']);
-    expect(findForbiddenFiles('/repo', { exists: present(['.cursorrules', 'GEMINI.md']) })).toEqual([
-      '.cursorrules',
-      'GEMINI.md',
-    ]);
+    expect(findForbiddenFiles('/repo', { exists: present(['.cursorrules', 'GEMINI.md']) })).toEqual(['.cursorrules', 'GEMINI.md']);
     expect(findForbiddenFiles('/repo', { exists: () => false })).toEqual([]);
   });
 });

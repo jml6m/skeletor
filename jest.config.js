@@ -10,10 +10,7 @@ export default {
   // Because root package.json has "type": "module", .js files are treated as ESM automatically.
   transform: {},
   moduleFileExtensions: ['js', 'json', 'mjs'],
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/__tests__/**/*.test.js'
-  ],
+  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.test.js'],
   // Do not run the example tests that live inside the *scaffolded templates*
   testPathIgnorePatterns: ['/templates/', '/layers/'],
   // Prevent Jest haste module name collisions from the template package.json files (they contain {{PROJECT_NAME}})

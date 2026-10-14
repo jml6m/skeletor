@@ -3,44 +3,33 @@
  * Skeletor — multi-language project scaffolding
  */
 
+import * as p from '@clack/prompts';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execFileSync } from 'child_process';
-import * as p from '@clack/prompts';
-import { detectGithubOwners } from './detect-owner.js';
-import {
-  promptConfirmRecommended,
-  promptMultiSelectRecommended,
-  promptSelectRecommended,
-  promptOwnerSelect,
-} from './interactive-prompts.js';
-import { applyFeatureConfigs } from './features.js';
+import { parseArgs, UsageError } from './args.js';
 import { checkTokens, scaffoldChecks } from './checks.js';
-import {
-  loadPinnedVersions,
-  validatePinnedVersionsManifest,
-  buildPinTokens,
-  checkTemplateGenerationAllowed,
-} from './pinned-versions.js';
+import { detectGithubOwners } from './detect-owner.js';
+import { escaperForFile, normalizeDescription } from './escape.js';
+import { applyFeatureConfigs } from './features.js';
+import { collectPullRequestChecks, githubSetupLines } from './github-setup.js';
+import { promptConfirmRecommended, promptMultiSelectRecommended, promptOwnerSelect, promptSelectRecommended } from './interactive-prompts.js';
 import {
   applyLayers,
   expandBundle,
-  layerAppliesTo,
   getLayersWithManifests,
+  labelCreateCommand,
+  layerAppliesTo,
   loadBundles,
   loadLayerById,
   resolveLayerOrder,
-  labelCreateCommand,
-  validateLayerManifests,
   writeDocsPolicyAllowlist,
 } from './layers.js';
-import { escaperForFile, normalizeDescription } from './escape.js';
 import { appendReadmeLicense, pyprojectLicense, removeSpdxLicenseFields, resolveLicense, UNLICENSED } from './license.js';
-import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
-import { parseArgs, UsageError } from './args.js';
+import { buildPinTokens, checkTemplateGenerationAllowed, loadPinnedVersions, validatePinnedVersionsManifest } from './pinned-versions.js';
 import { unknownIdMessage } from './suggest.js';
-import { collectPullRequestChecks, githubSetupLines } from './github-setup.js';
+import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,8 +78,12 @@ Examples:
   skeletor new my-app --auto --template rust --layout workspace
 `;
 
-function log(msg) { console.log(msg); }
-function logError(msg) { console.error(msg); }
+function log(msg) {
+  console.log(msg);
+}
+function logError(msg) {
+  console.error(msg);
+}
 
 // One pass, so a value containing "{{TOKEN}}" or "$&" is inserted literally.
 function render(content, vars) {
@@ -109,15 +102,20 @@ function renderPathSegment(segment, vars) {
 }
 
 const JAVA_KEYWORDS = new Set(
-  ('abstract assert boolean break byte case catch char class const continue default do double else enum ' +
+  (
+    'abstract assert boolean break byte case catch char class const continue default do double else enum ' +
     'extends false final finally float for goto if implements import instanceof int interface long native new ' +
     'null package private protected public return short static strictfp super switch synchronized this throw ' +
-    'throws transient true try void volatile while').split(' '),
+    'throws transient true try void volatile while'
+  ).split(' ')
 );
 
 // A Java package segment from the owner: a keyword gets a trailing "_", a leading digit a leading "_" (JLS 6.1).
 function sanitizeIdentifierSegment(value) {
-  const segment = String(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'example';
+  const segment =
+    String(value)
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase() || 'example';
   if (JAVA_KEYWORDS.has(segment)) return `${segment}_`;
   return /^[0-9]/.test(segment) ? `_${segment}` : segment;
 }
@@ -142,12 +140,14 @@ const NPM_HELD_MAJORS = ['typescript', '@types/node', 'eslint', '@eslint/js'];
 
 function dependabotIgnoreFor(ecosystem) {
   if (ecosystem !== 'npm') return '';
-  const entries = NPM_HELD_MAJORS.map(
-    (dep) => `      - dependency-name: '${dep}'\n        update-types: ['version-update:semver-major']`,
-  );
+  const entries = NPM_HELD_MAJORS.map((dep) => `      - dependency-name: '${dep}'\n        update-types: ['version-update:semver-major']`);
   return ['', '    # Majors need a deliberate toolchain bump, not a grouped Dependabot PR.', '    ignore:', ...entries].join('\n');
 }
 
+/**
+ * The `{{TOKEN}}` values every template file is rendered with.
+ * @param {{ name: string, owner?: string, description?: string, extra?: Record<string, unknown> }} options (throws without an owner)
+ */
 function buildRenderVars({ name, owner, description, extra = {} }) {
   if (!owner) {
     throw new Error('owner is required');
@@ -212,6 +212,11 @@ function getAvailableTemplates() {
   });
 }
 
+/**
+ * template.json, with defaults for a template that has none, plus its directory.
+ * @param {string} templateId
+ * @returns {Record<string, any> & { dir: string }}
+ */
 function loadTemplateManifest(templateId) {
   const dir = path.join(TEMPLATES_DIR, templateId);
   const manifestPath = path.join(dir, 'template.json');
@@ -311,9 +316,7 @@ function insertTemplateAgentsSection(agentsPath, snippetPath, vars) {
   const content = fs.readFileSync(agentsPath, 'utf8');
   const buildAndTest = content.indexOf('\n## Build & Test');
   const next = buildAndTest === -1 ? -1 : content.indexOf('\n## ', buildAndTest + 1);
-  const updated = next === -1
-    ? `${content.trimEnd()}\n\n${section}\n`
-    : `${content.slice(0, next + 1)}${section}\n\n${content.slice(next + 1)}`;
+  const updated = next === -1 ? `${content.trimEnd()}\n\n${section}\n` : `${content.slice(0, next + 1)}${section}\n\n${content.slice(next + 1)}`;
   fs.writeFileSync(agentsPath, updated, 'utf8');
 }
 
@@ -360,7 +363,12 @@ function checkTemplateOptions(opts, templateInfo) {
   for (const id of opts.withLayers || []) {
     const layer = allLayers.find((l) => l.id === id);
     if (!layer) {
-      return unknownIdMessage('layer', id, allLayers.map((l) => l.id), { label: `Feature layers for ${templateInfo.id}`, list: featureIds });
+      return unknownIdMessage(
+        'layer',
+        id,
+        allLayers.map((l) => l.id),
+        { label: `Feature layers for ${templateInfo.id}`, list: featureIds }
+      );
     }
     if (!layerAppliesTo(layer, ctx)) {
       return `Layer "${id}" doesn't apply to ${templateInfo.id}.\n   Feature layers for ${templateInfo.id}: ${featureIds.join(', ') || '(none)'}`;
@@ -375,9 +383,7 @@ function fail(message) {
 }
 
 function collectLayerIds(opts, templateInfo) {
-  const info = typeof templateInfo === 'string'
-    ? getTemplatesWithManifests().find((t) => t.id === templateInfo)
-    : templateInfo;
+  const info = typeof templateInfo === 'string' ? getTemplatesWithManifests().find((t) => t.id === templateInfo) : templateInfo;
   const ids = [...getBaselineLayers(info), ...(opts.withLayers || [])];
   if (opts.bundle) {
     ids.push(...expandBundle(opts.bundle, info?.id));
@@ -530,7 +536,10 @@ async function runNew(opts) {
         message: 'Add feature layers? (space to toggle, enter for none)',
         options: featureLayers.map((l) => ({ value: l.id, label: l.id, hint: l.name })),
       });
-      if (p.isCancel(picked)) { p.cancel('Cancelled.'); process.exit(0); }
+      if (p.isCancel(picked)) {
+        p.cancel('Cancelled.');
+        process.exit(0);
+      }
       opts.withLayers = picked;
     }
   }
@@ -546,7 +555,10 @@ async function runNew(opts) {
   }
 
   const license = await resolveLicense(opts, isInteractive, layerOrder);
-  if (p.isCancel(license)) { p.cancel('Cancelled.'); process.exit(0); }
+  if (p.isCancel(license)) {
+    p.cancel('Cancelled.');
+    process.exit(0);
+  }
 
   let chosenLayout = opts.layout;
   if (isInteractive && templateInfo.layouts && !chosenLayout) {
@@ -557,7 +569,10 @@ async function runNew(opts) {
       recommended: templateInfo.defaultLayout || layoutIds[0],
       allowCustom: false,
     });
-    if (p.isCancel(picked)) { p.cancel('Cancelled.'); process.exit(0); }
+    if (p.isCancel(picked)) {
+      p.cancel('Cancelled.');
+      process.exit(0);
+    }
     chosenLayout = picked;
   }
 
@@ -657,12 +672,7 @@ async function runNew(opts) {
   p.outro('✅ Done!');
   // Only once --github has created the repository they apply to.
   const githubSetup = repoCreated ? githubSetupLines({ repo: `${finalOwner}/${name}`, ...collectPullRequestChecks(targetDir) }) : [];
-  printPostScaffoldSteps(
-    name,
-    hasRepo ? [...checks.commands, ...checks.needRepo] : checks.commands,
-    hasRepo ? [] : checks.needRepo,
-    githubSetup,
-  );
+  printPostScaffoldSteps(name, hasRepo ? [...checks.commands, ...checks.needRepo] : checks.commands, hasRepo ? [] : checks.needRepo, githubSetup);
 }
 
 /** The labels applied layers expect, with the commands that create them when --github didn't. */
@@ -725,11 +735,11 @@ function createGithubRemote(targetDir, name, owner, isPrivate, labels, env) {
 function seedGithubLabels(targetDir, repo, labels, env) {
   for (const label of labels) {
     try {
-      execFileSync(
-        'gh',
-        ['label', 'create', label.name, '--color', label.color, '--description', label.description || '', '--force', '-R', repo],
-        { cwd: targetDir, env, stdio: 'pipe' },
-      );
+      execFileSync('gh', ['label', 'create', label.name, '--color', label.color, '--description', label.description || '', '--force', '-R', repo], {
+        cwd: targetDir,
+        env,
+        stdio: 'pipe',
+      });
       p.log.success(`Label ready: ${label.name}`);
     } catch {
       p.log.warn(`Could not create label "${label.name}" — run: gh label create ${label.name} --color ${label.color}`);
@@ -745,9 +755,7 @@ function seedGithubLabels(targetDir, repo, labels, env) {
  */
 function printPostScaffoldSteps(projectName, verifyCommands, needRepo = [], githubSetup = []) {
   console.log(`   cd ${projectName}`);
-  const steps = Array.isArray(verifyCommands) && verifyCommands.length
-    ? verifyCommands
-    : ['Run your language-specific install + test commands'];
+  const steps = Array.isArray(verifyCommands) && verifyCommands.length ? verifyCommands : ['Run your language-specific install + test commands'];
   console.log('   Next steps:');
   steps.forEach((cmd) => console.log(`     ${cmd}`));
   if (needRepo.length) {
@@ -811,32 +819,31 @@ function main() {
       process.exit(1);
     });
   }
-
 }
 
 export {
-  parseArgs,
-  render,
-  renderPathSegment,
-  buildRenderVars,
-  sanitizeIdentifierSegment,
-  getAvailableTemplates,
-  getTemplatesWithManifests,
-  loadTemplateManifest,
-  resolveTemplateLayout,
-  copyTemplateToProject,
   applyLicense,
-  ensureDir,
-  copyAndRender,
-  runNew,
+  buildRenderVars,
   checkTemplateOptions,
-  printPostScaffoldSteps,
-  labelHint,
   collectLayerIds,
+  copyAndRender,
+  copyTemplateToProject,
+  ensureDir,
+  getAvailableTemplates,
   getBaselineLayers,
   getFeatureLayers,
-  USAGE,
+  getTemplatesWithManifests,
+  labelHint,
+  loadTemplateManifest,
+  parseArgs,
+  printPostScaffoldSteps,
+  render,
+  renderPathSegment,
+  resolveTemplateLayout,
+  runNew,
+  sanitizeIdentifierSegment,
   SKELETOR_VERSION,
+  USAGE,
 };
 
 const isTestEnv = process.env.SKELETOR_CLI_TEST === '1' || process.env.JEST_WORKER_ID != null;

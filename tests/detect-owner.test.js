@@ -1,13 +1,8 @@
 process.env.SKELETOR_CLI_TEST = '1';
 
-import {
-  parseGithubOwnerFromUrl,
-  detectGithubOwners,
-  resolveOwner,
-  collectSearchDirs,
-} from '../src/detect-owner.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { collectSearchDirs, detectGithubOwners, parseGithubOwnerFromUrl, resolveOwner } from '../src/detect-owner.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

@@ -18,7 +18,7 @@ const BASE_GITIGNORE = [
 
 const BUILD_OUTPUT = 'Build / output';
 
-export const FEATURE_REGISTRY = {
+const FEATURE_REGISTRY = {
   node: {
     gitignore: [
       { heading: 'Dependencies', patterns: ['node_modules/'] },
@@ -74,7 +74,7 @@ export const FEATURE_REGISTRY = {
 };
 
 /** Ordered rules: first match wins (avoids false positives like "cargo test" matching "go test"). */
-export const VERIFY_COMMAND_RULES = [
+const VERIFY_COMMAND_RULES = [
   { test: (cmd) => cmd.startsWith('npm install'), features: ['node'] },
   { test: (cmd) => cmd.includes('npm run format'), features: ['prettier'] },
   { test: (cmd) => cmd.includes('npm run lint'), features: ['eslint'] },
@@ -123,6 +123,7 @@ export function buildGitignore(features, vars = {}) {
 /**
  * @param {string[]} features
  * @param {{ language?: string }} templateInfo
+ * @returns {Record<string, unknown> | null}
  */
 export function buildKnipConfig(features, templateInfo) {
   if (!features.includes('knip')) return null;
@@ -161,7 +162,7 @@ export function buildJscpdConfig(features, templateInfo) {
 }
 
 /**
- * @param {{ features?: string[], verifyCommands?: string[], id?: string }} templateInfo
+ * @param {Record<string, any>} templateInfo
  * @returns {string[]}
  */
 export function validateTemplateFeatures(templateInfo) {
@@ -180,9 +181,7 @@ export function validateTemplateFeatures(templateInfo) {
     if (!rule) continue;
     for (const feat of rule.features) {
       if (!features.includes(feat)) {
-        errors.push(
-          `Template "${templateInfo.id}": verifyCommand "${cmd}" requires feature "${feat}"`,
-        );
+        errors.push(`Template "${templateInfo.id}": verifyCommand "${cmd}" requires feature "${feat}"`);
       }
     }
   }

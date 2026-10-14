@@ -3,24 +3,24 @@
  * open-source license. Everything else is UNLICENSED, which grants nothing until the author decides.
  */
 
+import * as p from '@clack/prompts';
 import fs from 'fs';
 import path from 'path';
-import * as p from '@clack/prompts';
 import { withRecommendedTag } from './interactive-prompts.js';
 
 export const UNLICENSED = 'UNLICENSED';
-export const PUBLIC_DEFAULT_LICENSE = 'MIT';
+const PUBLIC_DEFAULT_LICENSE = 'MIT';
 // A publishable package needs an SPDX license, so these layers make MIT the license whatever the visibility.
-export const PUBLISHING_LAYERS = ['library-publishing'];
+const PUBLISHING_LAYERS = ['library-publishing'];
 
-export const LICENSES = [
+const LICENSES = [
   { id: 'MIT', hint: 'permissive and short; the usual choice for tools and libraries' },
   { id: 'Apache-2.0', hint: 'permissive, with an explicit patent grant; common for larger or corporate-backed projects' },
   { id: UNLICENSED, hint: 'source is visible, but no rights are granted (not open source)' },
 ];
 
 /** @param {{ github?: boolean, githubPrivate?: boolean }} opts */
-export function isPublicRepo(opts) {
+function isPublicRepo(opts) {
   return Boolean(opts.github && !opts.githubPrivate);
 }
 
@@ -78,10 +78,11 @@ export function removeSpdxLicenseFields(projectDir) {
 }
 
 /** @param {string} license */
-export function readmeLicenseSection(license) {
-  const body = license === UNLICENSED
-    ? 'UNLICENSED: all rights reserved. No license is granted to use, copy, modify or distribute this code.'
-    : `${license}. See [LICENSE](LICENSE).`;
+function readmeLicenseSection(license) {
+  const body =
+    license === UNLICENSED
+      ? 'UNLICENSED: all rights reserved. No license is granted to use, copy, modify or distribute this code.'
+      : `${license}. See [LICENSE](LICENSE).`;
   return `## License\n\n${body}\n`;
 }
 

@@ -9,7 +9,7 @@
  * @param {string} version
  * @returns {[number, number, number] | null}
  */
-export function parseSemverCore(version) {
+function parseSemverCore(version) {
   if (typeof version !== 'string') return null;
   const match = version.trim().match(/(\d+)\.(\d+)\.(\d+)/);
   if (!match) return null;
@@ -43,19 +43,14 @@ function recordConflict(dotPath, existing, incoming, conflicts, kept) {
   conflicts.push({ path: dotPath, existing, incoming, kept });
 }
 
-const DEP_BUCKETS = new Set([
-  'dependencies',
-  'devDependencies',
-  'peerDependencies',
-  'optionalDependencies',
-]);
+const DEP_BUCKETS = new Set(['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']);
 
 /**
  * @param {Record<string, unknown>} target
  * @param {Record<string, unknown>} patch
  * @param {MergeConflict[]} conflicts
  * @param {string} [pathPrefix]
- * @returns {Record<string, unknown>}
+ * @returns {Record<string, any>}
  */
 export function mergePackageJson(target, patch, conflicts = [], pathPrefix = '') {
   const out = { ...target };
@@ -69,8 +64,7 @@ export function mergePackageJson(target, patch, conflicts = [], pathPrefix = '')
     }
 
     if (val && typeof val === 'object') {
-      const existingObj =
-        out[key] && typeof out[key] === 'object' && !Array.isArray(out[key]) ? out[key] : {};
+      const existingObj = out[key] && typeof out[key] === 'object' && !Array.isArray(out[key]) ? out[key] : {};
 
       if (DEP_BUCKETS.has(key) || key === 'scripts') {
         const merged = { ...existingObj };
@@ -93,12 +87,7 @@ export function mergePackageJson(target, patch, conflicts = [], pathPrefix = '')
         }
         out[key] = merged;
       } else {
-        out[key] = mergePackageJson(
-          /** @type {Record<string, unknown>} */ (existingObj),
-          /** @type {Record<string, unknown>} */ (val),
-          conflicts,
-          dotPath,
-        );
+        out[key] = mergePackageJson(/** @type {Record<string, unknown>} */ (existingObj), /** @type {Record<string, unknown>} */ (val), conflicts, dotPath);
       }
       continue;
     }
@@ -139,17 +128,83 @@ const DEPENDENCY_KEYS = [
 // so a package.json skeletor writes is already formatted: these keys in this order, then any others
 // alphabetically. The plugin also sorts the keys of SORTED_OBJECTS and the `files` list.
 const KEY_ORDER = [
-  '$schema', 'name', 'version', 'type', 'flat', 'displayName', 'description', 'categories', 'repository',
-  'homepage', 'bugs', 'author', 'publisher', 'maintainers', 'contributors', 'donate', 'funding', 'sponsor',
-  'license', 'preview', 'private', 'workspaces', 'languageName', 'packageManager', 'engines', 'cpu', 'os', 'libc',
-  'devEngines', 'man', 'bin', 'main', 'types', 'typings', 'typesVersions', 'module', 'imports', 'exports',
-  'esnext', 'es2020', 'esm2020', 'fesm2020', 'es2015', 'esm2015', 'fesm2015', 'es5', 'esm5', 'fesm5', 'browser',
-  'umd', 'jsdelivr', 'unpkg', 'directories', 'files', 'keywords', 'scripts', 'config', ...DEPENDENCY_KEYS,
-  'publishConfig', 'sideEffects', 'icon', 'badges', 'galleryBanner', 'activationEvents', 'contributes', 'markdown',
-  'qna', 'extensionPack', 'extensionDependencies', 'extensionKind',
+  '$schema',
+  'name',
+  'version',
+  'type',
+  'flat',
+  'displayName',
+  'description',
+  'categories',
+  'repository',
+  'homepage',
+  'bugs',
+  'author',
+  'publisher',
+  'maintainers',
+  'contributors',
+  'donate',
+  'funding',
+  'sponsor',
+  'license',
+  'preview',
+  'private',
+  'workspaces',
+  'languageName',
+  'packageManager',
+  'engines',
+  'cpu',
+  'os',
+  'libc',
+  'devEngines',
+  'man',
+  'bin',
+  'main',
+  'types',
+  'typings',
+  'typesVersions',
+  'module',
+  'imports',
+  'exports',
+  'esnext',
+  'es2020',
+  'esm2020',
+  'fesm2020',
+  'es2015',
+  'esm2015',
+  'fesm2015',
+  'es5',
+  'esm5',
+  'fesm5',
+  'browser',
+  'umd',
+  'jsdelivr',
+  'unpkg',
+  'directories',
+  'files',
+  'keywords',
+  'scripts',
+  'config',
+  ...DEPENDENCY_KEYS,
+  'publishConfig',
+  'sideEffects',
+  'icon',
+  'badges',
+  'galleryBanner',
+  'activationEvents',
+  'contributes',
+  'markdown',
+  'qna',
+  'extensionPack',
+  'extensionDependencies',
+  'extensionKind',
 ];
 const SORTED_OBJECTS = new Set(['engines', 'devEngines', 'scripts', ...DEPENDENCY_KEYS]);
 
+/**
+ * @param {[string, unknown]} a
+ * @param {[string, unknown]} b
+ */
 const byKey = ([a], [b]) => (a > b ? 1 : a < b ? -1 : 0);
 
 /**
@@ -167,7 +222,7 @@ function sortPackageJson(pkg) {
       }
       if (key === 'files' && Array.isArray(value)) return [key, sortFiles(value)];
       return [key, value];
-    }),
+    })
   );
 }
 
