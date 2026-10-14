@@ -7,6 +7,12 @@ set -euo pipefail
 
 POLICY_FILE=".github/docs-policy.yml"
 
+# git ls-files runs in a process substitution below, where its failure would go unnoticed.
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "ERROR: not inside a git work tree; docs-policy checks the files git tracks." >&2
+  exit 1
+fi
+
 if [ ! -f "$POLICY_FILE" ]; then
   echo "ERROR: $POLICY_FILE not found." >&2
   exit 1

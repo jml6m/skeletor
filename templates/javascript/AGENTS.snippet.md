@@ -4,7 +4,7 @@ What the tooling enforces. The [CI workflows](./.github/workflows/) run every Bu
 
 - **Gates**: `npm run format:check` (Prettier), `npm run lint` (ESLint, fails on any warning), `npm test` (Jest).
   The pre-commit hook runs Prettier on staged files; `npm run format` formats the whole tree.
-- **Imports**: no parent imports (`../`) in `import` or `require()`. Use the `@` aliases (`@config`, `@utils`,
+- **Imports**: no parent imports (`..`, `../`) in `import` or `require()`. Use the `@` aliases (`@config`, `@utils`,
   `@src/...`) or sibling imports (`./`). An alias lives in four places, kept in step: `_moduleAliases` in
   `package.json` (runtime), [jsconfig.json](./jsconfig.json) (ESLint), [jest.config.js](./jest.config.js) and
   `paths` in [knip.json](./knip.json). Unresolved and unused imports are errors.

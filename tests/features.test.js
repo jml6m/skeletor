@@ -41,6 +41,7 @@ describe('features registry', () => {
     expect(js.entry).toBeUndefined();
     expect(js.project[0]).toContain('.js');
     expect(ts.entry[0]).toContain('.ts');
+    expect(js.ignoreExportsUsedInFile).toBeUndefined();
   });
 
   test('buildJscpdConfig respects language', () => {

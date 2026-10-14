@@ -27,7 +27,7 @@ import {
   writeDocsPolicyAllowlist,
 } from './layers.js';
 import { appendReadmeLicense, pyprojectLicense, removeSpdxLicenseFields, resolveLicense, UNLICENSED } from './license.js';
-import { buildPinTokens, checkTemplateGenerationAllowed, loadPinnedVersions, validatePinnedVersionsManifest } from './pinned-versions.js';
+import { buildPinTokens, checkTemplateGenerationAllowed, loadPinnedVersions, nodeVersionWarning, validatePinnedVersionsManifest } from './pinned-versions.js';
 import { unknownIdMessage } from './suggest.js';
 import { suggestProjectName, validateGithubOwner, validateProjectName } from './validate-input.js';
 
@@ -58,8 +58,9 @@ new options:
   --auto                    Non-interactive; requires --template (or a --bundle, which names one).
                             Without a terminal, --auto is required.
   --no-git                  Skip git init
-  --github                  Create GitHub remote via gh CLI (after git init)
-  --private                 Use --private with --github (default: public)
+  --github                  Create the GitHub repository with gh, push the initial commit,
+                            seed layer labels and print the one-time repository settings
+  --private                 Make the --github repository private (default: public)
   --allow-deprecated-template
                             Allow scaffolding templates marked deprecated in pinned-versions.json
 
@@ -441,14 +442,30 @@ async function resolveOwnerForNew(opts, isInteractive) {
     process.exit(1);
   }
 
-  return candidates[0].owner;
+  const [{ owner, source }] = candidates;
+  p.log.info(`Owner: ${owner} (from ${source})`);
+  return owner;
+}
+
+/** A message when `name` can't be scaffolded into the current directory, else null. */
+function targetDirError(name) {
+  const targetDir = path.resolve(process.cwd(), name);
+  if (!fs.existsSync(targetDir)) return null;
+  if (!fs.statSync(targetDir).isDirectory()) return `"${name}" already exists and is not a directory: pick another name, or move it.`;
+  if (fs.readdirSync(targetDir).length > 0) return `Target directory "${name}" already exists and is not empty: pick another name, or empty it.`;
+  return null;
 }
 
 /**
- * Interactive runs re-prompt for an invalid name, prefilled with a suggestion; other runs exit 1.
+ * Interactive runs re-prompt for an invalid name or an occupied directory, prefilled with a
+ * suggestion; other runs exit 1.
  */
 async function resolveProjectName(name, isInteractive) {
-  const error = validateProjectName(name);
+  if (!name && !isInteractive) {
+    logError('❌ The project name is missing: skeletor new <name> [options].');
+    process.exit(1);
+  }
+  const error = validateProjectName(name) ?? targetDirError(name);
   if (!error) return name;
   if (!isInteractive) {
     logError(`❌ ${error}`);
@@ -458,8 +475,8 @@ async function resolveProjectName(name, isInteractive) {
   const answer = await p.text({
     message: 'Project name',
     placeholder: 'my-app',
-    initialValue: name ? suggestProjectName(name) : undefined,
-    validate: (value) => validateProjectName(value) ?? undefined,
+    initialValue: name && validateProjectName(name) ? suggestProjectName(name) : undefined,
+    validate: (value) => validateProjectName(value) ?? targetDirError(value) ?? undefined,
   });
   if (p.isCancel(answer)) {
     p.cancel('Cancelled.');
@@ -524,6 +541,8 @@ async function runNew(opts) {
   if (pinStatus.warn) {
     p.log.warn(pinStatus.warn);
   }
+  const nodeWarning = nodeVersionWarning(pinned, templateInfo.name);
+  if (nodeWarning) p.log.warn(nodeWarning);
 
   if (isInteractive && !opts.withLayers?.length && !opts.bundle) {
     const featureLayers = getFeatureLayers(templateInfo);
@@ -573,10 +592,12 @@ async function runNew(opts) {
   }
 
   if (isInteractive) {
-    const featureCount = layerIds.length - getBaselineLayers(templateInfo).length;
+    const baseline = getBaselineLayers(templateInfo);
+    const featureCount = layerOrder.filter((id) => !baseline.includes(id)).length;
     const layerNote = featureCount > 0 ? ` + ${featureCount} feature layer(s)` : '';
+    const repoNote = opts.github ? `, and create the ${repoVisibility(opts)} GitHub repository ${finalOwner}/${name}` : '';
     const shouldContinue = await promptConfirmRecommended({
-      message: `Scaffold "${name}" as ${templateInfo.name}${layerNote}?`,
+      message: `Scaffold "${name}" as ${templateInfo.name}${layerNote}${repoNote}?`,
       recommended: true,
     });
     if (p.isCancel(shouldContinue) || !shouldContinue) {
@@ -585,11 +606,10 @@ async function runNew(opts) {
     }
   }
 
+  // Checked with the name too; again here, since the prompts can take a while.
+  const dirError = targetDirError(name);
+  if (dirError) fail(dirError);
   const targetDir = path.resolve(process.cwd(), name);
-  if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).length > 0) {
-    logError(`❌ Target directory "${name}" already exists and is not empty.`);
-    process.exit(1);
-  }
 
   const pinTokens = buildPinTokens(pinned, templateInfo);
 
@@ -622,7 +642,7 @@ async function runNew(opts) {
   let repoLabels = [];
 
   if (layerIds.length) {
-    p.log.info(`Applying layers: ${layerIds.join(', ')}`);
+    p.log.info(`Applying layers: ${layerOrder.join(', ')}`);
     const result = applyLayers({
       projectDir: targetDir,
       layerIds,
@@ -637,8 +657,8 @@ async function runNew(opts) {
     }
     repoLabels = result.labels || [];
     if (result.applied?.includes('docs-policy')) writeDocsPolicyAllowlist(targetDir);
-    if (result.autoAdded?.length) {
-      p.log.info(`Auto-added required layers: ${result.autoAdded.join(', ')}`);
+    if (result.plan.autoAdded.length) {
+      p.log.info(`Auto-added required layers: ${result.plan.autoAdded.join(', ')}`);
     }
   }
 
@@ -658,7 +678,7 @@ async function runNew(opts) {
       run(['commit', '-q', '-m', 'chore: initial commit from skeletor']);
       p.log.success('Git repository initialized');
       if (opts.github) {
-        repoCreated = createGithubRemote(targetDir, name, finalOwner, opts.githubPrivate, repoLabels, env);
+        repoCreated = createGithubRemote(targetDir, name, finalOwner, opts, repoLabels, env);
       }
     } catch (e) {
       const detail = e.code === 'ENOENT' ? 'git is not installed or not on PATH' : (e.stderr?.toString() || e.message || String(e)).trim();
@@ -703,21 +723,25 @@ function gitEnv() {
   return env;
 }
 
-function createGithubRemote(targetDir, name, owner, isPrivate, labels, env) {
+function repoVisibility(opts) {
+  return opts.githubPrivate ? 'private' : 'public';
+}
+
+function createGithubRemote(targetDir, name, owner, opts, labels, env) {
   try {
     execFileSync('gh', ['--version'], { stdio: 'ignore' });
   } catch {
     p.log.warn('gh CLI not available — skipping --github remote creation');
     return false;
   }
-  const visibility = isPrivate ? '--private' : '--public';
+  const visibility = repoVisibility(opts);
   try {
-    execFileSync('gh', ['repo', 'create', `${owner}/${name}`, visibility, '--source=.', '--remote=origin'], {
+    execFileSync('gh', ['repo', 'create', `${owner}/${name}`, `--${visibility}`, '--source=.', '--remote=origin'], {
       cwd: targetDir,
       env,
       stdio: 'pipe',
     });
-    p.log.success(`GitHub remote created: ${owner}/${name}`);
+    p.log.success(`GitHub repository created: ${owner}/${name} (${visibility})`);
     try {
       execFileSync('git', ['push', '-u', 'origin', 'HEAD'], { cwd: targetDir, env, stdio: 'pipe' });
       p.log.success('Initial commit pushed to origin');
@@ -755,6 +779,12 @@ function seedGithubLabels(targetDir, repo, labels, env) {
   }
 }
 
+// A note printed under the install step: CI installs from the lockfile it creates.
+const INSTALL_NOTES = {
+  'npm install': 'Commit the package-lock.json it creates: CI installs with npm ci.',
+  'uv sync': 'Commit the uv.lock it creates: CI installs with uv sync --locked.',
+};
+
 /**
  * @param {string} projectName
  * @param {string[]} verifyCommands commands that work in the generated project as it is
@@ -762,17 +792,19 @@ function seedGithubLabels(targetDir, repo, labels, env) {
  * @param {string[]} [githubSetup] the one-time GitHub settings, after --github created the repository
  */
 function printPostScaffoldSteps(projectName, verifyCommands, needRepo = [], githubSetup = []) {
-  console.log(`   cd ${projectName}`);
   const steps = Array.isArray(verifyCommands) && verifyCommands.length ? verifyCommands : ['Run your language-specific install + test commands'];
   console.log('   Next steps:');
-  steps.forEach((cmd) => console.log(`     ${cmd}`));
+  console.log(`     cd ${projectName}`);
+  for (const cmd of steps) {
+    console.log(`     ${cmd}`);
+    if (INSTALL_NOTES[cmd]) console.log(`       ${INSTALL_NOTES[cmd]}`);
+  }
   if (needRepo.length) {
     console.log('   Once the project is a git repository (git init && git add -A):');
     needRepo.forEach((cmd) => console.log(`     ${cmd}`));
   }
   if (githubSetup.length) console.log(`\n${githubSetup.join('\n')}`);
-  console.log('\n   Edit AGENTS.md (or equivalent) to customize the AI contract.');
-  console.log('   Happy scaffolding. Your rules, your choice of stack.\n');
+  console.log('\n   Edit AGENTS.md to customize the AI contract.\n');
 }
 
 function main() {

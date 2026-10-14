@@ -80,7 +80,7 @@
       "policy": "major"
     },
     "typescript": {
-      "version": "5.6.0",
+      "version": "5.9.0",
       "policy": "minor"
     },
     "typescript-eslint": {

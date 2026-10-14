@@ -211,15 +211,51 @@ describe('the CLI', () => {
     [['new', 'my-app', '--auto', '--owner', 'my-org', '--template', 'go', '--layout', 'src', '--no-git'], "--layout doesn't apply to go"],
     [['new', 'my-app', '--auto', '--owner', 'my-org', '--template', 'go', '--github', '--no-git'], '--github creates the repository'],
     [['new', 'my-app', '--auto', '--owner', 'my-org', '--bundle', 'ts-libary', '--no-git'], 'Did you mean "ts-library"?'],
+    [['new', '--auto', '-t', 'go', '-o', 'my-org'], 'The project name is missing: skeletor new <name> [options].'],
   ])('%j exits 1 before writing anything', (args, message) => {
     const { status, stderr } = runCli(args, cwd);
     expect(status).toBe(1);
     expect(stderr).toContain(message);
     expect(fs.readdirSync(cwd)).toEqual([]);
   });
+
+  test.each([
+    ['a file', (target) => fs.writeFileSync(target, 'x'), '"my-app" already exists and is not a directory'],
+    ['a non-empty directory', (target) => fs.mkdirSync(path.join(target, 'src'), { recursive: true }), 'Target directory "my-app" already exists and is not empty'],
+  ])('a name taken by %s is an error, and nothing is written', (_what, occupy, message) => {
+    const target = path.join(cwd, 'my-app');
+    occupy(target);
+    const before = fs.statSync(target).isDirectory() ? fs.readdirSync(target) : null;
+    const { status, stdout, stderr } = runCli(['new', 'my-app', '--auto', '-t', 'go', '-o', 'my-org', '--no-git'], cwd);
+    expect(status).toBe(1);
+    expect(stderr).toContain(message);
+    expect(stderr).not.toContain('ENOTDIR');
+    expect(stdout).not.toContain('Creating');
+    if (before) expect(fs.readdirSync(target)).toEqual(before);
+  });
+
+  test('layers a requested layer requires are listed as auto-added, and applied in order', () => {
+    const { status, stdout } = runCli(['new', 'my-app', '--auto', '-t', 'javascript', '-o', 'my-org', '--no-git', '--with', 'logger-winston'], cwd);
+    expect(status).toBe(0);
+    expect(stdout).toContain('Applying layers: governance, dependabot, issue-templates, quality-gates, docs-lint, zod-config, logger-winston');
+    expect(stdout).toContain('Auto-added required layers: zod-config');
+  });
 });
 
 describe('next steps match the generated state', () => {
+  test('cd comes first under Next steps, and an install step says to commit its lockfile', async () => {
+    const out = await captureLog(() => printPostScaffoldSteps('my-app', ['npm install', 'npm test']));
+    const lines = out.split('\n');
+    expect(lines.slice(0, 5)).toEqual([
+      '   Next steps:',
+      '     cd my-app',
+      '     npm install',
+      '       Commit the package-lock.json it creates: CI installs with npm ci.',
+      '     npm test',
+    ]);
+    expect(out).not.toMatch(/or equivalent|Happy scaffolding/);
+  });
+
   test('printPostScaffoldSteps lists repository-only commands apart', async () => {
     const out = await captureLog(() => printPostScaffoldSteps('my-app', ['npm install'], ['npm run lint:encoding']));
     const [steps, later] = out.split('Once the project is a git repository');

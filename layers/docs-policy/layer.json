@@ -1,6 +1,6 @@
 {
   "id": "docs-policy",
-  "name": "Markdown allowlist (docs-policy)",
+  "name": "Markdown allowlist",
   "description": "Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job.",
   "version": "1.0.0",
   "appliesTo": {

@@ -6,6 +6,7 @@
 
 A library crate: the public API is in `src/lib.rs`, with its unit tests in the same file. `cargo test` also runs
 doc tests. `rust-toolchain.toml` selects the `{{PIN_RUNTIME_RUST_CHANNEL}}` toolchain with rustfmt and clippy.
+Commit the `Cargo.lock` the first build creates; Cargo recommends it for every crate.
 
 ## Checks
 

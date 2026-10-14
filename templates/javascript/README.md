@@ -47,11 +47,12 @@ The pre-commit hook formats staged files with Prettier, and `npm run format` for
 
 ## Release flow
 
-`release.js` bumps the version and commits `package.json` and `package-lock.json`.
+`release.js` bumps the version and commits only `package.json` and `package-lock.json`; anything else you staged stays staged.
 
 - Run `npm run release:patch` **once** per PR, when you open it
 - Run `npm run release:minor` instead for a substantial feature
-- Majors are human-only and gated by open issues labeled `vN-required`, where N is the next major version
+- Majors are human-only and gated by open issues labeled `vN-required`, where N is the next major version. The
+  gate fails when GitHub can't be queried; set `GITHUB_TOKEN` for a private repository
 
 ## Tooling scripts
 

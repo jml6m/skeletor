@@ -108,16 +108,16 @@ export function detectGithubOwners(startDir = process.cwd()) {
 
   for (const dir of collectSearchDirs(startDir)) {
     const fromGit = readGitRemoteOrigin(dir);
-    if (fromGit) add(fromGit, `git remote (${path.basename(dir) || dir})`);
+    if (fromGit) add(fromGit, `git remote origin in ${dir}`);
   }
 
   for (const dir of collectSearchDirs(startDir)) {
     const fromPkg = readPackageJsonOwner(dir);
-    if (fromPkg) add(fromPkg, `package.json (${path.basename(dir) || dir})`);
+    if (fromPkg) add(fromPkg, `package.json in ${dir}`);
   }
 
   const ghUser = readGhAuthenticatedUser();
-  if (ghUser) add(ghUser, 'gh authenticated user');
+  if (ghUser) add(ghUser, 'the authenticated gh user');
 
   return found;
 }

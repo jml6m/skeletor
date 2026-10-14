@@ -25,7 +25,7 @@ function logError(icon, msg) {
 
 /**
  * Queries the GitHub API for open issues with the given release-gate label.
- * Fail-open on any error (network, auth, rate limit, parse).
+ * Returns null when they can't be listed (network, auth, rate limit, parse).
  */
 async function fetchBlockingIssues(label) {
   const url = `${GITHUB_API}/repos/${REPO.owner}/${REPO.name}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=100`;
@@ -48,21 +48,13 @@ async function fetchBlockingIssues(label) {
       '⚠️',
       `Network error reaching GitHub API: ${networkError.message}`
     );
-    logError(
-      '⚠️',
-      'Unable to verify blocking issues. Proceeding with caution.'
-    );
-    return [];
+    return null;
   }
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     logError('⚠️', `GitHub API returned ${response.status}: ${body}`);
-    logError(
-      '⚠️',
-      'Unable to verify blocking issues. Proceeding with caution — set GITHUB_TOKEN for authenticated requests.'
-    );
-    return [];
+    return null;
   }
 
   let issues;
@@ -73,11 +65,14 @@ async function fetchBlockingIssues(label) {
       '⚠️',
       `Failed to parse GitHub API response: ${parseError.message}`
     );
-    return [];
+    return null;
+  }
+  if (!Array.isArray(issues)) {
+    logError('⚠️', 'GitHub API response is not a list of issues.');
+    return null;
   }
 
-  const safeIssues = Array.isArray(issues) ? issues : [];
-  const filtered = safeIssues.filter((issue) => issue && !issue.pull_request);
+  const filtered = issues.filter((issue) => issue && !issue.pull_request);
   log('📋', `Found ${filtered.length} open issue(s) with label "${label}".`);
 
   return filtered.map((issue) => ({
@@ -100,6 +95,18 @@ async function majorReleaseGate(releaseType, nextMajor) {
   log('🔒', '═══════════════════════════════════════════════════════════');
 
   const blockers = await fetchBlockingIssues(releaseLabel);
+
+  if (blockers === null) {
+    logError(
+      '🚫',
+      `RELEASE BLOCKED — the ${releaseLabel} issues could not be checked.`
+    );
+    logError(
+      '🚫',
+      'Fix the cause above (set GITHUB_TOKEN to a token that can read the issues) and run the release again.'
+    );
+    process.exit(1);
+  }
 
   if (blockers.length > 0) {
     logError('🚫', '');
@@ -168,9 +175,11 @@ if (!VALID_TYPES.includes(releaseType)) {
       ? 'package.json package-lock.json'
       : 'package.json';
     execSync(`git add ${files}`, { stdio: 'inherit' });
-    execSync(`git commit -m "chore: bump version to ${newVersion}"`, {
-      stdio: 'inherit',
-    });
+    // Only the version files: anything else already staged stays staged.
+    execSync(
+      `git commit -m "chore: bump version to ${newVersion}" -- ${files}`,
+      { stdio: 'inherit' }
+    );
 
     log('✨', `Success! Version ${newVersion} committed.`);
     log('👉', 'Run "git push" to publish changes.');
