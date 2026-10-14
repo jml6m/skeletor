@@ -1,6 +1,8 @@
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 process.env.SKELETOR_CLI_TEST = '1';
 const { applyLicense, buildRenderVars, runNew } = await import('../src/index.js');
@@ -10,17 +12,45 @@ function makeName(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
 
-/** Scaffolds without git; `github: true` only sets the visibility, since the remote needs git. */
-async function scaffold(opts) {
+const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'index.js');
+
+/**
+ * A local project scaffolds in-process without git. A `--github` one runs the CLI, as a user would,
+ * against a stub gh that creates nothing, so the repository's visibility decides the license.
+ * @param {{ template: string, layout?: string, github?: boolean, githubPrivate?: boolean, withLayers?: string[] }} options
+ */
+async function scaffold({ github, githubPrivate, ...opts }) {
   const name = makeName(`lic-${opts.template}`);
-  await runNew({ command: 'new', name, owner: 'acme', auto: true, git: false, withLayers: [], ...opts });
-  // With `github: true` and no repository created, runNew sets a failing exit code; don't leak it to other tests.
-  process.exitCode = undefined;
-  return path.resolve(process.cwd(), name);
+  if (!github) {
+    await runNew({ command: 'new', name, owner: 'acme', auto: true, git: false, withLayers: [], ...opts });
+    return path.resolve(process.cwd(), name);
+  }
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-lic-'));
+  const bin = path.join(root, 'bin');
+  fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, 'gh'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  /** @type {NodeJS.ProcessEnv} */
+  const env = {
+    ...process.env,
+    PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+    GIT_CONFIG_GLOBAL: path.join(root, 'gitconfig'),
+    GIT_AUTHOR_NAME: 'Test',
+    GIT_AUTHOR_EMAIL: 'test@example.com',
+    GIT_COMMITTER_NAME: 'Test',
+    GIT_COMMITTER_EMAIL: 'test@example.com',
+  };
+  delete env.JEST_WORKER_ID;
+  delete env.SKELETOR_CLI_TEST;
+  fs.writeFileSync(env.GIT_CONFIG_GLOBAL, '');
+  const args = ['new', name, '--template', opts.template, '--owner', 'acme', '--auto', '--github'];
+  if (opts.layout) args.push('--layout', opts.layout);
+  if (githubPrivate) args.push('--private');
+  execFileSync(process.execPath, [SRC, ...args], { cwd: root, env, stdio: 'pipe' });
+  return path.join(root, name);
 }
 
 const read = (dir, rel) => fs.readFileSync(path.join(dir, rel), 'utf8');
-const cleanup = (dir) => fs.rmSync(dir, { recursive: true, force: true });
+const cleanup = (dir) => fs.rmSync(path.basename(path.dirname(dir)).startsWith('skeletor-lic-') ? path.dirname(dir) : dir, { recursive: true, force: true });
 
 describe('license follows repository visibility', () => {
   test('UNLICENSED without --github or with --private; MIT for a public repo under --auto', async () => {
