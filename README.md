@@ -65,7 +65,7 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 | `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job; offers *.md as a CODEOWNERS path |
 | `env-example` | javascript, typescript | yes | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists |
 | `express-server` | javascript |  | Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route |
-| `free-port` | javascript, typescript |  | Zero-dependency cross-platform port freeing script with prestart hook and port registry |
+| `free-port` | javascript, typescript |  | Zero-dependency cross-platform port freeing script with a prestart hook |
 | `governance` | all | yes | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md |
 | `issue-labels` | all |  | Opt-in label conventions for repos with CI/release process: a chore label, the area: prefix rule, and criteria for gate labels |
 | `issue-templates` | all | yes | Minimal repo-agnostic issue forms: bug report, feature request, epic (native sub-issues), and blank issues disabled |

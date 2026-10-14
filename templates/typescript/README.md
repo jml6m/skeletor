@@ -4,7 +4,7 @@
 
 ## Standards
 
-This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) and follows personal conventions extracted from active workspaces:
+This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) and comes with these conventions:
 
 - Prettier + organize-imports + pkg plugin (printWidth 165, 2 spaces, single quotes)
 - ESLint + typescript-eslint + unused-imports (strict), plus:
