@@ -322,6 +322,28 @@ export function appendAgentsSection(agentsPath, section, snippet) {
   return after ? `${before}\n\n${block}\n\n${after}` : `${before}\n\n${block}\n`;
 }
 
+const LABELS_SECTION = 'Issue labels';
+
+/**
+ * AGENTS.md text listing every label the applied layers declare, with the commands that create them.
+ * @param {{ name: string, color: string, description?: string }[]} labels
+ */
+export function buildLabelSeed(labels) {
+  const quote = (s) => `"${String(s).replace(/(["\\$`])/g, '\\$1')}"`;
+  const names = labels.map((l) => `\`${l.name}\``).join(', ');
+  const commands = labels.map(
+    (l) => `gh label create ${quote(l.name)} --color ${l.color} --description ${quote(l.description || '')} --force`,
+  );
+  return [
+    `This repo's issue forms and conventions use these labels: ${names}. \`skeletor new --github\` creates them;`,
+    'otherwise run:',
+    '',
+    '```bash',
+    ...commands,
+    '```',
+  ].join('\n');
+}
+
 /**
  * @param {object} options
  */
@@ -476,6 +498,13 @@ export function applyLayers(options) {
     applied.push(layerPlan.id);
   }
 
+  const seenLabels = new Set();
+  const repoLabels = labels.filter((l) => !seenLabels.has(l.name) && seenLabels.add(l.name));
+  if (repoLabels.length) {
+    const agentsPath = path.join(projectDir, 'AGENTS.md');
+    fs.writeFileSync(agentsPath, appendAgentsSection(agentsPath, LABELS_SECTION, buildLabelSeed(repoLabels)), 'utf8');
+  }
+
   if (!options.noInstall && applied.length) {
     for (const cmd of plan.postApply) {
       if (FORBIDDEN_POST_APPLY.test(cmd)) continue;
@@ -487,7 +516,7 @@ export function applyLayers(options) {
     }
   }
 
-  return { ...planResult, applied, labels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
+  return { ...planResult, applied, labels: repoLabels, conflicts: allConflicts, verifyCommands: [...new Set(plan.verifyCommands)], dryRun: false };
 }
 
 /**
