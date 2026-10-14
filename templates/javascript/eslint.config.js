@@ -76,7 +76,9 @@ module.exports = defineConfig([
       // no-restricted-imports covers `import`; n/no-restricted-require covers `require()`.
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: ['../*'], message: PARENT_IMPORT_MESSAGE }] },
+        {
+          patterns: [{ group: ['..', '../*'], message: PARENT_IMPORT_MESSAGE }],
+        },
       ],
       'n/no-restricted-require': [
         'error',

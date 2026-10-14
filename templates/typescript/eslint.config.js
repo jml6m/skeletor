@@ -10,7 +10,7 @@ const PARENT_IMPORT_MESSAGE =
 
 export default defineConfig([
   {
-    // Generated output (keep in step with the build/output entries in .gitignore), then JS tooling files.
+    // Generated output; keep in step with the build/output entries in .gitignore.
     ignores: [
       'dist/**',
       'build/**',
@@ -21,9 +21,18 @@ export default defineConfig([
       'playwright-report/**',
       'test-results/**',
       'lib/**',
-      'eslint.config.js',
-      'scripts/**/*.js',
     ],
+  },
+  {
+    // JS tooling: release.js, scripts and configs.
+    files: ['**/*.{js,cjs,mjs}'],
+    extends: [eslint.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: {
+        ...globals.node,
+      },
+    },
   },
   {
     files: ['**/*.ts'],
@@ -64,7 +73,9 @@ export default defineConfig([
       ],
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: ['../*'], message: PARENT_IMPORT_MESSAGE }] },
+        {
+          patterns: [{ group: ['..', '../*'], message: PARENT_IMPORT_MESSAGE }],
+        },
       ],
       'no-restricted-properties': [
         'error',
