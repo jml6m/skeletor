@@ -215,6 +215,18 @@ describe('layer application', () => {
     }
   });
 
+  test('the docs-policy check fails outside a git work tree instead of passing on no files', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-docs-policy-'));
+    try {
+      fs.cpSync(path.join(loadLayerById('docs-policy').dir, 'files', '.github'), path.join(dir, '.github'), { recursive: true });
+      fs.writeFileSync(path.join(dir, '.github', 'docs-policy.yml'), 'allowed:\n  - README.md\n');
+      const env = { ...process.env, GIT_CEILING_DIRECTORIES: path.dirname(dir) };
+      expect(() => execSync('bash .github/scripts/check-docs-policy.sh', { cwd: dir, env, stdio: 'pipe' })).toThrow(/not inside a git work tree/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test('dry-run writes nothing', async () => {
     const name = makeName('layer-dry');
     const targetDir = path.resolve(process.cwd(), name);

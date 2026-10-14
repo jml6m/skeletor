@@ -6,6 +6,7 @@
 
 A single binary crate: `src/main.rs` holds `main` and its unit tests. Run it with `cargo run`.
 `rust-toolchain.toml` selects the `{{PIN_RUNTIME_RUST_CHANNEL}}` toolchain with rustfmt and clippy.
+Commit the `Cargo.lock` the first build creates; Cargo recommends it for every crate.
 
 ## Checks
 

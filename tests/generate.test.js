@@ -63,7 +63,7 @@ function runVerifyCommands(projectDir, commands) {
   runCommands(projectDir, commands);
   const unexpected = untrackedFiles(projectDir).filter((f) => !EXPECTED_AFTER_VERIFY.has(f));
   expect({ projectDir, unexpected }).toEqual({ projectDir, unexpected: [] });
-  // A check that rewrites a scaffold file (a formatter, go mod tidy) means the scaffold wasn't clean.
+  // A check that rewrites a scaffold file (a formatter) means the scaffold wasn't clean.
   const modified = execSync('git diff --name-only', { cwd: projectDir, stdio: 'pipe' }).toString().split('\n').filter(Boolean);
   expect({ projectDir, modified }).toEqual({ projectDir, modified: [] });
 }

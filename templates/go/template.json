@@ -12,7 +12,7 @@
     "go"
   ],
   "verifyCommands": [
-    "go mod tidy",
+    "go mod tidy -diff",
     "go build .",
     "go test ./..."
   ]

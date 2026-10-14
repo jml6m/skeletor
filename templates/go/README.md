@@ -15,4 +15,4 @@ AGENTS.md lists the same commands.
 {{VERIFY_COMMANDS}}
 ```
 
-There are no report-only checks.
+`go mod tidy` updates go.mod and go.sum; CI only checks them. There are no report-only checks.
