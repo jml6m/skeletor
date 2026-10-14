@@ -3,8 +3,8 @@ name: CI
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [main, master]
+  # A pull request's checks gate the merge, so nothing re-runs after it; this runs them by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,14 +26,4 @@ jobs:
           toolchain: {{PIN_RUNTIME_RUST_CHANNEL}}
           components: rustfmt, clippy
 
-      - name: Cargo fmt check
-        run: cargo fmt --check
-
-      - name: Cargo clippy
-        run: cargo clippy -- -D warnings
-
-      - name: Cargo check
-        run: cargo check
-
-      - name: Cargo test
-        run: cargo test
+{{CI_CHECK_STEPS}}

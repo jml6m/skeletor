@@ -3,8 +3,8 @@ name: CI
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [main, master]
+  # A pull request's checks gate the merge, so nothing re-runs after it; this runs them by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,6 +16,9 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      # Maven adds MAVEN_ARGS to every mvn command: no colors or download progress in the log.
+      MAVEN_ARGS: --batch-mode
     steps:
       - name: Checkout
         uses: {{PIN_ACTION_CHECKOUT}}
@@ -26,8 +29,4 @@ jobs:
           distribution: temurin
           java-version: '{{PIN_RUNTIME_JAVA}}'
 
-      - name: Maven compile
-        run: mvn -B clean compile
-
-      - name: Maven test
-        run: mvn -B test
+{{CI_CHECK_STEPS}}

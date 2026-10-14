@@ -8,7 +8,7 @@
   "license": "{{LICENSE}}",
   "scripts": {
     "format": "prettier --write .",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
@@ -19,10 +19,9 @@
     "release:minor": "node release.js minor",
     "release:major": "node release.js major",
     "npm:reinstall": "node scripts/reinstall.js",
-    "health:dead": "knip --no-exit-code",
-    "health:dupes": "jscpd src || node -e \"process.exit(0)\"",
-    "health:circular": "madge --circular --extensions ts src || node -e \"process.exit(0)\"",
-    "health:full": "npm-run-all --sequential health:dead health:dupes health:circular"
+    "health:dead": "knip --treat-config-hints-as-errors",
+    "health:circular": "madge --circular --extensions ts src",
+    "report:dupes": "jscpd src"
   },
   "devDependencies": {
     "@eslint/js": "{{PIN_ESLINT_JS}}",
@@ -38,7 +37,6 @@
     "knip": "{{PIN_KNIP}}",
     "lint-staged": "{{PIN_LINT_STAGED}}",
     "madge": "{{PIN_MADGE}}",
-    "npm-run-all2": "{{PIN_NPM_RUN_ALL2}}",
     "prettier": "{{PIN_PRETTIER}}",
     "prettier-plugin-organize-imports": "{{PIN_PRETTIER_PLUGIN_ORGANIZE_IMPORTS}}",
     "prettier-plugin-pkg": "{{PIN_PRETTIER_PLUGIN_PKG}}",

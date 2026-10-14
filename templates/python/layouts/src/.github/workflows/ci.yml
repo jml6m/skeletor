@@ -3,8 +3,8 @@ name: CI
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [main, master]
+  # A pull request's checks gate the merge, so nothing re-runs after it; this runs them by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,14 +30,4 @@ jobs:
         run: |
           if [ -f uv.lock ]; then uv sync --locked; else uv sync; fi
 
-      - name: Ruff format check
-        run: uv run ruff format --check .
-
-      - name: Ruff lint
-        run: uv run ruff check .
-
-      - name: Pytest
-        run: uv run pytest -q
-
-      - name: Mypy
-        run: uv run mypy src
+{{CI_CHECK_STEPS}}

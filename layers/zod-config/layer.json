@@ -11,6 +11,5 @@
   "patch": { "packageJson": "patch/package.json.json" },
   "docs": {
     "agents": { "section": "Configuration", "append": "docs/AGENTS.snippet.md" }
-  },
-  "verifyCommands": ["npm install", "npm run lint"]
+  }
 }

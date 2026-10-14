@@ -29,9 +29,5 @@
       "section": "Database tests",
       "append": "docs/AGENTS.snippet.md"
     }
-  },
-  "verifyCommands": [
-    "npm install",
-    "npm run test:mongo"
-  ]
+  }
 }

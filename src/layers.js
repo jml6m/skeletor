@@ -392,8 +392,6 @@ export function planLayerApply(options) {
     autoAdded,
     conflicts: [],
     postApply: [],
-    verifyCommands: [],
-    gitVerifyCommands: [],
   };
 
   for (const id of order) {
@@ -406,7 +404,6 @@ export function planLayerApply(options) {
       packageJsonPatch: null,
       agentsSection: null,
       postApply: layer.postApply || [],
-      verifyCommands: layer.verifyCommands || [],
     };
 
     for (const { srcPath, relPath } of fileEntries) {
@@ -454,8 +451,6 @@ export function planLayerApply(options) {
 
     plan.layers.push(layerPlan);
     plan.postApply.push(...(layer.postApply || []).filter((c) => !FORBIDDEN_POST_APPLY.test(c)));
-    plan.verifyCommands.push(...(layer.verifyCommands || []));
-    plan.gitVerifyCommands.push(...(layer.gitVerifyCommands || []));
   }
 
   return { ok: true, errors: [], plan, ctx };
@@ -473,7 +468,7 @@ export function applyLayers(options) {
   const allConflicts = [];
 
   if (dryRun) {
-    return { ...planResult, applied: [], conflicts: allConflicts, verifyCommands: [], gitVerifyCommands: [], dryRun: true };
+    return { ...planResult, applied: [], conflicts: allConflicts, dryRun: true };
   }
 
   const applied = [];
@@ -549,8 +544,6 @@ export function applyLayers(options) {
     applied,
     labels: repoLabels,
     conflicts: allConflicts,
-    verifyCommands: [...new Set(plan.verifyCommands)],
-    gitVerifyCommands: [...new Set(plan.gitVerifyCommands)],
     dryRun: false,
   };
 }
@@ -641,6 +634,11 @@ export function validateLayerManifests() {
     // Layers either work alone or declare `requires`, which is auto-applied; a soft dependency is never read.
     if ('recommends' in layer) {
       errors.push(`${layer.id}: "recommends" is not supported; use "requires" for a layer this one can't work without`);
+    }
+
+    // A layer's checks join the scaffold's CI job unless they run in a workflow the layer ships.
+    if (layer.ciWorkflow !== undefined && !fs.existsSync(path.join(filesDir, '.github', 'workflows', String(layer.ciWorkflow)))) {
+      errors.push(`${layer.id}: ciWorkflow "${layer.ciWorkflow}" is not a workflow the layer ships`);
     }
 
     const ignores = layer.gitignore;

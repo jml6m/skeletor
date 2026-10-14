@@ -63,10 +63,6 @@
       "version": "8.0.0",
       "policy": "major"
     },
-    "npm-run-all2": {
-      "version": "9.0.0",
-      "policy": "major"
-    },
     "prettier": {
       "version": "3.9.0",
       "policy": "minor"

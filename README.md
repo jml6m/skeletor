@@ -2,7 +2,7 @@
 
 **Multi-language project scaffolding with composable enhancement layers and AGENTS.md built in.**
 
-Generates projects pre-configured with lint/format/health/release defaults: JS/TS templates ship an opinionated toolchain, other stacks start from clean standard defaults.
+Generates projects pre-configured with lint/format/test/release defaults: JS/TS templates ship an opinionated toolchain, other stacks start from clean standard defaults.
 
 ```bash
 npx @jml6m/skeletor new my-api --template typescript
@@ -16,7 +16,7 @@ Run `skeletor new my-project` for an interactive selector, or pass `--template <
 
 | Template | Notes |
 |----------|-------|
-| `javascript` | CJS — Prettier, ESLint, aliases, health tools, husky, AGENTS.md |
+| `javascript` | CJS — Prettier, ESLint, aliases, knip/madge gates, husky, AGENTS.md |
 | `typescript` | ESM + strict TS, flat ESLint, build, quality gates, AGENTS.md |
 | `python` | uv, pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
 | `go` | Standard module + tests |
@@ -24,7 +24,9 @@ Run `skeletor new my-project` for an interactive selector, or pass `--template <
 | `java` | Maven + JUnit 6 |
 | `csharp` | .NET 10 + xUnit |
 
-Each template declares `verifyCommands` in `template.json` — the post-scaffold steps to run locally. CI runs them in the `verify-templates` job.
+Each template declares `verifyCommands` in `template.json`: the scaffold's checks. A layer can add its own. The generated AGENTS.md and README list them, and the scaffold's CI runs them on every pull request.
+
+Every check a scaffold emits fails CI when it finds a problem, comes with a layer you opt into (then it's a gate too), or is an on-demand report that never runs in CI (`npm run report:dupes`). The `verify-templates` job runs each template's, layer's and bundle's checks.
 
 ## Quick start
 
@@ -101,12 +103,12 @@ Applied at scaffold time only. Skeletor is a one-shot generator: it writes a pro
 | `governance` | all | yes | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md |
 | `issue-labels` | all |  | Opt-in label conventions for repos with CI/release process: a chore label, the area: prefix rule, and criteria for gate labels |
 | `issue-templates` | all | yes | Minimal repo-agnostic issue forms: bug report, feature request, epic (native sub-issues), and blank issues disabled |
-| `library-publishing` | typescript |  | Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow |
+| `library-publishing` | typescript |  | Turns a TS template into a publishable dual ESM/CJS npm package: a library entry (src/lib/index.ts) built by tsup into lib/, an exports map checked by attw in CI, a prepack build and prepublishOnly gate, MIT as the default license, and an OIDC publish workflow that runs the CI checks first |
 | `log-table` | javascript, typescript |  | cli-table3 + string-width log table utility with display-width truncation and config defaults |
 | `logger-winston` | javascript, typescript |  | Replaces the console logger stub with Winston (levels, file transports, env-aware default level) |
 | `quality-gates` | javascript, typescript | yes | Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull |
 | `test-harness:mongo-memory` | javascript, typescript |  | mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script |
-| `test-harness:playwright` | javascript, typescript |  | Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts |
+| `test-harness:playwright` | javascript, typescript |  | Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts; CI runs the specs |
 | `zod-config` | javascript, typescript |  | Zod-validated env.config + config/index pattern; never read process.env in feature code |
 
 `skeletor new --github` also creates the labels that the chosen layers expect (for example `epic`), right after it creates the repo.

@@ -8,5 +8,7 @@
     "templates": ["javascript", "typescript"]
   },
   "files": { "dir": "files", "overwrite": false, "onConflict": "skip" },
-  "patch": { "packageJson": "patch/package.json.json" }
+  "patch": { "packageJson": "patch/package.json.json" },
+  "verifyCommands": ["npm run lint:docs"],
+  "ciWorkflow": "docs-lint.yml"
 }

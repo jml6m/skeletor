@@ -21,4 +21,15 @@ Scripts live at the repo root and run by filename (`uv run main.py`). `pyproject
 `dev` dependency group only, with no packaging. If this grows into a library you want to publish, re-scaffold
 with `--layout src`.
 
+## Checks
+
+Every check is a gate: [CI](./.github/workflows/ci.yml) runs them on every pull request and fails when one does.
+AGENTS.md lists the same commands.
+
+```bash
+{{VERIFY_COMMANDS}}
+```
+
+`uv run ruff format .` formats the tree; CI only checks it. There are no report-only checks.
+
 See AGENTS.md for AI agent protocols.

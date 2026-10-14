@@ -6,7 +6,8 @@ import { fileURLToPath } from 'url';
 
 // We import the enriched template discovery (pure + side-effect guarded)
 process.env.SKELETOR_CLI_TEST = '1';
-import { getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
+import { getBaselineLayers, getTemplatesWithManifests, runNew as runNewProgrammatic } from '../src/index.js';
+import { scaffoldChecks } from '../src/checks.js';
 import { loadBundles, loadLayerById } from '../src/layers.js';
 import { bundleShard, layerShard, listShards, selectedShard, shardsForChanges } from '../scripts/verify-shards.mjs';
 import { LIMITS } from '../scripts/check-agent-file-length.mjs';
@@ -59,12 +60,15 @@ function runVerifyCommands(projectDir, commands) {
 }
 
 function runCommands(projectDir, commands) {
+  // Run in the generated project, as a developer or CI would: without Jest's worker variables,
+  // which make Playwright refuse to run.
+  const env = { ...process.env };
+  delete env.JEST_WORKER_ID;
   for (const cmd of commands || []) {
-    // Run in the generated project. We tolerate some "health" style commands that use || true internally.
-    // The goal per user request is to exercise the post-generation verification steps.
     try {
       execSync(cmd, {
         cwd: projectDir,
+        env,
         stdio: 'pipe',
         timeout: 300000,
         shell: true,
@@ -77,12 +81,57 @@ function runCommands(projectDir, commands) {
   }
 }
 
-// JS/TS scaffolds must be warning-clean: lint fails on any warning, and knip on unused code and configuration hints.
-const STRICT_LINT = 'npm run lint -- --max-warnings 0';
+// CI installs from the lockfile in a step of its own; every other check is one rendered `- run:` step.
+const INSTALL = new Set(['npm install', 'uv sync']);
+const CANT_FAIL = /\|\|\s*(true|exit 0|node -e)|--no-exit-code/;
 
-function strictVerifyCommands(tmpl, commands) {
-  if (!['javascript', 'typescript'].includes(tmpl.language)) return commands;
-  return [...new Set([...commands.map((cmd) => (cmd === 'npm run lint' ? STRICT_LINT : cmd)), 'npx knip --treat-config-hints-as-errors'])];
+function workflowText(targetDir, file) {
+  const p = path.join(targetDir, '.github', 'workflows', file);
+  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+}
+
+/** The `- run:` steps a workflow's check list renders to, in order. */
+function renderedSteps(text) {
+  return [...text.matchAll(/^ {6}- run: (.+)$/gm)].map(([, cmd]) => (cmd.startsWith('"') ? JSON.parse(cmd) : cmd));
+}
+
+/**
+ * The scaffold's checks (AGENTS.md's Build & Test block) and its CI agree: the CI job runs every check
+ * except installs and those a layer runs in its own workflow, nothing else, and nothing that can't fail.
+ * Returns the checks, which is what the verify run executes.
+ */
+function expectChecksAgree(targetDir, agents) {
+  const checks = buildAndTestCommands(agents);
+  const ci = workflowText(targetDir, 'ci.yml');
+  expect(ci).toContain('workflow_dispatch:');
+  expect(ci).not.toMatch(/^\s+(push|schedule):/m);
+  const layerWorkflows = fs.readdirSync(path.join(targetDir, '.github', 'workflows')).filter((f) => f !== 'ci.yml');
+  const pullRequestWorkflows = layerWorkflows.filter((f) => /^\s+pull_request:/m.test(workflowText(targetDir, f)));
+  const elsewhere = (cmd) => pullRequestWorkflows.some((f) => ownWorkflowRuns(workflowText(targetDir, f), cmd));
+  const ciSteps = renderedSteps(ci);
+  expect(ciSteps).toEqual(checks.filter((cmd) => !INSTALL.has(cmd) && !elsewhere(cmd)));
+  // A publish workflow runs the same checks, and publishes only once they pass.
+  const publish = workflowText(targetDir, 'publish.yml');
+  if (publish) {
+    expect(renderedSteps(publish).join('\n')).toContain(['npm ci', ...ciSteps].join('\n'));
+    expect(publish).toMatch(/\n {2}publish:\n {4}needs: checks\n/);
+  }
+
+  const pkgPath = path.join(targetDir, 'package.json');
+  const scripts = fs.existsSync(pkgPath) ? JSON.parse(fs.readFileSync(pkgPath, 'utf8')).scripts || {} : {};
+  for (const cmd of checks) {
+    const script = /^npm (?:run )?([\w:-]+)$/.exec(cmd)?.[1];
+    const body = [cmd, scripts[script], scripts[`pre${script}`]].filter(Boolean).join('\n');
+    expect({ cmd, cantFail: CANT_FAIL.test(body) }).toEqual({ cmd, cantFail: false });
+  }
+  for (const f of layerWorkflows) expect({ f, cantFail: CANT_FAIL.test(workflowText(targetDir, f)) }).toEqual({ f, cantFail: false });
+  return checks;
+}
+
+// docs-lint and docs-policy run their checks in workflows of their own.
+function ownWorkflowRuns(text, cmd) {
+  if (cmd === 'npm run lint:docs') return /markdownlint-cli2 '\*\*\/\*\.md'/.test(text);
+  return text.includes(`run: ${cmd}`);
 }
 
 function listFilesRecursive(dir) {
@@ -148,7 +197,6 @@ const optionalCases = [
       shard: layerShard(tmpl.id),
       tmpl,
       opts: { withLayers: [id] },
-      extra: loadLayerById(id).verifyCommands || [],
     })),
   ),
   ...Object.entries(loadBundles()).map(([bundle, def]) => ({
@@ -156,7 +204,6 @@ const optionalCases = [
     shard: bundleShard(def.template),
     tmpl: jsTsTemplates.find((t) => t.id === def.template),
     opts: { bundle },
-    extra: [],
   })),
 ];
 
@@ -234,7 +281,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         });
 
         // Validate that the template declares its post-generation verification steps (step 4).
-        // These are exactly the commands ("npm install", "ruff check", "npm run health:full", etc.)
+        // These are exactly the commands ("npm install", "ruff check", "npm run health:dead", etc.)
         // a developer runs after `skeletor new --template ${tmpl.id}`.
         expect(Array.isArray(tmpl.verifyCommands) && tmpl.verifyCommands.length > 0).toBe(true);
 
@@ -287,7 +334,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         if (['javascript', 'typescript'].includes(tmpl.id)) {
           // The conventions section sits right after Build & Test and names only what the scaffold enforces.
           expect(agents).toMatch(/## Build & Test\n[\s\S]*?\n## Code conventions\n/);
-          expect(agents.match(/\n## Code conventions\n[\s\S]*?(?=\n## )/)[0]).toMatch(/no parent imports[\s\S]*health:full/);
+          expect(agents.match(/\n## Code conventions\n[\s\S]*?(?=\n## )/)[0]).toMatch(/no parent imports[\s\S]*health:dead[\s\S]*report:dupes/);
           expect(agents).not.toMatch(/routes|controllers|AppError|reference project/i);
           // The hook and README describe what lint-staged actually runs, and name the release-gate label one way.
           const lintStaged = Object.values(JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'))['lint-staged']);
@@ -300,8 +347,12 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           expect(agents).not.toContain('## Code conventions');
         }
         expect(fs.existsSync(path.join(targetDir, 'AGENTS.snippet.md'))).toBe(false);
-        const defaultLayout = tmpl.layouts?.[tmpl.defaultLayout];
-        expect(buildAndTestCommands(agents)).toEqual(defaultLayout?.verifyCommands || tmpl.verifyCommands);
+        // Build & Test lists the template's checks, then those of its baseline layers.
+        const checks = expectChecksAgree(targetDir, agents);
+        const templateChecks = tmpl.layouts?.[tmpl.defaultLayout]?.verifyCommands || tmpl.verifyCommands;
+        const own = scaffoldChecks(tmpl, tmpl.defaultLayout, getBaselineLayers(tmpl).map(loadLayerById));
+        expect(checks.slice(0, templateChecks.length)).toEqual(templateChecks);
+        expect(checks).toEqual([...own.commands, ...own.needRepo]);
         expect(agents).not.toMatch(/git push[^\n]*prohibited/i);
         expect(agents).toContain('push the branch and open a pull request');
         const never = (agents.match(/\*\*Never\*\*:(?:.+\n)+/)?.[0] ?? '').replace(/\s+/g, ' ');
@@ -344,10 +395,6 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           expect(gitignore).toContain('Generated by skeletor from template features');
         }
 
-        if (process.env.SKELETOR_FULL_VERIFY === '1') {
-          runVerifyCommands(targetDir, tmpl.verifyCommands);
-        }
-
         if (tmpl.id === 'rust') {
           const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
           expect(readme).toContain('A single binary crate');
@@ -361,7 +408,8 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         }
 
         if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
-          runVerifyCommands(targetDir, strictVerifyCommands(tmpl, tmpl.verifyCommands));
+          // The checks don't start the app; the TS build's subpath imports only resolve at runtime, so smoke-run it.
+          runVerifyCommands(targetDir, tmpl.id === 'typescript' ? [...checks, 'npm start'] : checks);
         }
       } finally {
         cleanup(tempRoot);
@@ -404,7 +452,8 @@ describe('non-default template layouts', () => {
     try {
       await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', description: DESCRIPTION, auto: true, git: false, withLayers: [] });
       const agents = expectLeanDocs(targetDir, listFilesRecursive(targetDir));
-      expect(buildAndTestCommands(agents)).toEqual(layout.verifyCommands || tmpl.verifyCommands);
+      const checks = expectChecksAgree(targetDir, agents);
+      expect(checks).toEqual(layout.verifyCommands || tmpl.verifyCommands);
       expect(fs.existsSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'))).toBe(true);
       if (tmpl.id === 'rust') {
         const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf8');
@@ -417,7 +466,7 @@ describe('non-default template layouts', () => {
         expect(fs.existsSync(path.join(targetDir, 'main.py'))).toBe(false);
       }
       if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
-        runVerifyCommands(targetDir, layout.verifyCommands || tmpl.verifyCommands);
+        runVerifyCommands(targetDir, checks);
       }
     } finally {
       cleanup(targetDir);
@@ -481,7 +530,7 @@ describe('non-default template layouts', () => {
 });
 
 describe('optional layers and bundles', () => {
-  optionalCases.filter(inShard).forEach(({ label, tmpl, opts, extra }) => test(`${label} scaffolds and verifies`, async () => {
+  optionalCases.filter(inShard).forEach(({ label, tmpl, opts }) => test(`${label} scaffolds and verifies`, async () => {
     const name = makeTempProjectName(`gen-opt-${tmpl.id}`);
     const targetDir = path.resolve(process.cwd(), name);
     try {
@@ -496,9 +545,13 @@ describe('optional layers and bundles', () => {
         expect(agents).toContain('## Log tables');
         expect(agents).toMatch(/display width[\s\S]*--json/i);
       }
+      const checks = expectChecksAgree(targetDir, agents);
+      for (const id of layers) {
+        const layer = loadLayerById(id);
+        expect(checks).toEqual(expect.arrayContaining([...(layer.verifyCommands || []), ...(layer.gitVerifyCommands || [])]));
+      }
       if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
-        // Strict knip on top of the (report-only) health:dead script: layers must ship dead-code-clean.
-        runVerifyCommands(targetDir, strictVerifyCommands(tmpl, [...tmpl.verifyCommands, ...extra]));
+        runVerifyCommands(targetDir, checks);
       }
     } finally {
       cleanup(targetDir);
