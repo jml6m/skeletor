@@ -5,8 +5,8 @@
 
 ## Build & Test
 
-Run these from the repo root before submitting changes, and keep them passing. [CI](./.github/workflows/ci.yml)
-runs the checks on every pull request.
+Run these from the repo root before submitting changes, and keep them passing. The
+[CI workflows](./.github/workflows/) run the checks on every pull request.
 
 ```bash
 {{VERIFY_COMMANDS}}
@@ -22,7 +22,7 @@ runs the checks on every pull request.
 
 ## Documentation conventions
 
-- Write in-repo paths in Markdown as clickable links (`[src/index.ts](./src/index.ts)`), not bare code spans.
+- Write in-repo paths in Markdown as clickable links (`[README.md](./README.md)`), not bare code spans.
   Commands and illustrative paths are exempt.
 - Docs describe the project as it is now. Don't keep per-release doc archives; history belongs in git and
   release notes.

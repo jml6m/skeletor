@@ -1,6 +1,6 @@
 {
   "name": "@jml6m/skeletor",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "description": "Multi-language project scaffolding: templates with lint, format, test, health and release defaults, composable layers, and an AGENTS.md in every project.",
   "repository": {
@@ -51,7 +51,6 @@
     "prepare": "husky",
     "prepublishOnly": "npm run lint && npm run lint:encoding && npm run audit:ci && npm test",
     "publish:dry": "npm publish --dry-run",
-    "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags",
     "release:major": "npm version major && git push --follow-tags",
     "release:minor": "npm version minor && git push --follow-tags",
     "release:patch": "npm version patch && git push --follow-tags",

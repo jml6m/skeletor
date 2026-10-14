@@ -4,11 +4,12 @@
 
 ## Development
 
-Standard Maven Java {{PIN_RUNTIME_JAVA}}+ project.
+Standard Maven Java {{PIN_RUNTIME_JAVA}}+ project. Build it and run it with
+`mvn package && java -cp target/classes {{JAVA_PACKAGE}}.App`.
 
 ## Checks
 
-Every check is a gate: [CI](./.github/workflows/ci.yml) runs them on every pull request and fails when one does.
+Every check is a gate: the [CI workflows](./.github/workflows/) run them on every pull request and fail when one does.
 AGENTS.md lists the same commands.
 
 ```bash

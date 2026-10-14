@@ -68,7 +68,7 @@ const FEATURE_REGISTRY = {
   dotnet: {
     gitignore: [
       { heading: BUILD_OUTPUT, patterns: ['bin/', 'obj/', 'TestResults/'] },
-      { heading: 'Visual Studio user files', patterns: ['*.user', '*.suo', '*.userosscache', '*.sln.docstates'] },
+      { heading: 'Visual Studio user files', patterns: ['.vs/', '*.user', '*.suo', '*.userosscache', '*.sln.docstates'] },
     ],
   },
 };

@@ -1,7 +1,7 @@
 {
   "id": "typescript",
   "name": "TypeScript",
-  "description": "Modern TypeScript (ESM) with strict settings, flat ESLint + typescript-eslint, Prettier, path aliases, knip/jscpd/madge, release gates, AGENTS.md, and full health checks. Good default for new TS projects.",
+  "description": "Modern TypeScript (ESM) with strict settings, flat ESLint + typescript-eslint, Prettier, path aliases, knip and madge gates, a jscpd duplicate-code report, release gates and AGENTS.md. Good default for new TS projects.",
   "language": "typescript",
   "baselineLayers": [
     "governance",
@@ -29,5 +29,6 @@
     "npm test",
     "npm run health:dead",
     "npm run health:circular"
-  ]
+  ],
+  "agentsBuildAndTest": "Commit the `package-lock.json` the first `npm install` creates: CI installs with `npm ci`."
 }

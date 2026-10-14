@@ -31,6 +31,8 @@ jobs:
         with:
           python-version: '3.13'
 
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27'
@@ -52,6 +54,9 @@ jobs:
 
       - name: Source checks (as CI's checks job)
         run: npm run lint && npm run format:check && npm run typecheck && npm run health:dead && npm run health:circular
+
+      - name: Docs checks (as docs-lint, without the link check)
+        run: npm run lint:agents && npm run lint:docs && bash .github/scripts/check-docs-policy.sh
 
       - name: Lint, audit, unit tests, and template verifyCommands
         run: npm run lint:encoding && npm run audit:ci && npm test && npm run test:verify

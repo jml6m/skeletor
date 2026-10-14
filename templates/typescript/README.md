@@ -24,12 +24,14 @@ See [AGENTS.md](./AGENTS.md) for the full contract.
 
 Every check is a gate, opt-in, or a report.
 
-**Gates** fail the build. [CI](./.github/workflows/ci.yml) runs them on every pull request, and AGENTS.md lists the
-same commands:
+**Gates** fail the build. The [CI workflows](./.github/workflows/) run them on every pull request, and AGENTS.md
+lists the same commands:
 
 ```bash
 {{VERIFY_COMMANDS}}
 ```
+
+Commit the `package-lock.json` the first `npm install` creates: CI installs with `npm ci`.
 
 - `format:check` fails on a file Prettier would change. `lint` fails on any ESLint warning (`--max-warnings 0`). `typecheck` runs `tsc --noEmit`; `build`
   compiles to `dist/`.
@@ -50,10 +52,12 @@ The pre-commit hook formats staged files with Prettier, and `npm run format` for
 
 Run the app with `npm run build && npm start`.
 
-## Release flow (per conventions)
+## Release flow
 
-- Open PR → run `npm run release:patch` **once** at PR creation
-- `npm run release:minor` only for substantial features (coordinate)
+`release.js` bumps the version and commits `package.json` and `package-lock.json`.
+
+- Run `npm run release:patch` **once** per PR, when you open it
+- Run `npm run release:minor` instead for a substantial feature
 - Majors are human-only and gated by open issues labeled `vN-required`, where N is the next major version
 
 ## Tooling scripts

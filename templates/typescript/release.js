@@ -163,11 +163,14 @@ if (!VALID_TYPES.includes(releaseType)) {
 
     log('✅', `Version bumped to ${newVersion}`);
 
-    execSync('git add package.json', { stdio: 'inherit' });
-    execSync(
-      `git commit -m "chore: bump version to ${newVersion}" --no-verify`,
-      { stdio: 'inherit' }
-    );
+    const lockfilePath = path.resolve(__dirname, './package-lock.json');
+    const files = fs.existsSync(lockfilePath)
+      ? 'package.json package-lock.json'
+      : 'package.json';
+    execSync(`git add ${files}`, { stdio: 'inherit' });
+    execSync(`git commit -m "chore: bump version to ${newVersion}"`, {
+      stdio: 'inherit',
+    });
 
     log('✨', `Success! Version ${newVersion} committed.`);
     log('👉', 'Run "git push" to publish changes.');

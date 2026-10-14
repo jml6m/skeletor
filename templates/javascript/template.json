@@ -1,7 +1,7 @@
 {
   "id": "javascript",
   "name": "JavaScript",
-  "description": "JavaScript (CommonJS) with opinionated defaults: Prettier, ESLint + unused-imports, no parent imports, module aliases, knip/jscpd/madge health, a release.js with GitHub gates, AGENTS.md, husky + lint-staged.",
+  "description": "JavaScript (CommonJS) with opinionated defaults: Prettier, ESLint + unused-imports, no parent imports, module aliases, knip and madge gates, a jscpd duplicate-code report, a release.js with GitHub gates, AGENTS.md, husky + lint-staged.",
   "language": "javascript",
   "baselineLayers": [
     "governance",
@@ -27,5 +27,6 @@
     "npm test",
     "npm run health:dead",
     "npm run health:circular"
-  ]
+  ],
+  "agentsBuildAndTest": "Commit the `package-lock.json` the first `npm install` creates: CI installs with `npm ci`."
 }

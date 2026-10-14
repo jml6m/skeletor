@@ -200,4 +200,66 @@ describePosix('--github', () => {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
+
+  /** A temp dir with a stub `gh` (the script body) first on PATH, and git config isolated from the user's. */
+  function ghStubEnv(root, ghScript, gitconfig, extra = {}) {
+    const bin = path.join(root, 'bin');
+    fs.mkdirSync(bin);
+    fs.writeFileSync(path.join(bin, 'gh'), `#!/bin/sh\n${ghScript}\n`, { mode: 0o755 });
+    const env = cliEnv({ PATH: `${bin}${path.delimiter}${process.env.PATH}`, GIT_CONFIG_GLOBAL: path.join(root, 'gitconfig'), GIT_CONFIG_NOSYSTEM: '1', ...extra });
+    for (const key of ['GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL', 'EMAIL']) {
+      if (!(key in extra)) delete env[key];
+    }
+    fs.writeFileSync(env.GIT_CONFIG_GLOBAL, gitconfig);
+    return env;
+  }
+
+  test('a failed initial commit names the git step, skips --github and exits 1', () => {
+    const root = tempDir('skeletor-gh-');
+    // No user identity, and git may not guess one: the initial commit fails.
+    const env = ghStubEnv(root, 'exit 0', '[user]\n\tuseConfigOnly = true\n');
+    try {
+      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--owner', 'my-org', '--auto', '--github'], root, env);
+      expect(status).toBe(1);
+      expect(output).toMatch(/git commit failed: [\s\S]*user/);
+      expect(output).toContain('--github skipped');
+      expect(output).toContain('the GitHub repository was not created');
+      // The labels --github would have created are listed for creating by hand.
+      expect(output).toContain('Layers expect these labels on GitHub: epic.');
+      expect(output).not.toContain('One-time GitHub settings');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('a failed gh repo create exits 1 and prints the label commands', () => {
+    const root = tempDir('skeletor-gh-');
+    const env = ghStubEnv(root, '[ "$1" = repo ] && { echo "HTTP 403" >&2; exit 1; }\nexit 0', '', {
+      GIT_AUTHOR_NAME: 'Test',
+      GIT_AUTHOR_EMAIL: 'test@example.com',
+      GIT_COMMITTER_NAME: 'Test',
+      GIT_COMMITTER_EMAIL: 'test@example.com',
+    });
+    try {
+      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--owner', 'my-org', '--auto', '--github'], root, env);
+      expect(status).toBe(1);
+      expect(output).toContain('gh repo create failed: HTTP 403');
+      expect(output).toContain('the GitHub repository was not created');
+      expect(output).toContain('Layers expect these labels on GitHub: epic.');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('without --owner, an undetectable owner asks for --owner', () => {
+    const root = tempDir('skeletor-owner-');
+    const env = ghStubEnv(root, 'exit 1', '');
+    try {
+      const { status, output } = runCli(['new', 'my-app', '--template', 'go', '--auto', '--no-git'], root, env);
+      expect(status).toBe(1);
+      expect(output).toContain('The GitHub owner could not be detected: pass --owner <user>.');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

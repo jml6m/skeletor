@@ -347,7 +347,7 @@ export function buildLabelSeed(labels) {
   const names = labels.map((l) => `\`${l.name}\``).join(', ');
   const commands = labels.map(labelCreateCommand);
   return [
-    `This repo's issue forms and conventions use these labels: ${names}. \`skeletor new --github\` creates them;`,
+    `This repo's issue templates and conventions use these labels: ${names}. \`skeletor new --github\` creates them;`,
     'otherwise run:',
     '',
     '```bash',

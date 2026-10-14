@@ -1,6 +1,6 @@
 ## Code conventions
 
-What the tooling enforces. [CI](./.github/workflows/ci.yml) runs every Build & Test check on every PR.
+What the tooling enforces. The [CI workflows](./.github/workflows/) run every Build & Test check on every PR.
 
 - **Gates**: `npm run format:check` (Prettier), `npm run lint` (ESLint with typescript-eslint recommended +
   stylistic, fails on any warning), `npm run typecheck` (`tsc --noEmit`, strict), `npm run build`, `npm test`
@@ -12,7 +12,7 @@ What the tooling enforces. [CI](./.github/workflows/ci.yml) runs every Build & T
   (runtime). Unused imports are errors.
 - **Config**: `process.env` is an error outside [src/config/env.config.ts](./src/config/env.config.ts),
   `tests/support/` and root `*.config.ts` files. Read settings from `#config/index.js`.
-- **Logging**: `console.log` is an error; use [src/utils/logger.ts](./src/utils/logger.ts). Logger messages are
+- **Logging**: `console.log` warns, and lint fails on any warning; use [src/utils/logger.ts](./src/utils/logger.ts). Logger messages are
   static strings (a template literal warns); pass values as metadata.
 - **Types and errors**: `any` warns; empty functions and empty `catch` blocks are errors.
 - **Tests**: `tests/**/*.test.ts` (or `__tests__/`), run by Jest.

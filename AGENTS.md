@@ -46,7 +46,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - Interactive prompts use select lists with `(recommended)` labels.
   - Keep the generator itself (copyAndRender + render) dependency-free and simple.
 
-- **Testing the full flow**: `node src/index.js new my-test --auto --template <id>`, then run the checks its AGENTS.md lists.
+- **Testing the full flow**: `node src/index.js new gen-my-test --auto --template <id>`, then run the checks its AGENTS.md lists.
 
 ## Checks on skeletor's own source
 

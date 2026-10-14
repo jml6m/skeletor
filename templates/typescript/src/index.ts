@@ -3,7 +3,7 @@
  * {{PROJECT_NAME}} entry point
  *
  * Replace this with your application bootstrap.
- * Follow the layered architecture and alias rules from AGENTS.md.
+ * AGENTS.md has the import and logging conventions.
  */
 
 import logger from '#utils/logger.js';

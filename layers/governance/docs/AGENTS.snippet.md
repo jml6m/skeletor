@@ -1,1 +1,4 @@
-Follow the issue workflow: reference issue numbers in PRs, keep changes scoped to the task, and document blockers rather than retrying the same failing approach indefinitely. Run the project's test suite before handing work back.
+### Issue workflow
+
+Reference issue numbers in PRs, keep changes scoped to the task, and document blockers rather than
+retrying the same failing approach indefinitely. Run the project's test suite before handing work back.

@@ -28,8 +28,13 @@ function runCli(args, cwd = ROOT) {
 // Special characters for the JSON, TOML and XML files a description lands in; verify runs each toolchain on them.
 const DESCRIPTION = 'Tetrahedral "barycentric" coords & <b>tags</b> */ \\ $&';
 
+// Padded to the longest name src/validate-input.js allows, so verify runs catch lines and
+// identifiers the project name makes too long.
+const MAX_PROJECT_NAME = 64;
+
 function makeTempProjectName(prefix = 'skeletor-test') {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const unique = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  return `${unique}-${'x'.repeat(MAX_PROJECT_NAME)}`.slice(0, MAX_PROJECT_NAME);
 }
 
 function cleanup(dir) {
@@ -51,12 +56,16 @@ function untrackedFiles(projectDir) {
 }
 
 function runVerifyCommands(projectDir, commands) {
-  // Stage the scaffold so only files the verify commands create show up as untracked afterwards.
+  // Stage the scaffold: files the verify commands create then show up as untracked, and files they
+  // change as unstaged diffs.
   execSync('git init -q', { cwd: projectDir, stdio: 'pipe' });
   execSync('git add -A', { cwd: projectDir, stdio: 'pipe' });
   runCommands(projectDir, commands);
   const unexpected = untrackedFiles(projectDir).filter((f) => !EXPECTED_AFTER_VERIFY.has(f));
   expect({ projectDir, unexpected }).toEqual({ projectDir, unexpected: [] });
+  // A check that rewrites a scaffold file (a formatter, go mod tidy) means the scaffold wasn't clean.
+  const modified = execSync('git diff --name-only', { cwd: projectDir, stdio: 'pipe' }).toString().split('\n').filter(Boolean);
+  expect({ projectDir, modified }).toEqual({ projectDir, modified: [] });
 }
 
 function runCommands(projectDir, commands) {
@@ -147,7 +156,7 @@ function listFilesRecursive(dir) {
   return results;
 }
 
-// A scaffold's Markdown is README, AGENTS and CLAUDE, plus issue forms; anything else is a doc to keep true by hand (#94).
+// A scaffold's Markdown is README, AGENTS and CLAUDE, plus issue templates; anything else is a doc to keep true by hand (#94).
 const SCAFFOLD_MARKDOWN = /^(README|AGENTS|CLAUDE)\.md$|^\.github\/ISSUE_TEMPLATE\/[\w-]+\.md$/;
 
 function expectLeanDocs(targetDir, allFiles) {
