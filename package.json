@@ -1,7 +1,7 @@
 {
   "name": "@jml6m/skeletor",
   "version": "0.6.0",
-  "description": "Efficient scaffolding for custom development. Generates projects wired with personal lint/format/health/release/alias/AGENTS.md conventions.",
+  "description": "Multi-language project scaffolding: templates with lint, format, test, health and release defaults, composable layers, and an AGENTS.md in every project.",
   "main": "src/index.js",
   "type": "module",
   "bin": {
@@ -35,6 +35,10 @@
     "type": "git",
     "url": "https://github.com/jml6m/skeletor.git"
   },
+  "bugs": {
+    "url": "https://github.com/jml6m/skeletor/issues"
+  },
+  "homepage": "https://github.com/jml6m/skeletor#readme",
   "files": [
     "src",
     "templates",
@@ -45,7 +49,6 @@
   "keywords": [
     "scaffolding",
     "generator",
-    "yeoman",
     "template",
     "eslint",
     "prettier",
