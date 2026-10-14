@@ -153,6 +153,8 @@ function wrap(text, width, indent) {
 
 const INDENT = '   ';
 const CODE_INDENT = '     ';
+// bash ends a heredoc only on a line that is exactly its delimiter, so that line is never indented.
+const HEREDOC_END = 'JSON';
 
 function inlineJson(value) {
   if (Array.isArray(value)) return `[${value.map(inlineJson).join(', ')}]`;
@@ -178,7 +180,7 @@ export function formatJson(value, budget, indent = '', prefix = '', suffix = '')
 }
 
 function createRuleset(repo, ruleset, budget) {
-  return [`gh api repos/${repo}/rulesets \\`, "  --method POST --input - <<'JSON'", ...formatJson(ruleset, budget), 'JSON'];
+  return [`gh api repos/${repo}/rulesets \\`, `  --method POST --input - <<'${HEREDOC_END}'`, ...formatJson(ruleset, budget), HEREDOC_END];
 }
 
 /**
@@ -190,7 +192,7 @@ export function githubSetupLines({ repo, checks, matrixJobs = [], width }) {
   const cols = outputWidth(width);
   const out = [];
   const para = (text) => out.push(...wrap(text, cols, INDENT));
-  const code = (lines) => out.push(...lines.map((l) => `${CODE_INDENT}${l}`));
+  const code = (lines) => out.push(...lines.map((l) => (l === HEREDOC_END ? l : `${CODE_INDENT}${l}`)));
   const gap = () => out.push('');
 
   para(`One-time GitHub settings for ${repo}. Apply them once the first commit is pushed.`);

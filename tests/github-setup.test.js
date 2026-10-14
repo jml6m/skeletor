@@ -1,6 +1,8 @@
 process.env.SKELETOR_CLI_TEST = '1';
 
+import { spawnSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import {
   branchRuleset,
@@ -170,6 +172,65 @@ describe('printed settings', () => {
     expect(outputWidth(72)).toBe(71);
     expect(outputWidth(20)).toBe(39);
     expect(outputWidth(500)).toBe(99);
+  });
+});
+
+describe('printed commands, pasted into bash exactly as printed', () => {
+  let dir;
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-gh-stub-'));
+    // Records its arguments, and its stdin when told to read the request body from it.
+    const stub = ['#!/bin/sh', 'printf \'%s\\n\' "$@" > "$GH_STUB_OUT/args"', 'case " $* " in *" --input - "*) cat > "$GH_STUB_OUT/stdin" ;; esac', ''];
+    fs.mkdirSync(path.join(dir, 'bin'));
+    fs.writeFileSync(path.join(dir, 'bin', 'gh'), stub.join('\n'), { mode: 0o755 });
+  });
+  afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  /** Each printed `gh` command: from its first line to the blank line that ends the block. */
+  function commandBlocks(lines) {
+    const blocks = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (!/^\s+gh /.test(lines[i])) continue;
+      let end = lines.indexOf('', i);
+      if (end === -1) end = lines.length;
+      blocks.push(lines.slice(i, end));
+      i = end;
+    }
+    return blocks;
+  }
+
+  function paste(block, n) {
+    const out = path.join(dir, `run-${n}`);
+    fs.mkdirSync(out);
+    const script = path.join(out, 'pasted.sh');
+    fs.writeFileSync(script, `${block.join('\n')}\n`);
+    const result = spawnSync('bash', [script], {
+      env: { ...process.env, PATH: `${path.join(dir, 'bin')}${path.delimiter}${process.env.PATH}`, GH_STUB_OUT: out },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
+      timeout: 10000,
+    });
+    const read = (f) => (fs.existsSync(path.join(out, f)) ? fs.readFileSync(path.join(out, f), 'utf8') : null);
+    return { status: result.status, stderr: result.stderr, args: read('args')?.trimEnd().split('\n'), stdin: read('stdin') };
+  }
+
+  test.each([60, 80, 100])('at %i columns, each command runs and sends the expected request', (width) => {
+    const checks = ['ci', 'docs-lint', 'Bob\'s "tests" $HOME'];
+    const blocks = commandBlocks(githubSetupLines({ repo: 'my-org/my-app', checks, width }));
+    expect(blocks).toHaveLength(3);
+    const runs = blocks.map((block, i) => paste(block, `${width}-${i}`));
+    for (const run of runs) {
+      expect(run.status).toBe(0);
+      expect(run.stderr).toBe('');
+    }
+    const [branch, merge, tag] = runs;
+    expect(branch.args.slice(0, 5)).toEqual(['api', 'repos/my-org/my-app/rulesets', '--method', 'POST', '--input']);
+    expect(JSON.parse(branch.stdin)).toEqual(branchRuleset(checks));
+    expect(merge.args.slice(0, 4)).toEqual(['api', 'repos/my-org/my-app', '--method', 'PATCH']);
+    expect(merge.args).toContain('allow_squash_merge=true');
+    expect(merge.stdin).toBeNull();
+    expect(tag.args[1]).toBe('repos/my-org/my-app/rulesets');
+    expect(JSON.parse(tag.stdin)).toEqual(TAG_RULESET);
   });
 });
 
