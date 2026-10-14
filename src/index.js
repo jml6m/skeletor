@@ -204,6 +204,13 @@ function dependabotIgnoreFor(ecosystem) {
   return ['', '    # Majors need a deliberate toolchain bump, not a grouped Dependabot PR.', '    ignore:', ...entries].join('\n');
 }
 
+// pyproject.toml takes a PEP 639 SPDX expression; UNLICENSED is not one, so it gets no license key.
+function pyprojectLicenseFor(license) {
+  const value = String(license ?? '').trim();
+  if (!value || value === 'UNLICENSED') return '';
+  return `\nlicense = ${JSON.stringify(value)}`;
+}
+
 function buildRenderVars({ name, owner, description, extra = {} }) {
   if (!owner) {
     throw new Error('owner is required');
@@ -214,7 +221,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
   const namespace = String(name).replace(/-/g, '_');
   const csharpNamespace = String(name).replace(/(?:^|-)([a-z0-9])/g, (_, c) => c.toUpperCase());
   const javaPackage = `io.github.${ownerSegment}`;
-  return {
+  const vars = {
     PROJECT_NAME: name,
     REPO_OWNER: repoOwner,
     REPO_NAME: name,
@@ -238,6 +245,7 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     APP_PORT: '3000',
     ...extra,
   };
+  return { ...vars, PYPROJECT_LICENSE: pyprojectLicenseFor(vars.LICENSE) };
 }
 
 function ensureDir(dir) {

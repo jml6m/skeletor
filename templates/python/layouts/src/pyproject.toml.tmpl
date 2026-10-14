@@ -3,8 +3,7 @@ name = "{{PROJECT_NAME}}"
 version = "0.1.0"
 description = "{{DESCRIPTION}}"
 readme = "README.md"
-requires-python = ">={{PIN_RUNTIME_PYTHON}}"
-license = {text = "{{LICENSE}}"}
+requires-python = ">={{PIN_RUNTIME_PYTHON}}"{{PYPROJECT_LICENSE}}
 authors = [
   {name = "{{REPO_OWNER}}"}
 ]
@@ -44,5 +43,5 @@ warn_unused_ignores = true
 where = ["src"]
 
 [build-system]
-requires = ["{{PIN_SETUPTOOLS}}", "{{PIN_WHEEL}}"]
+requires = ["{{PIN_SETUPTOOLS}}"]
 build-backend = "setuptools.build_meta"

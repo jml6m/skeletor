@@ -83,6 +83,15 @@ describe('skeletor CLI pure functions', () => {
     expect(vars.REPO_URL).toBe('https://github.com/jml6m/tbra');
   });
 
+  test('pyproject.toml gets a PEP 639 license only for an SPDX license', () => {
+    const license = (LICENSE) => buildRenderVars({ name: 'my-app', owner: 'o', extra: { LICENSE } }).PYPROJECT_LICENSE;
+    expect(license('UNLICENSED')).toBe('');
+    expect(license('')).toBe('');
+    expect(license('MIT')).toBe('\nlicense = "MIT"');
+    expect(license('Apache-2.0')).toBe('\nlicense = "Apache-2.0"');
+    expect(buildRenderVars({ name: 'my-app', owner: 'o' }).PYPROJECT_LICENSE).toBe('');
+  });
+
   test('printPostScaffoldSteps lists all verify commands', () => {
     const logs = [];
     const orig = console.log;
