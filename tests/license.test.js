@@ -14,6 +14,8 @@ function makeName(prefix) {
 async function scaffold(opts) {
   const name = makeName(`lic-${opts.template}`);
   await runNew({ command: 'new', name, owner: 'acme', auto: true, git: false, withLayers: [], ...opts });
+  // With `github: true` and no repository created, runNew sets a failing exit code; don't leak it to other tests.
+  process.exitCode = undefined;
   return path.resolve(process.cwd(), name);
 }
 

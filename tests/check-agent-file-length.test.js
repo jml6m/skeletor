@@ -100,6 +100,7 @@ describe('runCheck', () => {
   let stderr;
 
   beforeEach(() => {
+    process.exitCode = undefined;
     stdout = [];
     stderr = [];
     process.stdout.write = (chunk) => stdout.push(String(chunk));
