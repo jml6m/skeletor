@@ -188,24 +188,6 @@ function pythonRuntimeTokens(version) {
   };
 }
 
-/**
- * Point runtime pin tokens at the version the user picked at the prompt, so pyproject.toml and
- * the emitted CI agree with `.python-version` / `<TargetFramework>`.
- * @param {Record<string, string>} pinTokens
- * @param {{ PYTHON_VERSION?: string, TARGET_FRAMEWORK?: string }} choices
- */
-export function applyRuntimeChoices(pinTokens, choices = {}) {
-  const tokens = { ...pinTokens };
-  if (tokens.PIN_RUNTIME_PYTHON && choices.PYTHON_VERSION) {
-    Object.assign(tokens, pythonRuntimeTokens(choices.PYTHON_VERSION));
-  }
-  const tfm = /^net(\d+\.\d+)(?:-|$)/.exec(String(choices.TARGET_FRAMEWORK ?? ''));
-  if (tokens.PIN_RUNTIME_DOTNET && tfm) {
-    tokens.PIN_RUNTIME_DOTNET = tfm[1];
-  }
-  return tokens;
-}
-
 function ecosystemForLanguage(language) {
   const map = {
     javascript: 'npm',

@@ -11,7 +11,6 @@ import * as p from '@clack/prompts';
 import { detectGithubOwners } from './detect-owner.js';
 import {
   promptConfirmRecommended,
-  promptLayerValue,
   promptMultiSelectRecommended,
   promptSelectRecommended,
   promptOptionalText,
@@ -28,7 +27,6 @@ import {
 import {
   loadPinnedVersions,
   validatePinnedVersionsManifest,
-  applyRuntimeChoices,
   buildPinTokens,
   checkTemplateGenerationAllowed,
 } from './pinned-versions.js';
@@ -38,8 +36,6 @@ import {
   getLayersWithManifests,
   loadBundles,
   resolveLayerOrder,
-  gatherLayerPrompts,
-  layerPromptDefaults,
   layerTokenDefaults,
   labelCreateCommand,
   validateLayerManifests,
@@ -79,6 +75,9 @@ new options:
   --uv                  Python: use uv sync instead of pip install (non-interactive)
   --allow-deprecated-template  Allow scaffolding templates marked deprecated in pinned-versions.json
   --codeowners           Generate .github/CODEOWNERS (--auto: full candidate set; interactive: pick)
+
+Fixed defaults (not prompted): pinned Python and .NET versions, Maven groupId io.github.<owner>,
+port 3000 (override with PORT), logs/ for log files, initial branch main.
 
 Examples:
   skeletor new my-api --template typescript --with-recommended
@@ -236,12 +235,8 @@ function buildRenderVars({ name, owner, description, extra = {} }) {
     JAVA_PACKAGE_PATH: javaPackage.replace(/\./g, '/'),
     GO_MODULE: `github.com/${repoOwner}/${name}`,
     REPO_URL: `https://github.com/${repoOwner}/${name}`,
-    LOG_DIR: 'logs',
     LICENSE: 'UNLICENSED',
-    PYTHON_VERSION: '3.13',
     PYTHON_PACKAGE_MANAGER: 'pip',
-    TARGET_FRAMEWORK: 'net10.0',
-    APP_PORT: '3000',
     ...extra,
   };
   return { ...vars, PYPROJECT_LICENSE: pyprojectLicenseFor(vars.LICENSE) };
@@ -355,7 +350,7 @@ function copyTemplateToProject(templateInfo, targetDir, vars, layout) {
   if (templateInfo.language === 'python') {
     const pyVersionPath = path.join(targetDir, '.python-version');
     if (!fs.existsSync(pyVersionPath)) {
-      fs.writeFileSync(pyVersionPath, `${vars.PYTHON_VERSION || '3.13'}\n`, 'utf8');
+      fs.writeFileSync(pyVersionPath, `${vars.PIN_RUNTIME_PYTHON}\n`, 'utf8');
     }
   }
 
@@ -475,19 +470,6 @@ async function resolveProjectName(name, isInteractive) {
   return answer;
 }
 
-async function promptForLayerVars(prompts) {
-  const vars = {};
-  for (const pr of prompts) {
-    const answer = await promptLayerValue(pr);
-    if (p.isCancel(answer)) {
-      p.cancel('Cancelled.');
-      process.exit(0);
-    }
-    vars[pr.token] = String(answer).trim() || String(pr.default ?? '');
-  }
-  return vars;
-}
-
 async function runNew(opts) {
   const { git, auto } = opts;
   const isInteractive = !auto && process.stdout.isTTY;
@@ -564,22 +546,18 @@ async function runNew(opts) {
   }
 
   const layerIds = collectLayerIds(opts, templateInfo);
-  const layerCtx = { template: chosenTemplateId, language: templateInfo.language || chosenTemplateId };
-  const { errors: promptErrors, prompts: layerPrompts } = gatherLayerPrompts(layerIds, layerCtx);
-  if (promptErrors.length) {
-    logError(`❌ Layer configuration error: ${promptErrors.join('; ')}`);
+  const { errors: layerErrors } = resolveLayerOrder(layerIds, {
+    template: chosenTemplateId,
+    language: templateInfo.language || chosenTemplateId,
+  });
+  if (layerErrors.length) {
+    logError(`❌ Layer configuration error: ${layerErrors.join('; ')}`);
     process.exit(1);
   }
 
-  const tokenDefaults = layerTokenDefaults(layerIds, layerCtx);
-  let layerVars = { ...tokenDefaults, ...layerPromptDefaults(layerPrompts) };
-  if (isInteractive && layerPrompts.length) {
-    layerVars = { ...tokenDefaults, ...(await promptForLayerVars(layerPrompts)) };
-  }
-
-  const basePinTokens = buildPinTokens(pinned, templateInfo);
-  const baseVars = buildRenderVars({ name, owner: finalOwner, description: finalDesc, extra: layerVars });
-  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId, { ...baseVars, ...basePinTokens });
+  // A layer can change a prompt's default (library-publishing: LICENSE → MIT); an explicit answer still wins.
+  const layerDefaults = layerTokenDefaults(layerIds, { template: chosenTemplateId, language: templateInfo.language || chosenTemplateId });
+  const templatePromptDefs = gatherTemplatePrompts(chosenTemplateId, layerDefaults);
   let templateVars = templatePromptDefaults(templatePromptDefs);
   if (opts.uv && chosenTemplateId === 'python') {
     templateVars.PYTHON_PACKAGE_MANAGER = 'uv';
@@ -647,7 +625,7 @@ async function runNew(opts) {
     process.exit(1);
   }
 
-  const pinTokens = applyRuntimeChoices(basePinTokens, templateVars);
+  const pinTokens = buildPinTokens(pinned, templateInfo);
 
   const dependabotEcosystem = dependabotEcosystemFor(
     templateInfo.language || chosenTemplateId,
@@ -658,7 +636,6 @@ async function runNew(opts) {
     owner: finalOwner,
     description: finalDesc,
     extra: {
-      ...layerVars,
       ...templateVars,
       ...pinTokens,
       DEPENDABOT_ECOSYSTEM: dependabotEcosystem,

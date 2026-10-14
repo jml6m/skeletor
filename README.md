@@ -54,6 +54,19 @@ The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`)
 
 Interactive prompts use **select lists** with `(recommended)` labels.
 
+### Fixed defaults
+
+skeletor sets these itself instead of asking. Change them in the generated project if you need to.
+
+| Value | Default |
+|---|---|
+| Python version | the template's pinned runtime (`pinned-versions.json`) |
+| .NET target framework | the template's pinned framework (`pinned-versions.json`) |
+| Maven groupId | `io.github.<owner>` |
+| Server port (`free-port`) | `3000`, overridable at runtime with `PORT`; the JS/TS server defaults to the same port |
+| Log directory (`logger-winston`) | `logs/` |
+| Initial git branch | `main` |
+
 ## Enhancement layers
 
 Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bundle` on `skeletor new` (see [Common flags](#common-flags) above). Skeletor is a one-shot generator: it writes a project once and leaves nothing of its own behind to track or manage afterward.
@@ -81,7 +94,7 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 
 ## Rich interactive CLI
 
-`@clack/prompts` drives template selection, owner detection (git remote → package.json → gh CLI), layer prompts, and confirmations.
+`@clack/prompts` drives template selection, owner detection (git remote → package.json → gh CLI), the few remaining choices, and confirmations.
 
 ## Philosophy
 

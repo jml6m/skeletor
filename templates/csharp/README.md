@@ -10,7 +10,7 @@ dotnet test
 dotnet run --project src/{{CSHARP_NAMESPACE}}
 ```
 
-A .NET console app targeting `{{TARGET_FRAMEWORK}}`, with xUnit tests in their own project:
+A .NET console app targeting `{{PIN_TARGET_FRAMEWORK}}`, with xUnit tests in their own project:
 
 ```text
 {{CSHARP_NAMESPACE}}.slnx                 solution; dotnet build/test at the root use it

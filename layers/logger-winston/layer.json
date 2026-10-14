@@ -9,20 +9,9 @@
   },
   "requires": ["zod-config"],
   "files": { "dir": "files", "overwrite": true, "onConflict": "replace" },
-  "gitignore": ["{{LOG_DIR}}/"],
   "patch": { "packageJson": "patch/package.json.json" },
   "docs": {
     "agents": { "section": "Logging & Error Handling", "append": "docs/AGENTS.snippet.md" }
   },
-  "verifyCommands": ["npm install", "npm run lint"],
-  "prompts": [
-    {
-      "id": "logFilePath",
-      "type": "select",
-      "message": "Directory for log files",
-      "default": "logs",
-      "options": ["logs", "var/log"],
-      "token": "LOG_DIR"
-    }
-  ]
+  "verifyCommands": ["npm install", "npm run lint"]
 }

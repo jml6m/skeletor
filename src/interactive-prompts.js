@@ -133,30 +133,3 @@ export async function promptMultiSelectRecommended(opts) {
     required: false,
   });
 }
-
-/**
- * @param {{ message: string, default?: string, options?: string[] }} pr
- */
-export async function promptLayerValue(pr) {
-  const recommended = String(pr.default ?? '');
-  const options = Array.isArray(pr.options) && pr.options.length
-    ? [...new Set(pr.options)]
-    : recommended
-      ? [recommended]
-      : [];
-
-  if (options.length === 0) {
-    return p.text({
-      message: pr.message,
-      validate(value) {
-        if (!value || !String(value).trim()) return 'A value is required.';
-      },
-    });
-  }
-
-  return promptSelectRecommended({
-    message: pr.message,
-    options,
-    recommended,
-  });
-}

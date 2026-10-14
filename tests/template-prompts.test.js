@@ -1,12 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { adjustVerifyCommandsForAnswers, gatherTemplatePrompts } from '../src/template-prompts.js';
 
 process.env.SKELETOR_CLI_TEST = '1';
 const { buildRenderVars, getAvailableTemplates } = await import('../src/index.js');
-
-const TEMPLATES_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates');
 
 describe('adjustVerifyCommandsForAnswers', () => {
   const flat = [
@@ -30,22 +25,12 @@ describe('adjustVerifyCommandsForAnswers', () => {
 });
 
 describe('gatherTemplatePrompts', () => {
-  test('python offers 3.12-3.13 and defaults to the pinned runtime', () => {
-    const prompt = gatherTemplatePrompts('python', { PIN_RUNTIME_PYTHON: '3.13' }).find((pr) => pr.id === 'pythonVersion');
-    expect(prompt.options).toEqual(['3.12', '3.13']);
-    expect(prompt.default).toBe('3.13');
-  });
-
-  test('python never offers a version newer than the pinned runtime', () => {
-    const pinned = JSON.parse(fs.readFileSync(path.join(TEMPLATES_DIR, 'python', 'pinned-versions.json'), 'utf8')).runtime.python.version;
-    const prompt = gatherTemplatePrompts('python', { PIN_RUNTIME_PYTHON: pinned }).find((pr) => pr.id === 'pythonVersion');
-    const minor = (v) => Number(String(v).split('.')[1]);
-    for (const option of prompt.options) expect(minor(option)).toBeLessThanOrEqual(minor(pinned));
-  });
-
-  test('csharp target framework defaults to the pinned .NET runtime', () => {
-    const prompt = gatherTemplatePrompts('csharp', { PIN_TARGET_FRAMEWORK: 'net10.0' }).find((pr) => pr.id === 'targetFramework');
-    expect(prompt.default).toBe('net10.0');
+  test('no template asks for a python version, .NET target framework or Maven groupId', () => {
+    const fixed = ['pythonVersion', 'targetFramework', 'javaGroupId'];
+    for (const id of getAvailableTemplates()) {
+      const ids = gatherTemplatePrompts(id).map((pr) => pr.id);
+      expect({ id, asked: ids.filter((pid) => fixed.includes(pid)) }).toEqual({ id, asked: [] });
+    }
   });
 
   test('no template asks for author, package manager, Go layout or Rust crate type', () => {

@@ -33,6 +33,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
   - `requires` lists layers this one can't work without; they are applied automatically. There is no soft dependency: a layer is self-contained or declares `requires`.
   - `defaults` changes the default of a scaffold prompt by token (library-publishing: `LICENSE` → `MIT`); an explicit answer still wins.
   - `knip.entry` registers the layer's public API or harness files as knip entry points. `labels` declares GitHub labels that `--github` creates. `gitignore` lists the output paths the layer's tools create (reports, build output); they are appended to the generated `.gitignore` and may use `{{TOKEN}}` values.
+  - Layers take no prompts. A value a layer needs is a fixed default (e.g. port `3000`, overridable with `PORT`), changed in the generated project when needed.
   - Every optional layer and bundle is generated and verified in CI (`tests/generate.test.js`, "optional layers and bundles"): the template's and layer's `verifyCommands`, with `npm run lint -- --max-warnings 0` and `npx knip --treat-config-hints-as-errors`.
 
 - **CLI / src/index.js**

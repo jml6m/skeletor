@@ -120,50 +120,6 @@ export function layerAppliesTo(layer, ctx) {
  * @param {string[]} requestedIds
  * @param {{ template: string, language: string }} ctx
  */
-/**
- * Collect interactive prompts for a resolved layer set (includes requires).
- * @param {string[]} layerIds
- * @param {{ template: string, language: string }} ctx
- */
-export function gatherLayerPrompts(layerIds, ctx) {
-  const { order, errors } = resolveLayerOrder(layerIds, ctx);
-  if (errors.length) return { errors, prompts: [] };
-
-  const prompts = [];
-  const seenTokens = new Set();
-  for (const id of order) {
-    const layer = loadLayerById(id);
-    for (const pr of layer.prompts || []) {
-      if (!pr.token || seenTokens.has(pr.token)) continue;
-      seenTokens.add(pr.token);
-      prompts.push({ ...pr, layerId: id, layerName: layer.name });
-    }
-  }
-  return { errors: [], prompts };
-}
-
-/**
- * Token defaults the resolved layers set through `defaults` in layer.json (e.g. library-publishing
- * defaults LICENSE to MIT). They change only a scaffold prompt's default; an explicit answer wins.
- * @param {string[]} layerIds
- * @param {{ template: string, language: string }} ctx
- * @returns {Record<string, string>}
- */
-export function layerTokenDefaults(layerIds, ctx) {
-  const { order, errors } = resolveLayerOrder(layerIds, ctx);
-  if (errors.length) return {};
-  return Object.assign({}, ...order.map((id) => loadLayerById(id).defaults || {}));
-}
-
-/** Build token defaults for non-interactive layer prompts. */
-export function layerPromptDefaults(prompts) {
-  const vars = {};
-  for (const pr of prompts) {
-    if (pr.token) vars[pr.token] = pr.default ?? '';
-  }
-  return vars;
-}
-
 export function resolveLayerOrder(requestedIds, ctx) {
   const all = getLayersWithManifests();
   const byId = new Map(all.map((l) => [l.id, l]));
@@ -216,6 +172,19 @@ export function resolveLayerOrder(requestedIds, ctx) {
   }
 
   return { order, autoAdded: [...new Set(autoAdded)], errors };
+}
+
+/**
+ * Token defaults the resolved layers set through `defaults` in layer.json (e.g. library-publishing
+ * defaults LICENSE to MIT). They change only a scaffold prompt's default; an explicit answer wins.
+ * @param {string[]} layerIds
+ * @param {{ template: string, language: string }} ctx
+ * @returns {Record<string, string>}
+ */
+export function layerTokenDefaults(layerIds, ctx) {
+  const { order, errors } = resolveLayerOrder(layerIds, ctx);
+  if (errors.length) return {};
+  return Object.assign({}, ...order.map((id) => loadLayerById(id).defaults || {}));
 }
 
 /**
@@ -628,6 +597,8 @@ export function validateLayerManifests() {
     const layer = loadLayerManifest(dirName);
     if (!layer.id) errors.push(`${dirName}: missing id`);
     if (!layer.appliesTo) errors.push(`${layer.id}: missing appliesTo`);
+    // Layers ship fixed defaults; a value worth changing is changed in the generated project.
+    if (layer.prompts) errors.push(`${layer.id}: layers take no prompts; use a fixed default`);
 
     const filesDir = path.join(layer.dir, layer.files?.dir || 'files');
     if (layer.files && !fs.existsSync(filesDir)) {

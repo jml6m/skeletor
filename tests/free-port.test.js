@@ -8,11 +8,8 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.resolve(__dirname, '..', 'layers', 'free-port', 'files', 'scripts', 'free-port.cjs');
 
-// The layer file carries a {{APP_PORT}} token, so load a rendered copy.
+const { freePort, findPidsOnPort, killPid, parseSsOutput, LookupToolMissing } = createRequire(import.meta.url)(SCRIPT);
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-free-port-'));
-const rendered = path.join(tmpDir, 'free-port.cjs');
-fs.writeFileSync(rendered, fs.readFileSync(SCRIPT, 'utf8').replaceAll('{{APP_PORT}}', '3000'));
-const { freePort, findPidsOnPort, killPid, parseSsOutput, LookupToolMissing } = createRequire(import.meta.url)(rendered);
 
 afterAll(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 
@@ -152,9 +149,22 @@ describe('free-port: parseSsOutput', () => {
 });
 
 describe('free-port: CLI', () => {
+  test('defaults to the port the JS/TS server listens on', () => {
+    const ROOT = path.resolve(__dirname, '..');
+    const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    const port = /process\.env\.PORT \|\| (\d+)\)/.exec(fs.readFileSync(SCRIPT, 'utf8'))[1];
+    expect(port).toBe('3000');
+    for (const rel of ['templates/javascript/src/config/env.config.js', 'templates/typescript/src/config/env.config.ts']) {
+      expect(read(rel)).toContain(`port: process.env.PORT || ${port},`);
+    }
+    for (const rel of ['layers/zod-config/files/src/config/env.config.js', 'layers/zod-config/files/src/config/env.config.ts']) {
+      expect(read(rel)).toContain(`PORT: z.coerce.number().int().positive().default(${port})`);
+    }
+  });
+
   test('with no lookup tool on PATH it warns, frees nothing and exits 0', () => {
     const emptyBin = fs.mkdtempSync(path.join(tmpDir, 'bin-'));
-    const run = spawnSync(process.execPath, [rendered], { encoding: 'utf8', env: { PATH: emptyBin, PORT: '3456' } });
+    const run = spawnSync(process.execPath, [SCRIPT], { encoding: 'utf8', env: { PATH: emptyBin, PORT: '3456' } });
     const output = run.stdout + run.stderr;
     expect(run.status).toBe(0);
     expect(output).toMatch(/free-port: can't check port 3456 \(lsof( and ss)? not found\); skipping/);

@@ -188,9 +188,9 @@ if (require.main === module) {
   // Node's notice when the file is missing. Variables already set in the environment win.
   if (fs.existsSync('.env')) process.loadEnvFile('.env');
 
-  const port = Number(process.argv[2] || process.env.PORT || {{APP_PORT}});
+  const port = Number(process.argv[2] || process.env.PORT || 3000);
   if (!Number.isInteger(port) || port <= 0) {
-    console.error('Usage: node scripts/free-port.cjs [port] (defaults to $PORT, then {{APP_PORT}})');
+    console.error('Usage: node scripts/free-port.cjs [port] (defaults to $PORT, then 3000)');
     process.exit(1);
   }
 
