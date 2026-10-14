@@ -1,26 +1,22 @@
 {
   "node-cli": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "docs-lint", "zod-config", "logger-winston", "env-example", "log-table"]
+    "layers": ["zod-config", "logger-winston", "env-example", "log-table"]
   },
   "express-api": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "docs-lint", "zod-config", "logger-winston", "env-example", "free-port", "express-server"]
+    "layers": ["zod-config", "logger-winston", "env-example", "free-port", "express-server"]
   },
   "cli-report": {
     "template": "javascript",
-    "layers": ["governance", "quality-gates", "docs-lint", "log-table"]
+    "layers": ["log-table"]
   },
   "ts-library": {
     "template": "typescript",
-    "layers": ["governance", "quality-gates", "docs-lint", "library-publishing"]
+    "layers": ["library-publishing"]
   },
   "ts-native": {
     "template": "typescript",
-    "layers": ["governance", "quality-gates", "docs-lint", "test-harness:playwright"]
-  },
-  "ts-benchmark": {
-    "template": "typescript",
-    "layers": ["governance", "quality-gates", "docs-lint"]
+    "layers": ["test-harness:playwright"]
   }
 }

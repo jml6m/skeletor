@@ -147,7 +147,7 @@ const optionalCases = [
       label: `${tmpl.id} + ${id}`,
       shard: layerShard(tmpl.id),
       tmpl,
-      opts: { withRecommended: true, withLayers: [id] },
+      opts: { withLayers: [id] },
       extra: loadLayerById(id).verifyCommands || [],
     })),
   ),
@@ -220,9 +220,8 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
       const targetDir = path.resolve(process.cwd(), name);
 
       try {
-        // Programmatic generation (step 3) using the real logic. Applies recommended
-        // layers so CI's full verify run (SKELETOR_VERIFY_COMMANDS=1) exercises the
-        // same layer-interaction paths a real `--with-recommended` scaffold hits.
+        // Programmatic generation (step 3) using the real logic; the template's baseline layers
+        // are always applied, so the full verify run (SKELETOR_VERIFY_COMMANDS=1) covers them.
         await runNewProgrammatic({
           command: 'new',
           name,
@@ -231,7 +230,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
           description: DESCRIPTION,
           auto: true,
           git: false,
-          withRecommended: true,
+          withLayers: [],
         });
 
         // Validate that the template declares its post-generation verification steps (step 4).
@@ -400,7 +399,7 @@ describe('non-default template layouts', () => {
     const name = makeTempProjectName(`gen-${tmpl.id}-${id}`);
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', description: DESCRIPTION, auto: true, git: false, withRecommended: true });
+      await runNewProgrammatic({ command: 'new', name, template: tmpl.id, layout: id, owner: 'tbra-owner', description: DESCRIPTION, auto: true, git: false, withLayers: [] });
       const agents = expectLeanDocs(targetDir, listFilesRecursive(targetDir));
       expect(buildAndTestCommands(agents)).toEqual(layout.verifyCommands || tmpl.verifyCommands);
       expect(fs.existsSync(path.join(targetDir, '.github', 'workflows', 'ci.yml'))).toBe(true);

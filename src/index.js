@@ -33,6 +33,7 @@ import {
 import {
   applyLayers,
   expandBundle,
+  layerAppliesTo,
   getLayersWithManifests,
   loadBundles,
   resolveLayerOrder,
@@ -63,9 +64,8 @@ Usage:
 new options:
   --template <name>     Stack to scaffold (javascript, typescript, python, go, …)
   --layout <name>       Template layout: rust single|lib|workspace, python flat|src
-  --with <id[,id...]>   Enhancement layers to apply at scaffold time
-  --with-recommended    Apply this template's recommendedLayers (see template.json)
-  --bundle <name>       Named layer preset (see bundles.json)
+  --with <id[,id...]>   Feature layers to add (the template's baseline layers are always applied)
+  --bundle <name>       Named feature-layer preset (see bundles.json)
   --owner <user>        GitHub owner/org (skips auto-detection)
   --description <text>  Project description (optional)
   --auto                Non-interactive; requires --template (or a --bundle, which names one)
@@ -82,8 +82,8 @@ License: UNLICENSED unless --github creates a public repo, which is asked (MIT u
 or library-publishing is applied (MIT).
 
 Examples:
-  skeletor new my-api --template typescript --with-recommended
-  skeletor new my-api --template typescript --with governance,quality-gates
+  skeletor new my-api --template typescript
+  skeletor new my-api --template typescript --with zod-config,logger-winston
   skeletor new my-lib --auto --template typescript --bundle ts-library
   skeletor new tbra --auto --template rust --layout workspace
 `;
@@ -104,7 +104,6 @@ function parseArgs(argv) {
     template: null,
     layout: null,
     withLayers: [],
-    withRecommended: false,
     bundle: null,
     owner: null,
     description: null,
@@ -130,7 +129,6 @@ function parseArgs(argv) {
       if (a === '--template' || a === '-t') result.template = args[++i] || null;
       else if (a === '--layout') result.layout = args[++i] || null;
       else if (a === '--with') result.withLayers = parseCommaList(args[++i]);
-      else if (a === '--with-recommended') result.withRecommended = true;
       else if (a === '--bundle') result.bundle = args[++i] || null;
       else if (a === '--owner' || a === '-o') result.owner = args[++i] || null;
       else if (a === '--description' || a === '-d') result.description = args[++i] || null;
@@ -378,21 +376,25 @@ function applyLicense(targetDir, vars) {
   appendReadmeLicense(targetDir, vars.LICENSE);
 }
 
-function getRecommendedLayers(templateInfo) {
-  return Array.isArray(templateInfo?.recommendedLayers) ? templateInfo.recommendedLayers : [];
+/** Layers every scaffold of the template gets (template.json `baselineLayers`). */
+function getBaselineLayers(templateInfo) {
+  return Array.isArray(templateInfo?.baselineLayers) ? templateInfo.baselineLayers : [];
+}
+
+/** Opt-in layers for the template: every layer that applies to it and is not in its baseline. */
+function getFeatureLayers(templateInfo) {
+  const baseline = getBaselineLayers(templateInfo);
+  const ctx = { template: templateInfo.id, language: templateInfo.language || templateInfo.id };
+  return getLayersWithManifests().filter((l) => layerAppliesTo(l, ctx) && !baseline.includes(l.id));
 }
 
 function collectLayerIds(opts, templateInfo) {
-  const templateId = typeof templateInfo === 'string' ? templateInfo : templateInfo?.id;
-  const ids = [...(opts.withLayers || [])];
-  if (opts.withRecommended) {
-    const info = typeof templateInfo === 'string'
-      ? getTemplatesWithManifests().find((t) => t.id === templateInfo)
-      : templateInfo;
-    ids.push(...getRecommendedLayers(info));
-  }
+  const info = typeof templateInfo === 'string'
+    ? getTemplatesWithManifests().find((t) => t.id === templateInfo)
+    : templateInfo;
+  const ids = [...getBaselineLayers(info), ...(opts.withLayers || [])];
   if (opts.bundle) {
-    ids.push(...expandBundle(opts.bundle, templateId));
+    ids.push(...expandBundle(opts.bundle, info?.id));
   }
   return [...new Set(ids)];
 }
@@ -537,16 +539,15 @@ async function runNew(opts) {
     p.log.warn(pinStatus.warn);
   }
 
-  if (isInteractive) {
-    const recommended = getRecommendedLayers(templateInfo);
-    const noLayerFlags = !opts.withLayers.length && !opts.bundle && !opts.withRecommended;
-    if (noLayerFlags && recommended.length) {
-      const applyRecommended = await promptConfirmRecommended({
-        message: `Apply recommended enhancements? (${recommended.join(', ')})`,
-        recommended: true,
+  if (isInteractive && !opts.withLayers?.length && !opts.bundle) {
+    const featureLayers = getFeatureLayers(templateInfo);
+    if (featureLayers.length) {
+      const picked = await promptMultiSelectRecommended({
+        message: 'Add feature layers? (space to toggle, enter for none)',
+        options: featureLayers.map((l) => ({ value: l.id, label: l.id, hint: l.name })),
       });
-      if (p.isCancel(applyRecommended)) { p.cancel('Cancelled.'); process.exit(0); }
-      if (applyRecommended) opts.withRecommended = true;
+      if (p.isCancel(picked)) { p.cancel('Cancelled.'); process.exit(0); }
+      opts.withLayers = picked;
     }
   }
 
@@ -614,7 +615,8 @@ async function runNew(opts) {
   }
 
   if (isInteractive) {
-    const layerNote = layerIds.length ? ` + ${layerIds.length} enhancement layer(s)` : '';
+    const featureCount = layerIds.length - getBaselineLayers(templateInfo).length;
+    const layerNote = featureCount > 0 ? ` + ${featureCount} feature layer(s)` : '';
     const shouldContinue = await promptConfirmRecommended({
       message: `Scaffold "${name}" as ${templateInfo.name}${layerNote}?`,
       recommended: true,
@@ -664,9 +666,7 @@ async function runNew(opts) {
   let repoLabels = [];
 
   if (layerIds.length) {
-    if (opts.withRecommended) {
-      p.log.info(`Applying recommended layers: ${getRecommendedLayers(templateInfo).join(', ')}`);
-    }
+    p.log.info(`Applying layers: ${layerIds.join(', ')}`);
     const result = applyLayers({
       projectDir: targetDir,
       layerIds,
@@ -808,15 +808,22 @@ function main() {
     if (tmpls.length) {
       log('\nAvailable templates:');
       tmpls.forEach((t) => {
-        const rec = getRecommendedLayers(t);
-        const recHint = rec.length ? ` [recommended: ${rec.join(', ')}]` : '';
-        log(`  • ${t.id} — ${t.name}: ${t.description}${recHint}`);
+        const baseline = getBaselineLayers(t);
+        const baselineHint = baseline.length ? ` [baseline: ${baseline.join(', ')}]` : '';
+        log(`  • ${t.id} — ${t.name}: ${t.description}${baselineHint}`);
       });
     }
+    const baselineIds = new Set(tmpls.flatMap(getBaselineLayers));
     const layers = getLayersWithManifests();
-    if (layers.length) {
-      log('\nAvailable layers:');
-      layers.forEach((l) => log(`  • ${l.id} — ${l.name}`));
+    const baselineLayers = layers.filter((l) => baselineIds.has(l.id));
+    const featureLayers = layers.filter((l) => !baselineIds.has(l.id));
+    if (baselineLayers.length) {
+      log('\nBaseline layers (always applied to the templates they fit):');
+      baselineLayers.forEach((l) => log(`  • ${l.id} — ${l.name}`));
+    }
+    if (featureLayers.length) {
+      log('\nFeature layers (opt in with --with or a bundle):');
+      featureLayers.forEach((l) => log(`  • ${l.id} — ${l.name}`));
     }
     const bundles = loadBundles();
     if (Object.keys(bundles).length) {
@@ -853,7 +860,8 @@ export {
   printPostScaffoldSteps,
   labelHint,
   collectLayerIds,
-  getRecommendedLayers,
+  getBaselineLayers,
+  getFeatureLayers,
   USAGE,
   SKELETOR_VERSION,
 };

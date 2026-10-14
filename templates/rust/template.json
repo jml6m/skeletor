@@ -15,7 +15,7 @@
       "dir": "layouts/workspace"
     }
   },
-  "recommendedLayers": [
+  "baselineLayers": [
     "governance",
     "dependabot",
     "issue-templates"

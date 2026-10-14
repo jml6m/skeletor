@@ -5,7 +5,7 @@
 Generates projects pre-configured with lint/format/health/release defaults (JS/TS encode real workspace conventions; other stacks ship clean baselines).
 
 ```bash
-npx @jml6m/skeletor new my-api --template typescript --with-recommended
+npx @jml6m/skeletor new my-api --template typescript
 ```
 
 Latest release: [![npm](https://img.shields.io/npm/v/@jml6m/skeletor)](https://www.npmjs.com/package/@jml6m/skeletor) (`npm view @jml6m/skeletor version`).
@@ -32,8 +32,8 @@ Each template declares `verifyCommands` in `template.json` — the post-scaffold
 # Interactive
 npx @jml6m/skeletor new my-project
 
-# TypeScript + recommended enhancement layers
-npx @jml6m/skeletor new my-api --template typescript --with-recommended
+# TypeScript plus feature layers (the baseline layers are always applied)
+npx @jml6m/skeletor new my-api --template typescript --with zod-config,logger-winston
 
 # Non-interactive — pass --owner when auto-detection cannot run
 npx @jml6m/skeletor new my-service --auto --template go --owner acme-corp
@@ -44,7 +44,7 @@ The project name is lowercase kebab-case, starting with a letter (e.g. `my-api`)
 ### Common flags
 
 - `--template <id>` — stack to scaffold
-- `--with-recommended` / `--with <layers>` / `--bundle <name>` — enhancement layers
+- `--with <layers>` / `--bundle <name>` — feature layers, on top of the template's baseline layers
 - `--owner <user>` — skips GitHub owner auto-detection
 - `--description <text>` — optional (generic default when omitted)
 - `--auto` — non-interactive; requires `--template`
@@ -70,14 +70,17 @@ skeletor sets these itself instead of asking. Change them in the generated proje
 
 ## Enhancement layers
 
-Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bundle` on `skeletor new` (see [Common flags](#common-flags) above). Skeletor is a one-shot generator: it writes a project once and leaves nothing of its own behind to track or manage afterward.
+Applied at scaffold time only. Skeletor is a one-shot generator: it writes a project once and leaves nothing of its own behind to track or manage afterward.
 
-| Layer | Applies to | Recommended | What it adds |
+- **Baseline layers** are applied to every scaffold of the templates they fit (`baselineLayers` in `template.json`): `governance`, `dependabot` and `issue-templates` everywhere, plus `quality-gates` and `docs-lint` on javascript and typescript.
+- **Feature layers** are opt-in, via `--with` or a `--bundle` (see [Common flags](#common-flags) above). Bundles list feature layers only. Interactive runs without either flag offer a picker of the feature layers that fit the template.
+
+| Layer | Applies to | Baseline | What it adds |
 |---|---|---|---|
 | `dependabot` | all | yes | Grouped, monthly, single-PR Dependabot updates for the template's ecosystem + github-actions, matching the account-wide baseline |
 | `docs-lint` | javascript, typescript | yes | Pinned docs-lint CI matching the account baseline: lychee 0.24.2 link/anchor checking + markdownlint-cli2 |
 | `docs-policy` | all |  | Locks Markdown files to an exact allowlist seeded from what the scaffold emits, enforced by a docs-policy CI job; offers *.md as a CODEOWNERS path |
-| `env-example` | javascript, typescript | yes | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists |
+| `env-example` | javascript, typescript |  | Ships a .env.example listing the variables the config reads; npm start loads .env when it exists |
 | `express-server` | javascript |  | Replaces src/index.js with a minimal Express server: an app with a /health route, listening on PORT (default 3000), and a test for the route |
 | `free-port` | javascript, typescript |  | Zero-dependency cross-platform port freeing script with a prestart hook |
 | `governance` | all | yes | Appends agent governance protocols (issue workflow, test-before-handoff) to AGENTS.md |
@@ -89,7 +92,7 @@ Applied at scaffold time only — via `--with`, `--with-recommended`, or `--bund
 | `quality-gates` | javascript, typescript | yes | Adds audit:ci (prod-only high/critical), lint:encoding (UTF-8/BOM/CRLF guard), and git:pull |
 | `test-harness:mongo-memory` | javascript, typescript |  | mongodb-memory-server start/stop helpers for Jest, an example test that uses them, and a test:mongo script |
 | `test-harness:playwright` | javascript, typescript |  | Minimal Playwright setup: a config with one Chromium project, an example spec, and test:e2e scripts |
-| `zod-config` | javascript, typescript | yes | Zod-validated env.config + config/index pattern; never read process.env in feature code |
+| `zod-config` | javascript, typescript |  | Zod-validated env.config + config/index pattern; never read process.env in feature code |
 
 `skeletor new --github` also creates the labels that the chosen layers expect (for example `epic`), right after it creates the repo.
 

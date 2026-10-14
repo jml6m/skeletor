@@ -3,14 +3,12 @@
   "name": "JavaScript",
   "description": "JavaScript (CommonJS) with your exact conventions: Prettier (165 cols), ESLint + unused-imports, no parent imports, module-aliases, knip/jscpd/madge health, custom release.js with GitHub gates, AGENTS.md, husky + lint-staged.",
   "language": "javascript",
-  "recommendedLayers": [
+  "baselineLayers": [
     "governance",
     "dependabot",
     "issue-templates",
     "quality-gates",
-    "docs-lint",
-    "zod-config",
-    "env-example"
+    "docs-lint"
   ],
   "features": [
     "node",

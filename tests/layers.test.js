@@ -9,7 +9,9 @@ process.env.SKELETOR_CLI_TEST = '1';
 import {
   runNew,
   collectLayerIds,
-  getRecommendedLayers,
+  getBaselineLayers,
+  getFeatureLayers,
+  getTemplatesWithManifests,
   loadTemplateManifest,
 } from '../src/index.js';
 import {
@@ -283,37 +285,58 @@ describe('layer application', () => {
     }
   });
 
-  test('collectLayerIds expands --with-recommended from template manifest', () => {
+  test('collectLayerIds always includes the baseline, then --with and bundle layers', () => {
     const ts = loadTemplateManifest('typescript');
-    const ids = collectLayerIds({ withRecommended: true }, ts);
-    expect(ids).toEqual(expect.arrayContaining(['governance', 'quality-gates', 'zod-config', 'env-example']));
+    const baseline = ['governance', 'dependabot', 'issue-templates', 'quality-gates', 'docs-lint'];
+    expect(getBaselineLayers(ts)).toEqual(baseline);
+    expect(collectLayerIds({}, ts)).toEqual(baseline);
+    expect(collectLayerIds({ withLayers: ['zod-config', 'governance'] }, ts)).toEqual([...baseline, 'zod-config']);
+    expect(collectLayerIds({ bundle: 'ts-library' }, 'typescript')).toEqual([...baseline, 'library-publishing']);
+    expect(getBaselineLayers({ id: 'fake' })).toEqual([]);
   });
 
-  test('getRecommendedLayers returns empty for unknown template', () => {
-    expect(getRecommendedLayers({ id: 'fake' })).toEqual([]);
+  test('every template declares baselineLayers that apply to it, and no recommendedLayers', () => {
+    for (const t of getTemplatesWithManifests()) {
+      expect({ id: t.id, recommendedLayers: t.recommendedLayers }).toEqual({ id: t.id, recommendedLayers: undefined });
+      expect(getBaselineLayers(t)).toEqual(expect.arrayContaining(['governance', 'dependabot', 'issue-templates']));
+      const { errors } = resolveLayerOrder(getBaselineLayers(t), { template: t.id, language: t.language });
+      expect({ id: t.id, errors }).toEqual({ id: t.id, errors: [] });
+    }
   });
 
-  test('new --with-recommended applies template recommended layers', async () => {
-    const name = makeName('layer-rec');
+  test('the feature-layer picker offers only layers outside the baseline', () => {
+    for (const t of getTemplatesWithManifests()) {
+      const offered = getFeatureLayers(t).map((l) => l.id);
+      expect(offered.filter((id) => getBaselineLayers(t).includes(id))).toEqual([]);
+      expect(offered).toEqual(expect.arrayContaining(['docs-policy', 'issue-labels']));
+    }
+    const ts = getFeatureLayers(loadTemplateManifest('typescript')).map((l) => l.id);
+    expect(ts).toEqual(expect.arrayContaining(['zod-config', 'env-example', 'logger-winston', 'library-publishing']));
+    expect(getFeatureLayers(loadTemplateManifest('go')).map((l) => l.id)).not.toContain('zod-config');
+  });
+
+  test('bundles list only feature layers, at least one each', () => {
+    for (const [name, bundle] of Object.entries(loadBundles())) {
+      const baseline = getBaselineLayers(loadTemplateManifest(bundle.template));
+      expect({ name, baseline: bundle.layers.filter((id) => baseline.includes(id)) }).toEqual({ name, baseline: [] });
+      // A bundle with no feature layers would be the plain template under another name.
+      expect({ name, empty: bundle.layers.length === 0 }).toEqual({ name, empty: false });
+    }
+  });
+
+  test('a default scaffold applies the baseline and no feature layers', async () => {
+    const name = makeName('layer-baseline');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({
-        command: 'new',
-        name,
-        template: 'typescript',
-        auto: true,
-        git: false,
-        withRecommended: true,
-      });
-      // governance
+      await runNew({ command: 'new', name, template: 'typescript', owner: 'acme', auto: true, git: false, withLayers: [] });
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain('## Critical Protocols');
-      // quality-gates
+      expect(fs.existsSync(path.join(targetDir, '.github', 'dependabot.yml'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, '.github', 'ISSUE_TEMPLATE', 'epic.yml'))).toBe(true);
       expect(fs.existsSync(path.join(targetDir, 'scripts', 'audit-ci.mjs'))).toBe(true);
-      // zod-config
-      expect(fs.existsSync(path.join(targetDir, 'src', 'config', 'env.config.ts'))).toBe(true);
-      // env-example
-      expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
-      // no lingering skeletor state
+      expect(fs.existsSync(path.join(targetDir, '.github', 'workflows', 'docs-lint.yml'))).toBe(true);
+      // zod-config and env-example are feature layers now.
+      expect(fs.readFileSync(path.join(targetDir, 'src', 'config', 'env.config.ts'), 'utf8')).not.toContain('z.object');
+      expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(false);
       expect(fs.existsSync(path.join(targetDir, '.skeletor'))).toBe(false);
     } finally {
       cleanup(targetDir);
@@ -378,12 +401,12 @@ describe('AGENTS.md layer snippets', () => {
     }
   });
 
-  test('javascript --with-recommended puts each snippet under its own heading', async () => {
+  test('javascript baseline plus zod-config puts each snippet under its own heading', async () => {
     const name = makeName('agents-js');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withRecommended: true });
-      expectSnippetsUnderHeadings(targetDir, collectLayerIds({ withRecommended: true }, loadTemplateManifest('javascript')));
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withLayers: ['zod-config'] });
+      expectSnippetsUnderHeadings(targetDir, collectLayerIds({ withLayers: ['zod-config'] }, loadTemplateManifest('javascript')));
     } finally {
       cleanup(targetDir);
     }
@@ -415,11 +438,11 @@ describe('label seed', () => {
     expect(chore).toEqual({ name: 'chore', color: 'fef2c0', description: 'Maintenance / process work' });
   });
 
-  test('--with-recommended --with issue-labels seeds chore and epic under Issue labels', async () => {
+  test('the baseline plus issue-labels seeds chore and epic under Issue labels', async () => {
     const name = makeName('label-seed-js');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withRecommended: true, withLayers: ['issue-labels'] });
+      await runNew({ command: 'new', name, template: 'javascript', owner: 'acme', auto: true, git: false, withLayers: ['issue-labels'] });
       const agents = fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
       const body = sectionBody(agents, 'Issue labels');
       expect(body).toContain(seedLine(chore));
@@ -431,11 +454,11 @@ describe('label seed', () => {
     }
   });
 
-  test('issue-templates alone still documents how to create epic', async () => {
+  test('the baseline issue-templates alone still documents how to create epic', async () => {
     const name = makeName('label-seed-py');
     const targetDir = path.resolve(process.cwd(), name);
     try {
-      await runNew({ command: 'new', name, template: 'python', owner: 'acme', auto: true, git: false, withRecommended: true });
+      await runNew({ command: 'new', name, template: 'python', owner: 'acme', auto: true, git: false, withLayers: [] });
       const body = sectionBody(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8'), 'Issue labels');
       expect(body).toContain(seedLine(epic));
       expect(body).not.toContain('"chore"');
@@ -444,11 +467,13 @@ describe('label seed', () => {
     }
   });
 
-  test('no labels, no section', async () => {
-    const name = makeName('label-seed-none');
-    const targetDir = path.resolve(process.cwd(), name);
+  // Every scaffold's baseline includes issue-templates (epic), so apply a label-free layer set directly.
+  test('no labels, no section', () => {
+    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skeletor-label-seed-'));
     try {
-      await runNew({ command: 'new', name, template: 'go', owner: 'acme', auto: true, git: false, withLayers: ['governance'] });
+      fs.writeFileSync(path.join(targetDir, 'AGENTS.md'), '# my-app\n\n## Build & Test\n\nRun the tests.\n');
+      const result = applyLayers({ projectDir: targetDir, layerIds: ['governance'], template: 'go', vars: {}, noInstall: true });
+      expect(result.labels).toEqual([]);
       expect(fs.readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8')).not.toContain('## Issue labels');
     } finally {
       cleanup(targetDir);
@@ -515,8 +540,8 @@ describe('generated ignore rules', () => {
     }
   });
 
-  test('javascript --with-recommended leaves the env-example file trackable', async () => {
-    const { targetDir } = await scaffold('javascript', { withRecommended: true });
+  test('javascript --with env-example leaves the env-example file trackable', async () => {
+    const { targetDir } = await scaffold('javascript', { withLayers: ['env-example'] });
     try {
       expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
       expect(isIgnored(targetDir, '.env.example')).toBe(false);

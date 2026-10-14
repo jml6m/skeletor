@@ -27,6 +27,7 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
 - **Layout-specific output.** A template with `layouts` (rust, python) keeps each layout's files, including its `.github/` and `README.md`, under `layouts/<id>/`. A layout can override `verifyCommands`.
 
 - **Layers live in `layers/<id>/`** (`layer.json` plus `files/`), are applied only at `skeletor new` time, and are recorded nowhere in the generated project.
+  - A template's `baselineLayers` (in `template.json`) are applied to every scaffold of it; there is no opt-out. Every other layer that applies is a feature layer, opt-in via `--with` or a bundle. Bundles in [bundles.json](./bundles.json) list feature layers only.
   - A layer applied to both `javascript` (CommonJS) and `typescript` (ESM) must emit a correct module format for each. Ship `.js` (CommonJS) plus `.ts` twins, since the twin for the other language is dropped. Use `.cjs` for one script that must run in both.
   - `patch.packageJson` is one file, or a `{ "javascript": …, "typescript": … }` map when dependencies differ (`string-width` v4 is the last CommonJS major). The merge keeps a value the template already has; `patch.packageJsonOverride` lists key paths, dotted for nested keys, whose patch value replaces it instead, and a `null` patch value removes the key (env-example: `scripts.start`; library-publishing: `main`, `private`).
   - `requires` lists layers this one can't work without; they are applied automatically. There is no soft dependency: a layer is self-contained or declares `requires`.
