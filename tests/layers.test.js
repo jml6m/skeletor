@@ -315,10 +315,12 @@ describe('layer application', () => {
     expect(getFeatureLayers(loadTemplateManifest('go')).map((l) => l.id)).not.toContain('zod-config');
   });
 
-  test('bundles list only feature layers', () => {
+  test('bundles list only feature layers, at least one each', () => {
     for (const [name, bundle] of Object.entries(loadBundles())) {
       const baseline = getBaselineLayers(loadTemplateManifest(bundle.template));
       expect({ name, baseline: bundle.layers.filter((id) => baseline.includes(id)) }).toEqual({ name, baseline: [] });
+      // A bundle with no feature layers would be the plain template under another name.
+      expect({ name, empty: bundle.layers.length === 0 }).toEqual({ name, empty: false });
     }
   });
 

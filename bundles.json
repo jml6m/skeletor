@@ -18,9 +18,5 @@
   "ts-native": {
     "template": "typescript",
     "layers": ["test-harness:playwright"]
-  },
-  "ts-benchmark": {
-    "template": "typescript",
-    "layers": []
   }
 }

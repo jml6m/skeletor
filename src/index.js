@@ -828,7 +828,7 @@ function main() {
     const bundles = loadBundles();
     if (Object.keys(bundles).length) {
       log('\nAvailable bundles:');
-      Object.entries(bundles).forEach(([k, v]) => log(`  • ${k} → ${(v.layers || []).join(', ') || '(baseline only)'}`));
+      Object.entries(bundles).forEach(([k, v]) => log(`  • ${k} → ${(v.layers || []).join(', ')}`));
     }
     process.exit(0);
   }
