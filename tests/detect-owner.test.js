@@ -29,4 +29,9 @@ describe('detect-owner', () => {
     expect(dirs[0]).toBe(child);
     expect(dirs).toContain(ROOT);
   });
+
+  test('detectGithubOwners handles directories without git or package.json safely', () => {
+    const osTmpDir = path.resolve('/tmp');
+    expect(() => detectGithubOwners(osTmpDir)).not.toThrow();
+  });
 });

@@ -35,20 +35,32 @@ export function collectSearchDirs(startDir) {
 }
 
 /**
+ * Executes a function and returns its result, or null if it throws.
+ * @template T
+ * @param {() => T} fn
+ * @returns {T | null}
+ */
+function tryNull(fn) {
+  try {
+    return fn();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {string} dir
  * @returns {string | null}
  */
 function readGitRemoteOrigin(dir) {
-  try {
+  return tryNull(() => {
     const url = execSync('git remote get-url origin', {
       cwd: dir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
     return parseGithubOwnerFromUrl(url);
-  } catch {
-    return null;
-  }
+  });
 }
 
 /**
@@ -56,32 +68,28 @@ function readGitRemoteOrigin(dir) {
  * @returns {string | null}
  */
 function readPackageJsonOwner(dir) {
-  const pkgPath = path.join(dir, 'package.json');
-  if (!fs.existsSync(pkgPath)) return null;
-  try {
+  return tryNull(() => {
+    const pkgPath = path.join(dir, 'package.json');
+    if (!fs.existsSync(pkgPath)) return null;
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     const repo = pkg.repository;
     const url = typeof repo === 'string' ? repo : repo?.url;
     return parseGithubOwnerFromUrl(url || '');
-  } catch {
-    return null;
-  }
+  });
 }
 
 /**
  * @returns {string | null}
  */
 function readGhAuthenticatedUser() {
-  try {
+  return tryNull(() => {
     return (
       execSync('gh api user -q .login', {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
       }).trim() || null
     );
-  } catch {
-    return null;
-  }
+  });
 }
 
 /**
