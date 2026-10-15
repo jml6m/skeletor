@@ -31,7 +31,8 @@ jobs:
             }
 
             const refRegex = /^\s*(?:relates?\s+to|close[sd]?|fix(?:es|ed)?|resolve[sd]?)\s+#(\d+)\b/gim;
-            const refs = [...new Set([...(pr.body || '').matchAll(refRegex)].map((m) => Number(m[1])))];
+            const textToScan = `${pr.title}\n${pr.body || ''}`;
+            const refs = [...new Set([...textToScan.matchAll(refRegex)].map((m) => Number(m[1])))];
 
             const fail = async (lines) => {
               const msg = lines.join('\n');
