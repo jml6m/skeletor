@@ -145,6 +145,16 @@ describe('flag combinations', () => {
   });
 });
 
+describe('getTemplatesWithManifests caching', () => {
+  test('returns cached manifest objects on subsequent calls', () => {
+    const firstCall = getTemplatesWithManifests();
+    const secondCall = getTemplatesWithManifests();
+    expect(firstCall).toBe(secondCall);
+    expect(firstCall.length).toBeGreaterThan(0);
+    expect(firstCall[0]).toBe(secondCall[0]);
+  });
+});
+
 describe('options that depend on the template', () => {
   test('--layout on a template without layouts is an error that names the templates with layouts', () => {
     const message = checkTemplateOptions({ layout: 'src' }, template('go'));

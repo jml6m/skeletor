@@ -218,7 +218,13 @@ function getAvailableTemplates() {
  * @param {string} templateId
  * @returns {Record<string, any> & { dir: string }}
  */
+const templateManifestCache = new Map();
+let cachedTemplatesWithManifests = null;
+
 function loadTemplateManifest(templateId) {
+  if (templateManifestCache.has(templateId)) {
+    return templateManifestCache.get(templateId);
+  }
   const dir = path.join(TEMPLATES_DIR, templateId);
   const manifestPath = path.join(dir, 'template.json');
   let manifest = {
@@ -236,11 +242,16 @@ function loadTemplateManifest(templateId) {
       // fall back
     }
   }
-  return { ...manifest, dir };
+  const result = { ...manifest, dir };
+  templateManifestCache.set(templateId, result);
+  return result;
 }
 
 function getTemplatesWithManifests() {
-  return getAvailableTemplates().map((id) => loadTemplateManifest(id));
+  if (!cachedTemplatesWithManifests) {
+    cachedTemplatesWithManifests = getAvailableTemplates().map((id) => loadTemplateManifest(id));
+  }
+  return cachedTemplatesWithManifests;
 }
 
 function resolveTemplateLayout(templateInfo, layout) {
