@@ -45,6 +45,13 @@ describe('layer manifests', () => {
     const errors = validateLayerManifests();
     expect(errors).toEqual([]);
   });
+
+  test('getLayersWithManifests caches results across multiple calls', () => {
+    const firstCall = getLayersWithManifests();
+    const secondCall = getLayersWithManifests();
+    expect(firstCall).toBe(secondCall);
+    expect(firstCall.length).toBeGreaterThan(0);
+  });
 });
 
 describe('packageJsonOverride', () => {

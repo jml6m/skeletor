@@ -56,8 +56,12 @@ function loadLayerManifest(layerDirName) {
   return { ...raw, dir, dirName: layerDirName };
 }
 
+let cachedLayersWithManifests = null;
+
 export function getLayersWithManifests() {
-  return getAvailableLayerIds().map((id) => loadLayerManifest(id));
+  if (cachedLayersWithManifests) return cachedLayersWithManifests;
+  cachedLayersWithManifests = getAvailableLayerIds().map((id) => loadLayerManifest(id));
+  return cachedLayersWithManifests;
 }
 
 /**
