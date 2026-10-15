@@ -42,12 +42,19 @@ export function loadBundles() {
   }
 }
 
+let cachedLayerIds = null;
+
 function getAvailableLayerIds() {
-  if (!fs.existsSync(LAYERS_DIR)) return [];
-  return fs.readdirSync(LAYERS_DIR).filter((d) => {
+  if (cachedLayerIds !== null) return cachedLayerIds;
+  if (!fs.existsSync(LAYERS_DIR)) {
+    cachedLayerIds = [];
+    return cachedLayerIds;
+  }
+  cachedLayerIds = fs.readdirSync(LAYERS_DIR).filter((d) => {
     const p = path.join(LAYERS_DIR, d);
     return fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, 'layer.json'));
   });
+  return cachedLayerIds;
 }
 
 function loadLayerManifest(layerDirName) {
