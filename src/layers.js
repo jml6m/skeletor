@@ -33,13 +33,20 @@ function resolveLayerOutputPath(relPath) {
   return relPath;
 }
 
+let cachedBundles = null;
+
 export function loadBundles() {
-  if (!fs.existsSync(BUNDLES_PATH)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(BUNDLES_PATH, 'utf8'));
-  } catch {
-    return {};
+  if (cachedBundles) return cachedBundles;
+  if (!fs.existsSync(BUNDLES_PATH)) {
+    cachedBundles = {};
+    return cachedBundles;
   }
+  try {
+    cachedBundles = JSON.parse(fs.readFileSync(BUNDLES_PATH, 'utf8'));
+  } catch {
+    cachedBundles = {};
+  }
+  return cachedBundles;
 }
 
 function getAvailableLayerIds() {

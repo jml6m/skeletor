@@ -84,6 +84,13 @@ describe('packageJsonOverride', () => {
 });
 
 describe('bundle expansion', () => {
+  test('loadBundles caches and returns bundle definitions', () => {
+    const bundles1 = loadBundles();
+    const bundles2 = loadBundles();
+    expect(bundles1).toBe(bundles2);
+    expect(Object.keys(bundles1).length).toBeGreaterThan(0);
+  });
+
   test('bundles resolve without conflicts for their template', () => {
     const bundles = loadBundles();
     for (const bundle of Object.values(bundles)) {
