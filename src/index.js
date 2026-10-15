@@ -79,9 +79,6 @@ Examples:
   skeletor new my-app --auto --template rust --layout workspace
 `;
 
-function log(msg) {
-  console.log(msg);
-}
 function logError(msg) {
   console.error(msg);
 }
@@ -821,19 +818,19 @@ function main() {
   }
 
   if (opts.command === 'version') {
-    log(SKELETOR_VERSION);
+    console.log(SKELETOR_VERSION);
     process.exit(0);
   }
 
   if (opts.command === 'help' || !opts.command) {
-    log(USAGE.trim());
+    console.log(USAGE.trim());
     const tmpls = getTemplatesWithManifests();
     if (tmpls.length) {
-      log('\nAvailable templates:');
+      console.log('\nAvailable templates:');
       tmpls.forEach((t) => {
         const baseline = getBaselineLayers(t);
         const baselineHint = baseline.length ? ` [baseline: ${baseline.join(', ')}]` : '';
-        log(`  • ${t.id} — ${t.name}: ${t.description}${baselineHint}`);
+        console.log(`  • ${t.id} — ${t.name}: ${t.description}${baselineHint}`);
       });
     }
     const baselineIds = new Set(tmpls.flatMap(getBaselineLayers));
@@ -841,17 +838,17 @@ function main() {
     const baselineLayers = layers.filter((l) => baselineIds.has(l.id));
     const featureLayers = layers.filter((l) => !baselineIds.has(l.id));
     if (baselineLayers.length) {
-      log('\nBaseline layers (always applied to the templates they fit):');
-      baselineLayers.forEach((l) => log(`  • ${l.id} — ${l.name}`));
+      console.log('\nBaseline layers (always applied to the templates they fit):');
+      baselineLayers.forEach((l) => console.log(`  • ${l.id} — ${l.name}`));
     }
     if (featureLayers.length) {
-      log('\nFeature layers (opt in with --with or a bundle):');
-      featureLayers.forEach((l) => log(`  • ${l.id} — ${l.name}`));
+      console.log('\nFeature layers (opt in with --with or a bundle):');
+      featureLayers.forEach((l) => console.log(`  • ${l.id} — ${l.name}`));
     }
     const bundles = loadBundles();
     if (Object.keys(bundles).length) {
-      log('\nAvailable bundles:');
-      Object.entries(bundles).forEach(([k, v]) => log(`  • ${k} → ${(v.layers || []).join(', ')}`));
+      console.log('\nAvailable bundles:');
+      Object.entries(bundles).forEach(([k, v]) => console.log(`  • ${k} → ${(v.layers || []).join(', ')}`));
     }
     process.exit(0);
   }
