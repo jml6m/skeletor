@@ -8,7 +8,7 @@ This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) a
 
 - Prettier at its default width (80 columns), with single quotes, ES5 trailing commas and the organize-imports and pkg plugins
 - ESLint + unused-imports (strict), no parent relative imports (`../*`)
-- knip (dead code) and madge (circular imports) gate CI; jscpd (duplicated code) is an on-demand report
+- knip (dead code) and dependency-cruiser (circular and unresolvable imports) gate CI; jscpd (duplicated code) is an on-demand report
 - Husky pre-commit hook: lint-staged runs Prettier on staged files; ESLint runs in `npm run lint` and CI
 - Custom `release.js` (one bump per PR, major gates via GitHub issue labels `vN-required`)
 - AGENTS.md as the Single Source of Truth for coding standards + AI agent protocols
@@ -31,7 +31,8 @@ Commit the `package-lock.json` the first `npm install` creates: CI installs with
 
 - `format:check` fails on a file Prettier would change. `lint` fails on any ESLint warning (`--max-warnings 0`).
 - `health:dead` (knip) fails on unused files, exports and dependencies, and on configuration hints.
-- `health:circular` (madge) fails on a circular import. It runs in CI, never in a git hook.
+- `health:circular` (dependency-cruiser) fails on a circular import or an import that doesn't resolve. It runs in
+  CI, never in a git hook.
 - `audit:ci` fails on a high or critical advisory in a production dependency; `lint:encoding` fails on non-UTF-8
   bytes, a byte-order mark or CRLF line endings in tracked files.
 - The [docs-lint](./.github/workflows/docs-lint.yml) workflow checks Markdown links (lychee) and formatting

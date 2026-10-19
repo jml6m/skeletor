@@ -1,7 +1,7 @@
 {
   "id": "javascript",
   "name": "JavaScript",
-  "description": "JavaScript (CommonJS) with opinionated defaults: Prettier, ESLint + unused-imports, no parent imports, module aliases, knip and madge gates, a jscpd duplicate-code report, a release.js with GitHub gates, AGENTS.md, husky + lint-staged.",
+  "description": "JavaScript (CommonJS) with opinionated defaults: Prettier, ESLint + unused-imports, no parent imports, module aliases, knip and dependency-cruiser gates, a jscpd duplicate-code report, a release.js with GitHub gates, AGENTS.md, husky + lint-staged.",
   "language": "javascript",
   "baselineLayers": [
     "governance",
@@ -18,7 +18,7 @@
     "husky",
     "knip",
     "jscpd",
-    "madge"
+    "dependency-cruiser"
   ],
   "verifyCommands": [
     "npm install",

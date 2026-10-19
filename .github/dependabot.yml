@@ -22,7 +22,7 @@ updates:
     multi-ecosystem-group: 'all-dependencies'
     versioning-strategy: 'increase'
     ignore:
-      # Held at 5.x: madge's peer dependency rejects 6, and 7 breaks madge.
+      # Held at 5.x: TypeScript 7 lacks the compiler API that prettier-plugin-organize-imports calls, so imports go unorganized.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
       # Tracks the lowest Node version in engines, not the latest Node.

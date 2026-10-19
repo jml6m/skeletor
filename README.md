@@ -14,15 +14,15 @@ Latest release: [![npm](https://img.shields.io/npm/v/@jml6m/skeletor)](https://w
 
 Run `skeletor new my-project` for an interactive selector, or pass `--template <id>`.
 
-| Template     | Notes                                                                        |
-| ------------ | ---------------------------------------------------------------------------- |
-| `javascript` | CJS — Prettier, ESLint, aliases, knip/madge gates, husky, AGENTS.md          |
-| `typescript` | ESM + strict TS, flat ESLint, build, quality gates, AGENTS.md                |
-| `python`     | uv, pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default) |
-| `go`         | Standard module + tests                                                      |
-| `rust`       | Cargo — `--layout single\|lib\|workspace`                                    |
-| `java`       | Maven + JUnit 6                                                              |
-| `csharp`     | .NET 10 + xUnit                                                              |
+| Template     | Notes                                                                            |
+| ------------ | -------------------------------------------------------------------------------- |
+| `javascript` | CJS — Prettier, ESLint, aliases, knip/dependency-cruiser gates, husky, AGENTS.md |
+| `typescript` | ESM + strict TS, flat ESLint, build, quality gates, AGENTS.md                    |
+| `python`     | uv, pyproject.toml, ruff, pytest, mypy — `--layout flat\|src` (flat default)     |
+| `go`         | Standard module + tests                                                          |
+| `rust`       | Cargo — `--layout single\|lib\|workspace`                                        |
+| `java`       | Maven + JUnit 6                                                                  |
+| `csharp`     | .NET 10 + xUnit                                                                  |
 
 Each template declares `verifyCommands` in `template.json`: the scaffold's checks. A layer can add its own. The generated AGENTS.md and README list them, and the scaffold's CI runs them on every pull request.
 

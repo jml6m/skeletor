@@ -14,7 +14,7 @@ assignees: ''
 
 <!--
   Why is this needed? Describe the problem or the gap on its own terms.
-  Name the parts of skeletor it touches (AGENTS.md rules, knip/jscpd/madge, release.js, etc.).
+  Name the parts of skeletor it touches (AGENTS.md rules, knip/jscpd/dependency-cruiser, release.js, etc.).
 -->
 
 ## Scope
@@ -27,7 +27,7 @@ Which area(s) of skeletor does this affect?
 - [ ] A specific existing template — which? <!-- javascript / typescript / python / rust / go / java / csharp -->
 - [ ] A new template (which language / stack?)
 - [ ] A layer (`layers/<id>/layer.json`) or bundle (`bundles.json`), existing or new
-- [ ] Tooling conventions (knip / jscpd / madge / prettier / eslint / husky / release.js)
+- [ ] Tooling conventions (knip / jscpd / dependency-cruiser / prettier / eslint / husky / release.js)
 - [ ] Docs (`README.md`, `AGENTS.md`)
 - [ ] Repo infra (CI, dependabot, issue/PR templates)
 

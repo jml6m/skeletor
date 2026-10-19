@@ -4,3 +4,4 @@ playwright-report/
 test-results/
 lib/
 package-lock.json
+.dependency-cruiser-known-violations.json

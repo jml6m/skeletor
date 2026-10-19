@@ -12,11 +12,11 @@ This project was scaffolded with [skeletor](https://github.com/jml6m/skeletor) a
   - no `process.env` outside [src/config/env.config.ts](./src/config/env.config.ts), `tests/support/` and root `*.config.ts` files: read config from `#config`
   - no `console.log`: use the logger
   - no template literals in logger messages (warning): pass dynamic values as metadata, `logger.info('Event', { key: value })`
-- knip (dead code) and madge (circular imports) gate CI; jscpd (duplicated code) is an on-demand report
+- knip (dead code) and dependency-cruiser (circular and unresolvable imports) gate CI; jscpd (duplicated code) is an on-demand report
 - Husky pre-commit hook: lint-staged runs Prettier on staged files; ESLint runs in `npm run lint` and CI
 - Custom `release.js` (one bump per PR, major gates via GitHub issue labels `vN-required`)
 - AGENTS.md as the Single Source of Truth for coding standards + AI agent protocols
-- Native Node subpath imports (`import logger from '#utils/logger.js'`): `tsconfig.json` `paths` resolves them to `src/` for type-checking and Jest, and `package.json` `imports` resolves them to the compiled `dist/` at runtime
+- Native Node subpath imports (`import logger from '#utils/logger.js'`): `tsconfig.json` `paths` resolves them to `src/` for type-checking, Jest and knip, and `package.json` `imports` resolves them to `src/` for dependency-cruiser (its `types` condition) and to the compiled `dist/` at runtime
 
 See [AGENTS.md](./AGENTS.md) for the full contract.
 
@@ -36,7 +36,8 @@ Commit the `package-lock.json` the first `npm install` creates: CI installs with
 - `format:check` fails on a file Prettier would change. `lint` fails on any ESLint warning (`--max-warnings 0`). `typecheck` runs `tsc --noEmit`; `build`
   compiles to `dist/`.
 - `health:dead` (knip) fails on unused files, exports and dependencies, and on configuration hints.
-- `health:circular` (madge) fails on a circular import. It runs in CI, never in a git hook.
+- `health:circular` (dependency-cruiser) fails on a circular import or an import that doesn't resolve. It runs in
+  CI, never in a git hook.
 - `audit:ci` fails on a high or critical advisory in a production dependency; `lint:encoding` fails on non-UTF-8
   bytes, a byte-order mark or CRLF line endings in tracked files.
 - The [docs-lint](./.github/workflows/docs-lint.yml) workflow checks Markdown links (lychee) and formatting

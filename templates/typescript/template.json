@@ -1,7 +1,7 @@
 {
   "id": "typescript",
   "name": "TypeScript",
-  "description": "Modern TypeScript (ESM) with strict settings, flat ESLint + typescript-eslint, Prettier, path aliases, knip and madge gates, a jscpd duplicate-code report, release gates and AGENTS.md. Good default for new TS projects.",
+  "description": "Modern TypeScript (ESM) with strict settings, flat ESLint + typescript-eslint, Prettier, path aliases, knip and dependency-cruiser gates, a jscpd duplicate-code report, release gates and AGENTS.md. Good default for new TS projects.",
   "language": "typescript",
   "baselineLayers": [
     "governance",
@@ -18,7 +18,7 @@
     "husky",
     "knip",
     "jscpd",
-    "madge"
+    "dependency-cruiser"
   ],
   "verifyCommands": [
     "npm install",

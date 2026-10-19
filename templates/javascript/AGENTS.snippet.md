@@ -6,8 +6,9 @@ What the tooling enforces. The [CI workflows](./.github/workflows/) run every Bu
   The pre-commit hook runs Prettier on staged files; `npm run format` formats the whole tree.
 - **Imports**: no parent imports (`..`, `../`) in `import` or `require()`. Use the `@` aliases (`@config`, `@utils`,
   `@src/...`) or sibling imports (`./`). An alias lives in four places, kept in step: `_moduleAliases` in
-  `package.json` (runtime), [jsconfig.json](./jsconfig.json) (ESLint), [jest.config.js](./jest.config.js) and
-  `paths` in [knip.json](./knip.json). Unresolved and unused imports are errors.
+  `package.json` (runtime), [jsconfig.json](./jsconfig.json) (ESLint, dependency-cruiser),
+  [jest.config.js](./jest.config.js) and `paths` in [knip.json](./knip.json). Unresolved and unused imports are
+  errors.
 - **Config**: `process.env` and `process.exit()` are errors outside
   [src/config/env.config.js](./src/config/env.config.js), `scripts/`, `tests/support/`, `release.js` and root
   `*.config.js` files. Read settings from `@config`.
@@ -17,5 +18,8 @@ What the tooling enforces. The [CI workflows](./.github/workflows/) run every Bu
 - **Errors**: an empty `catch` block is an error.
 - **Tests**: `tests/**/*.test.js` (or `__tests__/`), run by Jest.
 - **Health**: `npm run health:dead` (knip) fails on unused files, exports, dependencies and config hints;
-  `npm run health:circular` (madge on `src/`) fails on a circular import (CI only, never a git hook).
+  `npm run health:circular` (dependency-cruiser on `src/`) fails on a circular import or an import that doesn't
+  resolve (CI only, never a git hook). If a cycle can't be broken, report it on the PR; once a maintainer accepts
+  it, record it with `npx depcruise src --baseline` (commit the `.dependency-cruiser-known-violations.json` it
+  writes) and change the script to `depcruise src --ignore-known`, so only a new cycle fails.
   `npm run report:dupes` (jscpd on `src/`) is a report and never fails.

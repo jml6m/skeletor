@@ -50,9 +50,9 @@ Project-facing guidance for coding agents and reviewers. Contribution flow is in
 
 ## Checks on skeletor's own source
 
-`lint` (ESLint, any warning fails; no inline disables, so narrow a rule in [eslint.config.js](./eslint.config.js)), `format:check`, `typecheck` (checkJs), `health:dead` (knip) and `health:circular` (madge) gate CI with the tests ([CONTRIBUTING.md](./CONTRIBUTING.md#local-gates)).
+`lint` (ESLint, any warning fails; no inline disables, so narrow a rule in [eslint.config.js](./eslint.config.js)), `format:check`, `typecheck` (checkJs), `health:dead` (knip) and `health:circular` (dependency-cruiser) gate CI with the tests ([CONTRIBUTING.md](./CONTRIBUTING.md#local-gates)).
 
-Update this file when the development process or conventions for skeletor itself change.
+Update this file when skeletor's development process or conventions change.
 
 ## Documentation conventions
 

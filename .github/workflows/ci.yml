@@ -31,7 +31,7 @@ jobs:
       - run: npm run lint:encoding
       - run: npm test
 
-  # ESLint, Prettier, the typecheck, knip and madge over skeletor's own source.
+  # ESLint, Prettier, the typecheck, knip and dependency-cruiser over skeletor's own source.
   checks:
     runs-on: ubuntu-latest
     steps:
