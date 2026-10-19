@@ -1,7 +1,6 @@
 ---
 name: Bug report
 about: Report a defect in the skeletor CLI, a template, a layer, or a generated project
-title: '[BUG] '
 labels: bug
 assignees: ''
 ---
