@@ -1,7 +1,6 @@
 ---
 name: Feature Request
 about: Propose a new feature or enhancement for the skeletor CLI or its templates
-title: '[FEATURE] '
 labels: enhancement
 assignees: ''
 ---
