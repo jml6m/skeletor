@@ -17,13 +17,16 @@
   },
   "main": "dist/index.js",
   "imports": {
-    "#*": "./dist/*"
+    "#*": {
+      "types": "./src/*",
+      "default": "./dist/*"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "health:circular": "madge --circular --extensions ts src",
+    "health:circular": "depcruise src",
     "health:dead": "knip --treat-config-hints-as-errors",
     "lint": "eslint . --max-warnings 0",
     "npm:reinstall": "node scripts/reinstall.js",
@@ -42,6 +45,7 @@
     "@types/jest": "{{PIN_TYPES_JEST}}",
     "@types/node": "{{PIN_TYPES_NODE}}",
     "cross-env": "{{PIN_CROSS_ENV}}",
+    "dependency-cruiser": "{{PIN_DEPENDENCY_CRUISER}}",
     "eslint": "{{PIN_ESLINT}}",
     "eslint-plugin-unused-imports": "{{PIN_ESLINT_PLUGIN_UNUSED_IMPORTS}}",
     "globals": "{{PIN_GLOBALS}}",
@@ -50,7 +54,6 @@
     "jscpd": "{{PIN_JSCPD}}",
     "knip": "{{PIN_KNIP}}",
     "lint-staged": "{{PIN_LINT_STAGED}}",
-    "madge": "{{PIN_MADGE}}",
     "prettier": "{{PIN_PRETTIER}}",
     "prettier-plugin-organize-imports": "{{PIN_PRETTIER_PLUGIN_ORGANIZE_IMPORTS}}",
     "prettier-plugin-pkg": "{{PIN_PRETTIER_PLUGIN_PKG}}",

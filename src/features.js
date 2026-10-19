@@ -35,7 +35,7 @@ const FEATURE_REGISTRY = {
   husky: { gitignore: [] },
   knip: { gitignore: [] },
   jscpd: { gitignore: [{ heading: 'Coverage & reports', patterns: ['report/', 'reports/', '.jscpd/'] }] },
-  madge: { gitignore: [] },
+  'dependency-cruiser': { gitignore: [] },
   python: {
     gitignore: [
       { heading: 'Bytecode / cache', patterns: ['__pycache__/', '*.py[cod]', '.pytest_cache/', '.mypy_cache/', '.ruff_cache/'] },
@@ -81,7 +81,7 @@ const VERIFY_COMMAND_RULES = [
   { test: (cmd) => cmd.startsWith('npm test'), features: ['jest'] },
   { test: (cmd) => cmd.includes('npm run build'), features: ['node'] },
   { test: (cmd) => cmd.includes('npm run health:dead'), features: ['knip'] },
-  { test: (cmd) => cmd.includes('npm run health:circular'), features: ['madge'] },
+  { test: (cmd) => cmd.includes('npm run health:circular'), features: ['dependency-cruiser'] },
   { test: (cmd) => cmd.startsWith('uv '), features: ['python'] },
   { test: (cmd) => cmd.includes('ruff'), features: ['python'] },
   { test: (cmd) => cmd.includes('pytest'), features: ['python'] },

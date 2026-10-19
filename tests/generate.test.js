@@ -89,6 +89,52 @@ function runCommands(projectDir, commands) {
   }
 }
 
+/**
+ * `health:circular` fails on a cycle and on an import that doesn't resolve. In the TypeScript template
+ * `#*` resolves to src/ for it, so a stale dist/ can't hide or invent a cycle, and type-only imports,
+ * which compile away, can't form one. Run after the checks, on an installed and built scaffold.
+ */
+function expectImportCheckFailsClosed(projectDir, templateId) {
+  const passes = () => {
+    try {
+      runCommands(projectDir, ['npm run health:circular']);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const write = (rel, text) => fs.writeFileSync(path.join(projectDir, rel), text);
+  const remove = (...rels) => rels.forEach((rel) => fs.rmSync(path.join(projectDir, rel)));
+
+  if (templateId === 'javascript') {
+    write('src/utils/cycle-a.js', "require('./cycle-b');\n");
+    write('src/utils/cycle-b.js', "require('@utils/cycle-a');\n");
+    expect({ aliasCycle: passes() }).toEqual({ aliasCycle: false });
+    write('src/utils/cycle-b.js', "require('@utils/missing');\n");
+    expect({ unresolvable: passes() }).toEqual({ unresolvable: false });
+    remove('src/utils/cycle-a.js', 'src/utils/cycle-b.js');
+    expect({ restored: passes() }).toEqual({ restored: true });
+    return;
+  }
+
+  // logger -> #config/index.js -> ./env.config.js -> #utils/logger.js, a cycle the built dist/ doesn't have.
+  const envConfig = 'src/config/env.config.ts';
+  const original = fs.readFileSync(path.join(projectDir, envConfig), 'utf8');
+  write(envConfig, `import '#utils/logger.js';\n${original}`);
+  expect({ cycleWithStaleDist: passes() }).toEqual({ cycleWithStaleDist: false });
+  // Built with the cycle, then fixed in src/ only.
+  runCommands(projectDir, ['npm run build']);
+  write(envConfig, original);
+  expect({ fixedWithStaleDist: passes() }).toEqual({ fixedWithStaleDist: true });
+  write('src/utils/missing-import.ts', "import '#utils/missing.js';\n");
+  expect({ unresolvable: passes() }).toEqual({ unresolvable: false });
+  remove('src/utils/missing-import.ts');
+  write('src/utils/type-a.ts', "import type { B } from './type-b.js';\n\nexport interface A {\n  b?: B;\n}\n");
+  write('src/utils/type-b.ts', "import type { A } from '#utils/type-a.js';\n\nexport interface B {\n  a?: A;\n}\n");
+  expect({ typeOnlyCycle: passes() }).toEqual({ typeOnlyCycle: true });
+  remove('src/utils/type-a.ts', 'src/utils/type-b.ts');
+}
+
 // CI installs from the lockfile in a step of its own; every other check is one rendered `- run:` step.
 const INSTALL = new Set(['npm install', 'uv sync']);
 const CANT_FAIL = /\|\|\s*(true|exit 0|node -e)|--no-exit-code/;
@@ -445,6 +491,7 @@ describe('skeletor multi-template scaffolding + verification (steps 3 & 4)', () 
         if (process.env.SKELETOR_VERIFY_COMMANDS === '1') {
           // The checks don't start the app; the TS build's subpath imports only resolve at runtime, so smoke-run it.
           runVerifyCommands(targetDir, tmpl.id === 'typescript' ? [...checks, 'npm start'] : checks);
+          if (['javascript', 'typescript'].includes(tmpl.id)) expectImportCheckFailsClosed(targetDir, tmpl.id);
         }
       } finally {
         cleanup(tempRoot);

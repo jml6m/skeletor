@@ -19,6 +19,10 @@
       "version": "10.1.0",
       "policy": "major"
     },
+    "dependency-cruiser": {
+      "version": "18.6.0",
+      "policy": "major"
+    },
     "eslint": {
       "version": "10.0.0",
       "policy": "major"
@@ -57,10 +61,6 @@
     },
     "lint-staged": {
       "version": "17.0.0",
-      "policy": "major"
-    },
-    "madge": {
-      "version": "8.0.0",
       "policy": "major"
     },
     "prettier": {
